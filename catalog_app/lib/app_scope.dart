@@ -3,19 +3,21 @@ import 'package:material_ui/material_ui.dart';
 import 'data/base.dart';
 import 'data/compras_repo.dart';
 import 'data/fotos.dart';
+import 'data/lotes_repo.dart';
 
 /// Da acceso a la base de datos y a las fotos desde cualquier pantalla.
 class AppScope extends InheritedWidget {
-  const AppScope({
+  AppScope({
     super.key,
     required this.base,
-    required this.compras,
     required this.fotos,
     required super.child,
-  });
+  })  : compras = ComprasRepo(base),
+        lotes = LotesRepo(base);
 
   final CatalogDb base;
   final ComprasRepo compras;
+  final LotesRepo lotes;
   final FotosStore fotos;
 
   static AppScope of(BuildContext context) =>

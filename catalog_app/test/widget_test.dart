@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:catalog/app_scope.dart';
 import 'package:catalog/data/base.dart';
-import 'package:catalog/data/compras_repo.dart';
 import 'package:catalog/data/fotos.dart';
 import 'package:catalog/main.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,7 +21,6 @@ void main() {
     });
     await tester.pumpWidget(AppScope(
       base: base,
-      compras: ComprasRepo(base),
       fotos: FotosStore(Directory.systemTemp),
       child: const CatalogApp(),
     ));

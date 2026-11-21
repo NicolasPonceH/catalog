@@ -10,7 +10,9 @@ import '../widgets/compra_tile.dart';
 import '../widgets/consulta.dart';
 import 'ajustes_screen.dart';
 import 'compra_form_screen.dart';
+import 'escanear_screen.dart';
 import 'historial_screen.dart';
+import 'lotes_screen.dart';
 
 class InicioScreen extends StatefulWidget {
   const InicioScreen({super.key});
@@ -111,9 +113,29 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
             ),
             const SizedBox(height: 10),
             OutlinedButton.icon(
-              onPressed: () => abrir(context, const HistorialScreen()),
-              icon: const Icon(Icons.history),
-              label: const Text('Historial de compras'),
+              onPressed: () => abrir(context, const EscanearScreen()),
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('Escanear sticker'),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _BotonChico(
+                    icono: Icons.history,
+                    texto: 'Historial',
+                    alTocar: () => abrir(context, const HistorialScreen()),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _BotonChico(
+                    icono: Icons.inventory_2_outlined,
+                    texto: 'Lotes',
+                    alTocar: () => abrir(context, const LotesScreen()),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             const Text('Últimas compras', style: etiqueta),
@@ -149,6 +171,32 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
       ),
     );
   }
+}
+
+class _BotonChico extends StatelessWidget {
+  const _BotonChico({required this.icono, required this.texto, required this.alTocar});
+
+  final IconData icono;
+  final String texto;
+  final VoidCallback alTocar;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: alTocar,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Column(
+              children: [
+                Icon(icono, color: CatalogColors.marino),
+                const SizedBox(height: 4),
+                Text(texto, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class _AvisoPrefijo extends StatelessWidget {
