@@ -1,0 +1,8 @@
+# La llave de firma y sus contraseñas NO van al historial (se respaldan aparte).
+llaves/
+**/key.properties
+*.jks
+*.keystore
+
+# Los APK compilados se guardan en apk/, fuera del historial (son pesados).
+apk/
