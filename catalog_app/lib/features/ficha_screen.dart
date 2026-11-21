@@ -6,9 +6,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../app_scope.dart';
 import '../data/compra.dart';
 import '../domain/formato.dart';
+import '../printing/etiqueta.dart';
+import '../printing/imprimir.dart';
 import '../theme.dart';
 import '../widgets/consulta.dart';
-import '../widgets/qr_vista.dart';
 import 'compra_form_screen.dart';
 
 /// Toda la información de un catalítico. La fecha de compra va arriba.
@@ -122,6 +123,8 @@ class _FichaScreenState extends State<FichaScreen> {
                 const SizedBox(height: 14),
                 _tarjetaFecha(c),
                 const SizedBox(height: 12),
+                _tarjetaSticker(c),
+                const SizedBox(height: 12),
                 _detalles(c),
                 if (c.tieneUbicacion) ...[
                   const SizedBox(height: 12),
@@ -135,8 +138,6 @@ class _FichaScreenState extends State<FichaScreen> {
                   const SizedBox(height: 12),
                   _foto(c.fotoPath!),
                 ],
-                const SizedBox(height: 12),
-                _tarjetaQr(c),
               ],
             ),
           ),
@@ -250,21 +251,43 @@ class _FichaScreenState extends State<FichaScreen> {
     );
   }
 
-  Widget _tarjetaQr(Compra c) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              QrVista(datos: c.codigo, tamano: 110),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Text(
-                  'Este es el código del sticker. La impresión por Bluetooth llega en la próxima versión.',
-                  style: TextStyle(fontSize: 14, height: 1.35, color: CatalogColors.acero),
-                ),
-              ),
-            ],
-          ),
+  Widget _tarjetaSticker(Compra c) {
+    final datos = DatosEtiqueta.deCompra(c);
+    final veces = c.impresiones == 1 ? '1 vez' : '${c.impresiones} veces';
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Expanded(child: Text('Sticker', style: etiqueta)),
+                if (c.impresiones > 0) Text('Impreso $veces', style: etiqueta),
+              ],
+            ),
+            const SizedBox(height: 8),
+            EtiquetaVista(datos: datos),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: c.anulada ? null : () => imprimirSticker(context, datos, compraId: c.id),
+              icon: const Icon(Icons.print_outlined),
+              label: Text(c.impresiones == 0 ? 'Imprimir sticker' : 'Reimprimir sticker'),
+            ),
+            TextButton.icon(
+              onPressed: () async {
+                try {
+                  await compartirSticker(datos);
+                } catch (e) {
+                  if (mounted) avisar(context, 'No se pudo compartir: $e');
+                }
+              },
+              icon: const Icon(Icons.share_outlined),
+              label: const Text('Compartir sticker como imagen'),
+            ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }

@@ -132,6 +132,12 @@ class ComprasRepo {
     base.avisarCambio();
   }
 
+  /// Suma una impresión del sticker.
+  Future<void> marcarImpresion(int id) async {
+    await _db.rawUpdate('UPDATE compras SET impresiones = impresiones + 1 WHERE id = ?', [id]);
+    base.avisarCambio();
+  }
+
   // ---------- Leer ----------
 
   Future<Compra?> obtener(int id) async {

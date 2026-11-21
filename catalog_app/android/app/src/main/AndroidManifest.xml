@@ -1,7 +1,20 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- GPS para guardar dónde se compró cada catalítico (funciona sin internet). -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Cámara para escanear stickers y fotografiar catalíticos. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Impresora térmica Bluetooth (Android 12 en adelante usa "Dispositivos cercanos"). -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" tools:node="replace"/>
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" tools:node="replace"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" tools:node="replace"/>
+    <!-- La app no usa internet: se quita el permiso que agrega la librería de impresión. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove"/>
     <application
         android:label="CataLog"
         android:name="${applicationName}"
