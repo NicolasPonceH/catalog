@@ -17,7 +17,8 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "cl.catalog.catalog"
-    compileSdk = flutter.compileSdkVersion
+    // permission_handler pide compilar contra Android 37 (no cambia en qué teléfonos se instala).
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
