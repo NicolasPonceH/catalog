@@ -46,8 +46,12 @@ class _ConsultaState<T> extends State<Consulta<T>> {
 
   Future<void> _recargar() async {
     final vuelta = ++_vuelta;
-    final dato = await widget.cargar();
-    if (mounted && vuelta == _vuelta) setState(() => _dato = dato);
+    try {
+      final dato = await widget.cargar();
+      if (mounted && vuelta == _vuelta) setState(() => _dato = dato);
+    } catch (_) {
+      // La base puede estar cerrándose mientras se restaura un respaldo.
+    }
   }
 
   @override

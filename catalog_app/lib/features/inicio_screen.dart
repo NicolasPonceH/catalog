@@ -69,6 +69,17 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
               builder: (context, configurado) =>
                   configurado == false ? const _AvisoPrefijo() : const SizedBox.shrink(),
             ),
+            Consulta<String?>(
+              claves: [_ahora],
+              cargar: repo.avisoRespaldo,
+              builder: (context, aviso) => aviso == null
+                  ? const SizedBox.shrink()
+                  : _Aviso(
+                      icono: Icons.backup_outlined,
+                      texto: '$aviso Toca para respaldar.',
+                      alTocar: () => abrir(context, const AjustesScreen()),
+                    ),
+            ),
             Text(mes.nombre, style: etiqueta),
             const SizedBox(height: 6),
             Consulta<Resumen>(
@@ -202,6 +213,37 @@ class _BotonChico extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(texto, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _Aviso extends StatelessWidget {
+  const _Aviso({required this.icono, required this.texto, required this.alTocar});
+
+  final IconData icono;
+  final String texto;
+  final VoidCallback alTocar;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Card(
+          color: CatalogColors.naranjaClara,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: alTocar,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Icon(icono, color: CatalogColors.marino),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(texto, style: const TextStyle(fontSize: 14, height: 1.35))),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
             ),
           ),
         ),

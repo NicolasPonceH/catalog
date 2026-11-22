@@ -1,7 +1,16 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../app_scope.dart';
+import '../backup/respaldo.dart';
 import '../domain/codigo.dart';
+import '../domain/formato.dart';
+import '../widgets/consulta.dart';
 import '../printing/etiqueta.dart';
 import '../printing/impresora.dart';
 import '../printing/imprimir.dart';
@@ -22,7 +31,90 @@ class _AjustesScreenState extends State<AjustesScreen> {
 
   ImpresoraGuardada? _impresora;
   bool _buscando = false;
+  bool _respaldando = false;
   String _ancho = '58';
+
+  String _dos(int n) => n.toString().padLeft(2, '0');
+
+  Future<void> _respaldar() async {
+    final scope = AppScope.of(context);
+    setState(() => _respaldando = true);
+    try {
+      final zip = await armarRespaldo(scope.base, scope.fotos.carpetaBase);
+      final pref = await scope.compras.prefijo();
+      final t = DateTime.now();
+      final nombre = 'CataLog-respaldo-$pref-${t.year}${_dos(t.month)}${_dos(t.day)}-${_dos(t.hour)}${_dos(t.minute)}.zip';
+      final archivo = File(p.join((await getTemporaryDirectory()).path, nombre));
+      await archivo.writeAsBytes(zip, flush: true);
+      final r = await SharePlus.instance.share(ShareParams(
+        files: [XFile(archivo.path, mimeType: 'application/zip')],
+        text: 'Respaldo de CataLog',
+      ));
+      if (r.status == ShareResultStatus.dismissed) {
+        if (mounted) avisar(context, 'No se envió el respaldo');
+      } else {
+        await scope.compras.registrarRespaldo();
+        if (mounted) avisar(context, 'Respaldo creado. Guárdalo en tu correo o Drive.');
+      }
+    } catch (e) {
+      if (mounted) avisar(context, 'No se pudo crear el respaldo: $e');
+    } finally {
+      if (mounted) setState(() => _respaldando = false);
+    }
+  }
+
+  Future<void> _restaurar() async {
+    final scope = AppScope.of(context);
+    final elegido = await FilePicker.pickFile(type: FileType.any);
+    if (elegido == null || !mounted) return;
+    ContenidoRespaldo contenido;
+    try {
+      contenido = leerRespaldo(await elegido.readAsBytes());
+    } on RespaldoInvalido catch (e) {
+      if (mounted) avisar(context, e.mensaje);
+      return;
+    } catch (e) {
+      if (mounted) avisar(context, 'No se pudo leer el archivo: $e');
+      return;
+    }
+    final actuales = await scope.compras.contarCompras();
+    if (!mounted) return;
+    final creado = contenido.creado;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restaurar respaldo'),
+        content: Text(
+          'El respaldo${creado != null ? ' es del ${fechaHora(creado)} y' : ''} tiene '
+          '${contenido.compras} compras'
+          '${contenido.prefijo.isNotEmpty ? ' (prefijo ${contenido.prefijo})' : ''}.\n\n'
+          'Va a reemplazar los datos de este teléfono ($actuales compras). Antes se guarda '
+          'una copia de lo actual dentro del teléfono, por si acaso.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Restaurar')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final reemplazar = scope.reemplazarDatos;
+    if (reemplazar == null) return;
+    setState(() => _respaldando = true);
+    try {
+      await guardarCopiaLocal(await armarRespaldo(scope.base, scope.fotos.carpetaBase), scope.fotos.carpetaBase);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _respaldando = false);
+        avisar(context, 'No se pudo guardar la copia de seguridad, no se restauró nada: $e');
+      }
+      return;
+    }
+    await reemplazar(
+      (ruta) => aplicarRespaldo(contenido, rutaBase: ruta, carpetaBase: scope.fotos.carpetaBase),
+      mensaje: 'Datos restaurados: ${contenido.compras} compras',
+    );
+  }
 
   @override
   void didChangeDependencies() {
@@ -236,6 +328,37 @@ class _AjustesScreenState extends State<AjustesScreen> {
                 'Las clásicas se emparejan primero en Ajustes de Android > Bluetooth (PIN 0000 o 1234). '
                 'Si un equipo aparece dos veces y uno no imprime, prueba con el otro. '
                 'Para que el sticker pegue, usa rollos térmicos adhesivos.',
+                style: TextStyle(fontSize: 14, height: 1.4, color: CatalogColors.acero),
+              ),
+
+              const SizedBox(height: 32),
+              const _Titulo('Respaldo'),
+              Consulta<DateTime?>(
+                cargar: AppScope.of(context).compras.ultimoRespaldo,
+                builder: (context, ultimo) => Text(
+                  ultimo == null ? 'Todavía no se ha hecho ningún respaldo.' : 'Último respaldo: ${fechaHora(ultimo)}',
+                  style: const TextStyle(fontSize: 15),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: _respaldando ? null : _respaldar,
+                icon: _respaldando
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.backup_outlined),
+                label: const Text('Crear respaldo y enviarlo'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: _respaldando ? null : _restaurar,
+                icon: const Icon(Icons.settings_backup_restore),
+                label: const Text('Restaurar desde un respaldo'),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'El respaldo es un archivo .zip con todas las compras y sus fotos. Envíalo a tu '
+                'correo, Google Drive o WhatsApp. Si cambias o pierdes el teléfono, instala '
+                'CataLog en el nuevo y restaura ese archivo.',
                 style: TextStyle(fontSize: 14, height: 1.4, color: CatalogColors.acero),
               ),
 

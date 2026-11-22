@@ -41,6 +41,46 @@ class ComprasRepo {
 
   Future<String> prefijo() async => (await leerAjuste('prefijo')) ?? prefijoPorDefecto;
 
+  // ---------- Respaldo ----------
+
+  static const _claveUltimoRespaldo = 'ultimo_respaldo';
+
+  Future<void> registrarRespaldo() => guardarAjuste(_claveUltimoRespaldo, _reloj().toIso8601String());
+
+  Future<DateTime?> ultimoRespaldo() async =>
+      DateTime.tryParse(await leerAjuste(_claveUltimoRespaldo) ?? '');
+
+  Future<int> contarCompras() async =>
+      Sqflite.firstIntValue(await _db.rawQuery('SELECT COUNT(*) FROM compras')) ?? 0;
+
+  /// Mensaje para recordar el respaldo, o null si no hace falta todavía.
+  /// Aparece si hay compras sin respaldar y pasó una semana (o un día si nunca
+  /// se respaldó), o si se acumularon muchas.
+  Future<String?> avisoRespaldo() async {
+    final ultimo = await ultimoRespaldo();
+    final filas = await _db.rawQuery(
+      'SELECT COUNT(*) AS n, MIN(creado_en) AS primera FROM compras'
+      '${ultimo != null ? ' WHERE creado_en > ?' : ''}',
+      ultimo != null ? [ms(ultimo)] : null,
+    );
+    final n = filas.first['n']! as int;
+    if (n == 0) return null;
+    final ahora = _reloj();
+    final compras = n == 1 ? '1 compra' : '$n compras';
+    if (ultimo == null) {
+      final primera = deMs(filas.first['primera']);
+      if (ahora.difference(primera) >= const Duration(days: 1) || n >= 10) {
+        return 'Todavía no has hecho un respaldo: $compras están solo en este teléfono.';
+      }
+      return null;
+    }
+    final dias = ahora.difference(ultimo).inDays;
+    if (dias >= 7 || n >= 20) {
+      return 'Hace $dias días que no respaldas y hay $compras sin respaldar.';
+    }
+    return null;
+  }
+
   // ---------- Guardar ----------
 
   /// Guarda una compra nueva y le asigna su código con la FECHA DE COMPRA.
