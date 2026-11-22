@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Ícono CataLog — Lectura en terreno">
+  <title>Ícono CataLog — Lectura en terreno</title>
+  <rect width="64" height="64" fill="#0E2A47"/>
+  <g transform="rotate(-35 32 32)"><rect x="12" y="29" width="8" height="6" fill="#FF7A1A"/><rect x="44" y="29" width="8" height="6" fill="#FF7A1A"/><path fill="#F4F6F8" fill-rule="evenodd" d="M18 28L25 22H39L46 28V36L39 42H25L18 36Z M25 26H38L42 30V34L38 38H25L22 34V30Z"/><rect x="26" y="28" width="3" height="8" fill="#FF7A1A"/><rect x="31" y="28" width="2" height="8" fill="#FF7A1A"/><rect x="35" y="28" width="3" height="8" fill="#FF7A1A"/></g>
+</svg>

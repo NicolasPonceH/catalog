@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 64" width="784" height="256">
+  <style>@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&amp;display=swap');</style>
+  <g transform="translate(-6 0)">
+    <rect x="6" y="28.5" width="13" height="7" rx="2.5" fill="#FF7A1A"/>
+    <rect x="45" y="28.5" width="13" height="7" rx="2.5" fill="#FF7A1A"/>
+    <path fill="#0E2A47" fill-rule="evenodd" d="M27 18H37A12 12 0 0 1 49 30V34A12 12 0 0 1 37 46H27A12 12 0 0 1 15 34V30A12 12 0 0 1 27 18Z M22 25.5h2.2v13H22Z M25.6 25.5h1.1v13h-1.1Z M28 25.5h2.6v13H28Z M32 25.5h1.1v13H32Z M34.6 25.5h2.2v13h-2.2Z M38.2 25.5h1.1v13h-1.1Z M40.5 25.5h1.8v13h-1.8Z"/>
+  </g>
+  <text x="62" y="43" font-family="'Space Grotesk', Arial, sans-serif" font-weight="700" font-size="30" letter-spacing="-0.5"><tspan fill="#0E2A47">Cata</tspan><tspan fill="#FF7A1A">Log</tspan></text>
+</svg>
