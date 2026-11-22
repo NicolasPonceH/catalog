@@ -20,8 +20,8 @@ class _AjustesScreenState extends State<AjustesScreen> {
   final _nombre = TextEditingController();
   bool _cargado = false;
 
-  String? _impresoraNombre;
-  String? _impresoraMac;
+  ImpresoraGuardada? _impresora;
+  bool _buscando = false;
   String _ancho = '58';
 
   @override
@@ -37,15 +37,13 @@ class _AjustesScreenState extends State<AjustesScreen> {
     final repo = AppScope.of(context).compras;
     final p = await repo.leerAjuste('prefijo');
     final n = await repo.leerAjuste('nombre');
-    final mac = await repo.leerAjuste(claveImpresoraMac);
-    final nom = await repo.leerAjuste(claveImpresoraNombre);
+    final imp = ImpresoraGuardada.deTexto(await repo.leerAjuste(claveImpresora));
     final ancho = await repo.leerAjuste(claveAnchoPapel);
     if (!mounted) return;
     setState(() {
       _prefijo.text = p ?? prefijoPorDefecto;
       _nombre.text = n ?? '';
-      _impresoraMac = mac;
-      _impresoraNombre = nom;
+      _impresora = imp;
       _ancho = ancho ?? '58';
     });
   }
@@ -60,53 +58,71 @@ class _AjustesScreenState extends State<AjustesScreen> {
 
   Future<void> _elegirImpresora() async {
     final repo = AppScope.of(context).compras;
-    List<ImpresoraBt> lista;
+    setState(() => _buscando = true);
+    List<ImpresoraEncontrada> lista;
     try {
-      lista = await Impresora.emparejadas();
+      lista = await Impresora.buscar();
     } on ErrorImpresora catch (e) {
       if (mounted) avisar(context, e.mensaje);
       return;
+    } finally {
+      if (mounted) setState(() => _buscando = false);
     }
     if (!mounted) return;
-    final elegida = await showModalBottomSheet<ImpresoraBt>(
+    final elegida = await showModalBottomSheet<ImpresoraEncontrada>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (context) => SafeArea(
-        child: lista.isEmpty
-            ? const Padding(
-                padding: EdgeInsets.all(20),
-                child: Text(
-                  'No hay equipos Bluetooth emparejados. Enciende la impresora, ve a '
-                  'Ajustes de Android > Bluetooth, emparéjala (el PIN suele ser 0000 o 1234) '
-                  'y vuelve a intentar.',
-                  style: TextStyle(fontSize: 15, height: 1.4),
-                ),
-              )
-            : ListView(
-                shrinkWrap: true,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
-                    child: Text('Elige la impresora', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+          child: lista.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text(
+                    'No se encontró ningún equipo. Enciende la impresora y acércala al teléfono. '
+                    'Si es una impresora "clásica", emparéjala primero en Ajustes de Android > '
+                    'Bluetooth (el PIN suele ser 0000 o 1234).',
+                    style: TextStyle(fontSize: 15, height: 1.4),
                   ),
-                  for (final b in lista)
-                    ListTile(
-                      leading: const Icon(Icons.print_outlined),
-                      title: Text(b.nombre.isEmpty ? 'Sin nombre' : b.nombre),
-                      subtitle: Text(b.mac, style: mono(size: 12, weight: FontWeight.w400)),
-                      onTap: () => Navigator.pop(context, b),
+                )
+              : ListView(
+                  shrinkWrap: true,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+                      child: Text('Elige la impresora',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
                     ),
-                ],
-              ),
+                    for (final b in lista)
+                      ListTile(
+                        leading: Icon(b.pareceImpresora ? Icons.print_outlined : Icons.bluetooth),
+                        title: Text(b.nombre.isEmpty ? 'Sin nombre' : b.nombre),
+                        subtitle: Text(
+                          '${b.conexion == Conexion.clasica ? 'Bluetooth clásico (emparejada)' : 'Bluetooth BLE'}'
+                          ' · ${b.id}',
+                          style: etiqueta,
+                        ),
+                        onTap: () => Navigator.pop(context, b),
+                      ),
+                  ],
+                ),
+        ),
       ),
     );
-    if (elegida == null) return;
-    await repo.guardarAjuste(claveImpresoraMac, elegida.mac);
-    await repo.guardarAjuste(claveImpresoraNombre, elegida.nombre);
-    setState(() {
-      _impresoraMac = elegida.mac;
-      _impresoraNombre = elegida.nombre;
-    });
+    if (elegida == null || !mounted) return;
+    setState(() => _buscando = true);
+    try {
+      final imp = await Impresora.preparar(elegida);
+      await repo.guardarAjuste(claveImpresora, imp.aTexto());
+      if (!mounted) return;
+      setState(() => _impresora = imp);
+      avisar(context, '${imp.nombre} lista (${imp.descripcion}). Imprime una prueba.');
+    } on ErrorImpresora catch (e) {
+      if (mounted) avisar(context, e.mensaje);
+    } finally {
+      if (mounted) setState(() => _buscando = false);
+    }
   }
 
   Future<void> _cambiarAncho(String ancho) async {
@@ -180,11 +196,16 @@ class _AjustesScreenState extends State<AjustesScreen> {
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.print_outlined),
-                  title: Text(_impresoraMac == null
+                  title: Text(_impresora == null
                       ? 'Ninguna elegida'
-                      : (_impresoraNombre?.isNotEmpty ?? false) ? _impresoraNombre! : 'Impresora'),
-                  subtitle: _impresoraMac == null ? null : Text(_impresoraMac!, style: etiqueta),
-                  trailing: TextButton(onPressed: _elegirImpresora, child: const Text('Elegir')),
+                      : _impresora!.nombre.isNotEmpty ? _impresora!.nombre : 'Impresora'),
+                  subtitle: _impresora == null ? null : Text(_impresora!.descripcion, style: etiqueta),
+                  trailing: _buscando
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                      : TextButton(
+                          onPressed: _elegirImpresora,
+                          child: Text(_impresora == null ? 'Buscar' : 'Cambiar'),
+                        ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -204,15 +225,17 @@ class _AjustesScreenState extends State<AjustesScreen> {
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
-                onPressed: _impresoraMac == null ? _elegirImpresora : _imprimirPrueba,
+                onPressed: _buscando ? null : (_impresora == null ? _elegirImpresora : _imprimirPrueba),
                 icon: const Icon(Icons.receipt_long_outlined),
                 label: const Text('Imprimir sticker de prueba'),
               ),
               const SizedBox(height: 8),
               const Text(
-                'Primero empareja la impresora en Ajustes de Android > Bluetooth '
-                '(el PIN suele ser 0000 o 1234). Para que el sticker pegue, usa rollos '
-                'térmicos adhesivos.',
+                'Funciona con impresoras térmicas Bluetooth clásicas, BLE y las mini impresoras '
+                'de AliExpress (las de apps como iPrint o Fun Print). CataLog detecta el tipo solo. '
+                'Las clásicas se emparejan primero en Ajustes de Android > Bluetooth (PIN 0000 o 1234). '
+                'Si un equipo aparece dos veces y uno no imprime, prueba con el otro. '
+                'Para que el sticker pegue, usa rollos térmicos adhesivos.',
                 style: TextStyle(fontSize: 14, height: 1.4, color: CatalogColors.acero),
               ),
 
