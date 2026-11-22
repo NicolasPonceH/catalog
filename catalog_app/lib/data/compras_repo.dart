@@ -196,6 +196,18 @@ class ComprasRepo {
     return filas.map(Compra.deFila).toList();
   }
 
+  /// Todas las compras del período (o todas si es null), de la más vieja a la
+  /// más nueva por fecha de compra. Incluye las anuladas (el Excel las marca).
+  Future<List<Compra>> comprasDelPeriodo(Periodo? p) async {
+    final filas = await _db.query(
+      'compras',
+      where: p == null ? null : 'fecha_compra >= ? AND fecha_compra < ?',
+      whereArgs: p == null ? null : [ms(p.desde), ms(p.hasta)],
+      orderBy: 'fecha_compra ASC, id ASC',
+    );
+    return filas.map(Compra.deFila).toList();
+  }
+
   /// Sugerencias para autocompletar, las usadas más recientemente primero.
   Future<List<String>> sugerencias(String columna) async {
     const permitidas = {'vendedor', 'lugar', 'autos'};

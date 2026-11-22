@@ -5,6 +5,7 @@ import '../app_scope.dart';
 import '../data/compra.dart';
 import '../data/lotes_repo.dart';
 import '../domain/formato.dart';
+import '../reports/excel.dart';
 import '../theme.dart';
 import '../widgets/compra_tile.dart';
 import '../widgets/consulta.dart';
@@ -94,6 +95,26 @@ class _LoteScreenState extends State<LoteScreen> {
     }
   }
 
+  Future<void> _exportar(Lote lote) async {
+    final scope = AppScope.of(context);
+    try {
+      final items = await scope.lotes.items(lote.id);
+      if (items.isEmpty) {
+        if (mounted) avisar(context, 'El lote todavía no tiene catalíticos');
+        return;
+      }
+      final comprador = await scope.compras.leerAjuste('nombre') ?? '';
+      final total = items.where((i) => !i.compra.anulada).fold<int>(0, (s, i) => s + i.compra.precio);
+      await compartirExcel(
+        excelDeLote(lote, items, comprador: comprador),
+        'CataLog ${lote.nombre}.xlsx',
+        texto: '${lote.nombre} · ${items.length} catalíticos · ${clp(total)}',
+      );
+    } catch (e) {
+      if (mounted) avisar(context, 'No se pudo crear el Excel: $e');
+    }
+  }
+
   Future<void> _quitar(ItemLote item) async {
     await AppScope.of(context).lotes.quitar(widget.loteId, item.compra.id);
     if (mounted) avisar(context, '${item.compra.codigo} quitado del lote');
@@ -113,6 +134,11 @@ class _LoteScreenState extends State<LoteScreen> {
           appBar: AppBar(
             title: Text(lote.nombre, overflow: TextOverflow.ellipsis),
             actions: [
+              IconButton(
+                tooltip: 'Exportar a Excel',
+                icon: const Icon(Icons.table_view_outlined),
+                onPressed: () => _exportar(lote),
+              ),
               PopupMenuButton<String>(
                 onSelected: (v) => switch (v) {
                   'renombrar' => _renombrar(lote),

@@ -13,6 +13,7 @@ import 'compra_form_screen.dart';
 import 'escanear_screen.dart';
 import 'historial_screen.dart';
 import 'lotes_screen.dart';
+import 'reportes_screen.dart';
 
 class InicioScreen extends StatefulWidget {
   const InicioScreen({super.key});
@@ -133,6 +134,14 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
                     icono: Icons.inventory_2_outlined,
                     texto: 'Lotes',
                     alTocar: () => abrir(context, const LotesScreen()),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _BotonChico(
+                    icono: Icons.bar_chart,
+                    texto: 'Reportes',
+                    alTocar: () => abrir(context, const ReportesScreen()),
                   ),
                 ),
               ],
