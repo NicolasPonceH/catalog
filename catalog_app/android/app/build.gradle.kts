@@ -71,3 +71,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Tema AppCompat que pide el bloqueo con huella (local_auth) en Android antiguos.
+    implementation("androidx.appcompat:appcompat:1.7.0")
+}

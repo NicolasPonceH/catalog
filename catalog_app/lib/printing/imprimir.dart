@@ -6,32 +6,29 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../app_scope.dart';
+import '../data/dispositivo.dart';
 import '../features/ajustes_screen.dart';
 import 'etiqueta.dart';
 import 'impresora.dart';
 import 'raster.dart';
 
-const claveImpresora = 'impresora';
-const claveAnchoPapel = 'ancho_papel';
-
-/// Imprime un sticker con la impresora elegida en Ajustes.
-/// Si se indica [compraId], suma una impresión a esa compra.
+/// Imprime un sticker con la impresora elegida en Ajustes (es la misma en todas
+/// las sesiones). Si se indica [compraId], suma una impresión a esa compra.
 Future<bool> imprimirSticker(BuildContext context, DatosEtiqueta datos, {int? compraId}) async {
-  final repo = AppScope.of(context).compras;
-  final impresora = ImpresoraGuardada.deTexto(await repo.leerAjuste(claveImpresora));
-  if (!context.mounted) return false;
+  final scope = AppScope.of(context);
+  final dispositivo = scope.dispositivo;
+  final impresora = ImpresoraGuardada.deTexto(dispositivo?.leer(AjustesDispositivo.impresora));
   if (impresora == null) {
     avisar(context, 'Primero elige la impresora en Ajustes');
     await abrir(context, const AjustesScreen());
     return false;
   }
-  final ancho80 = (await repo.leerAjuste(claveAnchoPapel)) == '80' && !impresora.soloAnchoChico;
-  if (!context.mounted) return false;
+  final ancho80 = dispositivo?.leer(AjustesDispositivo.anchoPapel) == '80' && !impresora.soloAnchoChico;
   avisar(context, 'Imprimiendo sticker…');
   try {
     final mono = await aMonocromo(await renderizarEtiqueta(datos, anchoPx: ancho80 ? 576 : 384));
     await Impresora.imprimir(impresora, mono);
-    if (compraId != null) await repo.marcarImpresion(compraId);
+    if (compraId != null && !scope.soloLectura) await scope.compras.marcarImpresion(compraId);
     if (context.mounted) avisar(context, 'Sticker enviado a la impresora');
     return true;
   } on ErrorImpresora catch (e) {

@@ -13,6 +13,10 @@
         android:maxSdkVersion="30" tools:node="replace"/>
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
         android:maxSdkVersion="30" tools:node="replace"/>
+    <!-- Copia diaria en Descargas en teléfonos con Android 9 o anterior. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
+    <!-- Bloqueo con huella. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <!-- La app no usa internet: se quita el permiso que agrega la librería de impresión. -->
     <uses-permission android:name="android.permission.INTERNET" tools:node="remove"/>
     <application
@@ -39,6 +43,23 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- Abrir un respaldo o datos de CataLog (.zip) tocándolo en WhatsApp, correo, etc. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:scheme="content"/>
+                <data android:scheme="file"/>
+                <data android:mimeType="application/zip"/>
+                <data android:mimeType="application/x-zip-compressed"/>
+                <data android:mimeType="application/octet-stream"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="application/zip"/>
+                <data android:mimeType="application/x-zip-compressed"/>
+                <data android:mimeType="application/octet-stream"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

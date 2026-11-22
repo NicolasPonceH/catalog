@@ -43,8 +43,15 @@ Future<String?> _ajuste(Database db, String clave) async {
   return filas.isEmpty ? null : filas.first['valor'] as String?;
 }
 
-/// Arma el .zip con la base de datos y las fotos.
-Future<Uint8List> armarRespaldo(CatalogDb base, Directory carpetaBase, {DateTime? ahora}) async {
+/// Arma el .zip con la base de datos y (si se pide) las fotos.
+/// [tipo] es 'respaldo' o 'traspaso' (solo informativo).
+Future<Uint8List> armarRespaldo(
+  CatalogDb base,
+  Directory carpetaBase, {
+  DateTime? ahora,
+  bool incluirFotos = true,
+  String tipo = 'respaldo',
+}) async {
   final db = base.db;
   try {
     await db.rawQuery('PRAGMA wal_checkpoint(TRUNCATE)');
@@ -55,7 +62,7 @@ Future<Uint8List> armarRespaldo(CatalogDb base, Directory carpetaBase, {DateTime
   final zip = Archive();
   var fotos = 0;
   final carpetaFotos = Directory(p.join(carpetaBase.path, 'fotos'));
-  if (await carpetaFotos.exists()) {
+  if (incluirFotos && await carpetaFotos.exists()) {
     for (final f in carpetaFotos.listSync().whereType<File>()) {
       zip.addFile(ArchiveFile.bytes('fotos/${p.basename(f.path)}', await f.readAsBytes()));
       fotos++;
@@ -63,6 +70,7 @@ Future<Uint8List> armarRespaldo(CatalogDb base, Directory carpetaBase, {DateTime
   }
   final manifiesto = {
     'app': 'CataLog',
+    'tipo': tipo,
     'version': versionRespaldo,
     'esquema': versionBaseDatos,
     'creado': (ahora ?? DateTime.now()).toIso8601String(),

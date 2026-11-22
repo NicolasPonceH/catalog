@@ -67,9 +67,32 @@ En **Reportes** eliges el período: hoy, semana, mes, unas fechas o todo. Ahí v
 
 Las compras viven solo en el teléfono. Si se pierde o se rompe, se pierden. Para evitarlo:
 
-- **Ajustes > Crear respaldo y enviarlo**, una vez por semana. Mándalo a tu correo o Google Drive.
+- **Copia automática:** cada día CataLog guarda sola una copia en **Descargas/CataLog** (se conservan las 3 últimas). Esa carpeta **no se borra si desinstalas la app**.
+- **Respaldo para guardar afuera:** botón de flechas del Inicio (o Ajustes) **> Crear respaldo y enviarlo**, una vez por semana, a tu correo, Drive o WhatsApp. Esto protege si se pierde el teléfono.
 - CataLog te recuerda en el Inicio cuando toca hacerlo.
-- En un teléfono nuevo: instala CataLog y entra a **Ajustes > Restaurar desde un respaldo**.
+- **En un teléfono nuevo o después de reinstalar:** instala CataLog, toca el archivo de respaldo (en WhatsApp, Drive o Descargas) y elige **Abrir con CataLog > Reemplazar mis compras**. También se puede desde **Ajustes > Restaurar desde un respaldo**.
+
+## 9. Pasar las compras a otro celular (sesiones)
+
+CataLog separa los datos en **sesiones**:
+
+- **Sesión de compra:** tus compras. Ahí registras, imprimes y ves tus totales.
+- **Sesión de revisión:** datos que te mandó otro celular. Se pueden escanear, ver las fichas, armar lotes y sacar reportes, pero **no se mezclan con tus compras** ni se pueden modificar.
+
+**Para mandar tus compras** (por ejemplo, para que tu tío revise y escanee los catalíticos que le entregas):
+1. Botón de flechas del Inicio **> Enviar mis compras a otro celular**.
+2. Elige con o sin fotos (sin fotos pesa menos) y mándalo por WhatsApp o por donde quieras.
+
+**Para recibirlas en el otro celular:**
+1. Toca el archivo en WhatsApp y elige **Abrir con CataLog** (o, en CataLog, **Recibir datos de otro celular**).
+2. Elige **Abrir para revisar**. Arriba del Inicio aparece "Sesión de revisión".
+3. Para volver a tus compras: **Volver a mis compras**, o botón de flechas **> Cambiar de sesión**.
+
+Si te vuelven a mandar datos del mismo teléfono, la revisión se actualiza (no se duplica).
+
+## 10. Bloqueo con huella o PIN
+
+En **Ajustes > Seguridad** activa **Pedir huella o PIN al abrir**. CataLog usa el bloqueo del teléfono (huella, rostro, PIN o patrón) y lo vuelve a pedir si la app estuvo cerrada más de 2 minutos.
 
 ## Si algo falla
 

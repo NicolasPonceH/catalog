@@ -99,7 +99,8 @@ class _FichaScreenState extends State<FichaScreen> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Catalítico'),
-            actions: [
+            // En una sesión de revisión los datos son de otro celular: no se corrigen.
+            actions: AppScope.of(context).soloLectura ? const [] : [
               IconButton(
                 tooltip: 'Corregir',
                 icon: const Icon(Icons.edit_outlined),
