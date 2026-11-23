@@ -1,9 +1,12 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:path_drawing/path_drawing.dart';
 
 import '../theme.dart';
 
-/// Símbolo de CataLog: un catalítico (cuerpo con código de barras) con sus
-/// tubos. Se dibuja con código para usarlo igual en pantalla y en el sticker.
+/// Símbolo de CataLog (logo refinado): catalítico de cuerpo facetado con su
+/// código de barras calado y los tubos con brida. Se dibuja con las mismas
+/// formas del SVG (marca/catalog-icono.svg) para usarlo igual en pantalla y en
+/// el sticker.
 class CatalogMarkPainter extends CustomPainter {
   const CatalogMarkPainter({
     this.cuerpo = CatalogColors.marino,
@@ -14,43 +17,38 @@ class CatalogMarkPainter extends CustomPainter {
   final Color cuerpo;
   final Color tubos;
 
-  // Geometría en una caja de 64 x 64 (igual que catalog-icono.svg).
-  static const _vx = 6.0, _vy = 18.0, _vw = 52.0, _vh = 28.0;
-  static const _barras = <(double, double)>[
-    (22, 2.2), (25.6, 1.1), (28, 2.6), (32, 1.1), (34.6, 2.2), (38.2, 1.1), (40.5, 1.8),
-  ];
+  static final Path _tubos = parseSvgPathData(
+    'M7.2 27.3h2.6l1.1 1.4h10v6.6h-10l-1.1 1.4H7.2A1.2 1.2 0 0 1 6 35.5v-7a1.2 1.2 0 0 1 1.2-1.2Z'
+    'M45 28.6h11.6a1.4 1.4 0 0 1 1.4 1.4v4a1.4 1.4 0 0 1-1.4 1.4H45Z',
+  )..fillType = PathFillType.evenOdd;
+
+  static final Path _cuerpo = parseSvgPathData(
+    'M15 29.1a2.3 2.3 0 0 1 .7-1.7l8.8-7.9a2.3 2.3 0 0 1 1.6-.6h14.5a2.3 2.3 0 0 1 1.8.8l6.1 7.3'
+    'a2.3 2.3 0 0 1 .5 1.5v7a2.3 2.3 0 0 1-.5 1.5l-6.1 7.3a2.3 2.3 0 0 1-1.8.8H26.1a2.3 2.3 0 0 1-1.6-.6'
+    'l-8.8-7.9a2.3 2.3 0 0 1-.7-1.7Z'
+    'M22.6 25.4h2.7v13.2h-2.7Zm4.5 0h1.7v13.2h-1.7Zm3.5 0h3.2v13.2h-3.2Zm5 0h1.9v13.2h-1.9Zm3.7 0h2.7v13.2h-2.7Z',
+  )..fillType = PathFillType.evenOdd;
+
+  // Caja que ocupa el símbolo dentro del lienzo de 64 x 64.
+  static const _vx = 6.0, _vy = 18.9, _vw = 52.0, _vh = 26.2;
 
   /// Proporción ancho/alto del símbolo.
   static const proporcion = _vw / _vh;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final s = (size.width / _vw) < (size.height / _vh)
-        ? size.width / _vw
-        : size.height / _vh;
+    final s = (size.width / _vw) < (size.height / _vh) ? size.width / _vw : size.height / _vh;
     canvas.save();
     canvas.translate((size.width - _vw * s) / 2, (size.height - _vh * s) / 2);
     canvas.scale(s);
     canvas.translate(-_vx, -_vy);
-
-    final pintaTubos = Paint()..color = tubos;
-    const r = Radius.circular(2.5);
-    canvas.drawRRect(RRect.fromLTRBR(6, 28.5, 19, 35.5, r), pintaTubos);
-    canvas.drawRRect(RRect.fromLTRBR(45, 28.5, 58, 35.5, r), pintaTubos);
-
-    final camino = Path()
-      ..fillType = PathFillType.evenOdd
-      ..addRRect(RRect.fromLTRBR(15, 18, 49, 46, const Radius.circular(12)));
-    for (final (x, ancho) in _barras) {
-      camino.addRect(Rect.fromLTWH(x, 25.5, ancho, 13));
-    }
-    canvas.drawPath(camino, Paint()..color = cuerpo);
+    canvas.drawPath(_tubos, Paint()..color = tubos);
+    canvas.drawPath(_cuerpo, Paint()..color = cuerpo);
     canvas.restore();
   }
 
   @override
-  bool shouldRepaint(CatalogMarkPainter old) =>
-      old.cuerpo != cuerpo || old.tubos != tubos;
+  bool shouldRepaint(CatalogMarkPainter old) => old.cuerpo != cuerpo || old.tubos != tubos;
 }
 
 /// Logo horizontal: símbolo + "Cata" + "Log".
@@ -69,18 +67,15 @@ class CatalogLogo extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         CustomPaint(
-          size: Size(altura * CatalogMarkPainter.proporcion * 0.62, altura * 0.62),
+          size: Size(altura * CatalogMarkPainter.proporcion * 0.66, altura * 0.66),
           painter: CatalogMarkPainter(cuerpo: principal),
         ),
-        SizedBox(width: altura * 0.28),
+        SizedBox(width: altura * 0.26),
         Text.rich(
           TextSpan(
             children: [
               TextSpan(text: 'Cata', style: TextStyle(color: principal)),
-              const TextSpan(
-                text: 'Log',
-                style: TextStyle(color: CatalogColors.naranja),
-              ),
+              const TextSpan(text: 'Log', style: TextStyle(color: CatalogColors.naranja)),
             ],
           ),
           style: TextStyle(

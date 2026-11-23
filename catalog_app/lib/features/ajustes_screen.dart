@@ -175,7 +175,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
     final scope = AppScope.of(context);
     final revision = scope.soloLectura;
     final autoRespaldo = scope.dispositivo?.fecha(AjustesDispositivo.ultimoAutoRespaldo);
-    final autoLugar = scope.dispositivo?.leer(AjustesDispositivo.lugarAutoRespaldo) ?? 'Descargas/CataLog';
+    final autoLugar = scope.dispositivo?.leer(AjustesDispositivo.lugarAutoRespaldo) ?? 'Descargas/Respaldo CataLog';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ajustes')),
@@ -306,7 +306,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
                 FilledButton.icon(
                   onPressed: () => crearRespaldoYEnviar(context),
                   icon: const Icon(Icons.backup_outlined),
-                  label: const Text('Crear respaldo y enviarlo'),
+                  label: const Text('Crear respaldo'),
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
@@ -337,15 +337,16 @@ class _AjustesScreenState extends State<AjustesScreen> {
               ],
               const SizedBox(height: 8),
               const Text(
-                'El respaldo es un archivo .zip con todas tus compras y fotos: envíalo a tu correo, '
-                'Drive o WhatsApp, y además CataLog guarda una copia diaria en Descargas que no se '
-                'borra si desinstalas la app. Para que otro celular revise tus compras, usa "Enviar '
-                'mis compras": allá se abren como sesión de revisión, aparte de sus compras.',
+                'Los respaldos son archivos .zip con todas tus compras y fotos. Quedan en la carpeta '
+                'Descargas/Respaldo CataLog del teléfono (no se borra si desinstalas la app) y además '
+                'CataLog hace una copia automática cada día. Para restaurar, elige uno de esa carpeta '
+                'y la app lo extrae sola. Envía uno de vez en cuando a tu correo o Drive por si se '
+                'pierde el teléfono. Para que otro celular revise tus compras, usa "Enviar mis compras".',
                 style: TextStyle(fontSize: 14, height: 1.4, color: CatalogColors.acero),
               ),
 
               const SizedBox(height: 32),
-              const Text('CataLog · versión 1.1', style: etiqueta),
+              const Text('CataLog · versión 1.2', style: etiqueta),
               const Text('Los datos se guardan solo en este teléfono.', style: etiqueta),
             ],
           ),

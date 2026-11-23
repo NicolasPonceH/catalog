@@ -27,7 +27,7 @@ En **Ajustes** (la ruedita, arriba a la derecha):
 3. Completa:
    - **Vendedor** y **lugar**. La app te sugiere los que ya usaste y guarda el GPS sola.
    - **Precio pagado**.
-   - **Motor**, **material** y si es **original**.
+   - **Motor** y **material**.
    - **Código grabado de fábrica** y **de qué autos es**.
    - **Foto** del catalítico.
 4. Toca **Guardar compra**. Se abre la ficha con el código, por ejemplo `CTL-261121-0007`.
@@ -43,9 +43,9 @@ Si el sticker está dañado, toca **Escribir el código a mano**.
 
 ## 5. Lotes (varios catalíticos juntos)
 
-1. Toca **Lotes > Nuevo lote**.
+1. Toca **Lotes > Nuevo lote** y escribe el nombre (viene sugerido con la fecha y hora).
 2. Escanea los stickers uno tras otro. Cada uno suma lo que pagaste por él, y el mismo catalítico no se cuenta dos veces.
-3. Al final toca **Terminar**.
+3. Al final toca **Terminar**. Si sales sin escanear nada, el lote no se guarda.
 4. Con el botón de tabla (arriba) se manda el **Excel del lote** por WhatsApp o correo.
 
 ## 6. Reportes y Excel
@@ -62,15 +62,17 @@ En **Reportes** eliges el período: hoy, semana, mes, unas fechas o todo. Ahí v
 
 - **Corregir:** en la ficha, toca el lápiz. Si cambias la fecha de compra, la ficha muestra que se corrigió y cuándo.
 - **Anular:** en la ficha, menú de tres puntos > **Anular compra**. Sale de los totales, pero queda en el historial y su número no se vuelve a usar.
+- **Para borrar o anular cualquier cosa** (una compra, un lote, un catalítico de un lote, una revisión, o reemplazar tus compras con un respaldo) CataLog pide tu **huella o PIN**.
 
 ## 8. Respaldo (muy importante)
 
 Las compras viven solo en el teléfono. Si se pierde o se rompe, se pierden. Para evitarlo:
 
-- **Copia automática:** cada día CataLog guarda sola una copia en **Descargas/CataLog** (se conservan las 3 últimas). Esa carpeta **no se borra si desinstalas la app**.
-- **Respaldo para guardar afuera:** botón de flechas del Inicio (o Ajustes) **> Crear respaldo y enviarlo**, una vez por semana, a tu correo, Drive o WhatsApp. Esto protege si se pierde el teléfono.
+- Todos los respaldos quedan en la carpeta **Descargas/Respaldo CataLog** del teléfono. Esa carpeta **no se borra si desinstalas la app**.
+- **Copia automática:** cada día CataLog guarda sola una copia ahí (se conservan las 3 últimas).
+- **Crear respaldo:** botón de flechas del Inicio (o Ajustes) **> Crear respaldo**. Se guarda en esa carpeta y después te ofrece **Enviar** a tu correo, Drive o WhatsApp. Envíalo de vez en cuando: eso protege si se pierde el teléfono.
 - CataLog te recuerda en el Inicio cuando toca hacerlo.
-- **En un teléfono nuevo o después de reinstalar:** instala CataLog, toca el archivo de respaldo (en WhatsApp, Drive o Descargas) y elige **Abrir con CataLog > Reemplazar mis compras**. También se puede desde **Ajustes > Restaurar desde un respaldo**.
+- **Restaurar:** **Ajustes > Restaurar desde un respaldo**. La app muestra los respaldos de la carpeta Respaldo CataLog; eliges uno y lo extrae sola. Si el archivo está en otra parte (WhatsApp, Drive), toca **Buscar otro archivo**, o tócalo directamente y elige **Abrir con CataLog**.
 
 ## 9. Pasar las compras a otro celular (sesiones)
 

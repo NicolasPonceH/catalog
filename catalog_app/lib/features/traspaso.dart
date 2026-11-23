@@ -10,6 +10,8 @@ import '../app_scope.dart';
 import '../backup/respaldo.dart';
 import '../data/sesiones.dart';
 import '../domain/formato.dart';
+import '../system/confirmar.dart';
+import '../system/sistema.dart';
 import '../theme.dart';
 
 // Respaldo, traspaso a otro celular y sesiones. Se usan desde el Inicio
@@ -29,7 +31,8 @@ Future<ShareResult> _compartirZip(File archivo, String texto) => SharePlus.insta
       text: texto,
     ));
 
-/// Respaldo completo (compras + fotos) para guardar en el correo, Drive o WhatsApp.
+/// Respaldo completo (compras + fotos). Se guarda en Descargas/Respaldo CataLog
+/// y después se ofrece enviarlo también (correo, Drive, WhatsApp).
 Future<void> crearRespaldoYEnviar(BuildContext context) async {
   final scope = AppScope.of(context);
   if (scope.soloLectura) {
@@ -40,16 +43,108 @@ Future<void> crearRespaldoYEnviar(BuildContext context) async {
   try {
     final zip = await armarRespaldo(scope.base, scope.fotos.carpetaBase);
     final prefijo = await scope.compras.prefijo();
-    final archivo = await _archivoTemporal('CataLog-respaldo-$prefijo-${_sello(DateTime.now())}.zip', zip);
-    final r = await _compartirZip(archivo, 'Respaldo de CataLog');
-    if (r.status == ShareResultStatus.dismissed) {
-      if (context.mounted) avisar(context, 'No se envió el respaldo');
-      return;
+    final nombre = 'CataLog-respaldo-$prefijo-${_sello(DateTime.now())}.zip';
+    String? lugar;
+    try {
+      lugar = await Sistema.guardarEnDescargas(nombre, zip, prefijoBorrar: 'CataLog-respaldo-', conservar: 10);
+    } catch (_) {
+      lugar = null;
     }
-    await scope.compras.registrarRespaldo();
-    if (context.mounted) avisar(context, 'Respaldo creado. Guárdalo en tu correo o Drive.');
+    if (lugar != null) await scope.compras.registrarRespaldo();
+    if (!context.mounted) return;
+    final enviar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(lugar != null ? Icons.check_circle : Icons.warning_amber,
+            color: lugar != null ? CatalogColors.verde : CatalogColors.rojo, size: 36),
+        title: Text(lugar != null ? 'Respaldo guardado' : 'No se pudo guardar en el teléfono'),
+        content: Text(
+          lugar != null
+              ? 'Quedó en $lugar. Para protegerte si se pierde el teléfono, envíalo también a tu correo, Drive o WhatsApp.'
+              : 'Puedes enviarlo directamente a tu correo, Drive o WhatsApp.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Listo')),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.share_outlined),
+            label: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+    if (enviar != true) return;
+    final archivo = await _archivoTemporal(nombre, zip);
+    final r = await _compartirZip(archivo, 'Respaldo de CataLog');
+    if (r.status != ShareResultStatus.dismissed) await scope.compras.registrarRespaldo();
   } catch (e) {
     if (context.mounted) avisar(context, 'No se pudo crear el respaldo: $e');
+  }
+}
+
+String _tamano(int bytes) =>
+    bytes >= 1024 * 1024 ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB' : '${(bytes / 1024).ceil()} KB';
+
+/// Elige un archivo de CataLog: primero los de la carpeta Respaldo CataLog,
+/// o cualquier otro con el selector de archivos. Devuelve sus bytes.
+Future<List<int>?> elegirArchivoCatalog(BuildContext context, {required String titulo}) async {
+  var lista = <ArchivoRespaldo>[];
+  try {
+    lista = await Sistema.listarRespaldos();
+  } catch (_) {}
+  if (!context.mounted) return null;
+  final eleccion = await showModalBottomSheet<Object>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (hoja) => SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(hoja).size.height * 0.75),
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+              child: Text(titulo, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                lista.isEmpty
+                    ? 'No hay respaldos en Descargas/$carpetaRespaldos. Búscalo en otra carpeta.'
+                    : 'En Descargas/$carpetaRespaldos:',
+                style: etiqueta,
+              ),
+            ),
+            for (final a in lista)
+              ListTile(
+                leading: Icon(a.esAutomatico ? Icons.schedule : Icons.inventory_2_outlined, color: CatalogColors.marino),
+                title: Text(a.esAutomatico ? 'Copia automática' : 'Respaldo', style: const TextStyle(fontWeight: FontWeight.w500)),
+                subtitle: Text('${fechaHora(a.fecha)} · ${_tamano(a.tamano)}\n${a.nombre}', style: etiqueta),
+                isThreeLine: true,
+                onTap: () => Navigator.pop(hoja, a),
+              ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.folder_open_outlined),
+              title: const Text('Buscar otro archivo'),
+              subtitle: const Text('WhatsApp, Drive, otra carpeta…'),
+              onTap: () => Navigator.pop(hoja, 'otro'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  if (eleccion == null) return null;
+  try {
+    if (eleccion is ArchivoRespaldo) return await Sistema.leerArchivo(eleccion.uri);
+    final elegido = await FilePicker.pickFile(type: FileType.any);
+    return elegido == null ? null : await elegido.readAsBytes();
+  } catch (e) {
+    if (context.mounted) avisar(context, 'No se pudo leer el archivo: $e');
+    return null;
   }
 }
 
@@ -97,16 +192,8 @@ Future<void> enviarAOtroCelular(BuildContext context) async {
 /// y pregunta si se revisa aparte o si reemplaza las compras.
 Future<void> recibirDatos(BuildContext context, [List<int>? bytes]) async {
   final scope = AppScope.of(context);
-  if (bytes == null) {
-    final elegido = await FilePicker.pickFile(type: FileType.any);
-    if (elegido == null) return;
-    try {
-      bytes = await elegido.readAsBytes();
-    } catch (e) {
-      if (context.mounted) avisar(context, 'No se pudo leer el archivo: $e');
-      return;
-    }
-  }
+  bytes ??= await elegirArchivoCatalog(context, titulo: 'Elige el archivo de CataLog');
+  if (bytes == null) return;
   ContenidoRespaldo contenido;
   try {
     contenido = leerRespaldo(bytes);
@@ -165,17 +252,16 @@ Future<void> recibirDatos(BuildContext context, [List<int>? bytes]) async {
   }
 }
 
-/// Elige un archivo de respaldo y lo restaura en la sesión de compra.
+/// Elige un respaldo (de la carpeta Respaldo CataLog u otro lugar), lo extrae y
+/// con él se vuelven a poblar las compras de la sesión de compra.
 Future<void> restaurarDesdeArchivo(BuildContext context) async {
-  final elegido = await FilePicker.pickFile(type: FileType.any);
-  if (elegido == null || !context.mounted) return;
+  final bytes = await elegirArchivoCatalog(context, titulo: 'Elige el respaldo');
+  if (bytes == null || !context.mounted) return;
   try {
-    final contenido = leerRespaldo(await elegido.readAsBytes());
+    final contenido = leerRespaldo(bytes);
     if (context.mounted) await restaurarDesdeContenido(context, contenido);
   } on RespaldoInvalido catch (e) {
     if (context.mounted) avisar(context, e.mensaje);
-  } catch (e) {
-    if (context.mounted) avisar(context, 'No se pudo leer el archivo: $e');
   }
 }
 
@@ -209,6 +295,8 @@ Future<void> restaurarDesdeContenido(BuildContext context, ContenidoRespaldo con
     ),
   );
   if (ok != true || !context.mounted) return;
+  if (!await confirmarConHuella(context, 'Confirma para reemplazar tus compras')) return;
+  if (!context.mounted) return;
   try {
     await guardarCopiaLocal(await armarRespaldo(scope.base, scope.fotos.carpetaBase), scope.fotos.carpetaBase);
   } catch (e) {
@@ -243,7 +331,9 @@ Future<void> mostrarSesiones(BuildContext context) async {
         ],
       ),
     );
-    if (ok == true) await acciones.eliminarRevision(s);
+    if (ok != true || !context.mounted) return;
+    if (!await confirmarConHuella(context, 'Confirma para borrar la revisión')) return;
+    await acciones.eliminarRevision(s);
   }
 
   await showModalBottomSheet<void>(
@@ -342,8 +432,8 @@ Future<void> mostrarRespaldoYTraspaso(BuildContext context) async {
           if (!revision)
             ListTile(
               leading: const Icon(Icons.backup_outlined, color: CatalogColors.marino),
-              title: const Text('Crear respaldo y enviarlo'),
-              subtitle: const Text('A tu correo, Drive o WhatsApp'),
+              title: const Text('Crear respaldo'),
+              subtitle: const Text('Se guarda en Descargas/Respaldo CataLog'),
               onTap: () => ir(hoja, crearRespaldoYEnviar),
             ),
           if (!revision)
@@ -369,7 +459,7 @@ Future<void> mostrarRespaldoYTraspaso(BuildContext context) async {
             ListTile(
               leading: const Icon(Icons.settings_backup_restore, color: CatalogColors.rojo),
               title: const Text('Restaurar desde un respaldo'),
-              subtitle: const Text('Reemplaza tus compras por las del archivo'),
+              subtitle: const Text('Elige un .zip y la app recupera tus compras'),
               onTap: () => ir(hoja, restaurarDesdeArchivo),
             ),
           const SizedBox(height: 8),

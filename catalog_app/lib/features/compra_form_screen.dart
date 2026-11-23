@@ -37,7 +37,6 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
   late DateTime _fecha;
   Motor? _motor;
   TipoMaterial? _material;
-  bool _original = false;
 
   double? _lat, _lng, _precision;
   bool _buscandoGps = false;
@@ -73,7 +72,6 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
       _notas.text = e.notas;
       _motor = e.motor;
       _material = e.material;
-      _original = e.original;
       _lat = e.lat;
       _lng = e.lng;
       _precision = e.precisionM;
@@ -115,9 +113,14 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
 
   Future<void> _cargarSugerencias() async {
     final repo = AppScope.of(context).compras;
-    final v = await repo.sugerencias('vendedor');
-    final l = await repo.sugerencias('lugar');
-    final a = await repo.sugerencias('autos');
+    List<String> v, l, a;
+    try {
+      v = await repo.sugerencias('vendedor');
+      l = await repo.sugerencias('lugar');
+      a = await repo.sugerencias('autos');
+    } catch (_) {
+      return; // sin sugerencias no pasa nada
+    }
     if (mounted) {
       setState(() {
         _vendedores = v;
@@ -230,7 +233,6 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
       precio: parseClp(_precio.text) ?? 0,
       motor: _motor!,
       material: _material!,
-      original: _original,
       codigoFabrica: _codigoFabrica.text,
       autos: _autos.text,
       fotoPath: _foto,
@@ -496,15 +498,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
             }),
           ),
         ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Original de fábrica'),
-          value: _original,
-          onChanged: (v) => setState(() {
-            _original = v;
-            _sucio = true;
-          }),
-        ),
+        const SizedBox(height: 6),
         if (_errorTipo != null)
           Text(_errorTipo!, style: const TextStyle(color: CatalogColors.rojo, fontSize: 13)),
       ],

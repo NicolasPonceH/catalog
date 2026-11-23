@@ -6,6 +6,7 @@ import '../data/compra.dart';
 import '../data/lotes_repo.dart';
 import '../domain/formato.dart';
 import '../reports/excel.dart';
+import '../system/confirmar.dart';
 import '../theme.dart';
 import '../widgets/compra_tile.dart';
 import '../widgets/consulta.dart';
@@ -13,9 +14,12 @@ import '../widgets/escaner_vista.dart';
 
 /// Un lote: se escanean stickers seguidos y se suma lo pagado.
 class LoteScreen extends StatefulWidget {
-  const LoteScreen({super.key, required this.loteId});
+  const LoteScreen({super.key, required this.loteId, this.nuevo = false});
 
   final int loteId;
+
+  /// Lote recién creado: si se sale sin escanear nada, no se guarda.
+  final bool nuevo;
 
   @override
   State<LoteScreen> createState() => _LoteScreenState();
@@ -24,6 +28,22 @@ class LoteScreen extends StatefulWidget {
 class _LoteScreenState extends State<LoteScreen> {
   String? _ultimoMensaje;
   bool _ultimoBien = true;
+  LotesRepo? _repo;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _repo = AppScope.of(context).lotes;
+  }
+
+  /// Al salir de un lote nuevo sin catalíticos, se borra (no queda vacío en la lista).
+  Future<void> _descartarSiVacio() async {
+    final repo = _repo;
+    if (!widget.nuevo || repo == null) return;
+    try {
+      if ((await repo.items(widget.loteId)).isEmpty) await repo.eliminar(widget.loteId);
+    } catch (_) {}
+  }
 
   Future<void> _leido(String texto) async {
     final repo = AppScope.of(context).lotes;
@@ -88,11 +108,25 @@ class _LoteScreenState extends State<LoteScreen> {
         ],
       ),
     );
-    if (ok == true && mounted) {
-      final navegador = Navigator.of(context);
-      await AppScope.of(context).lotes.eliminar(lote.id);
-      navegador.pop();
+    if (ok != true || !mounted) return;
+    if (!await confirmarConHuella(context, 'Confirma para borrar el lote')) return;
+    if (!mounted) return;
+    final navegador = Navigator.of(context);
+    await AppScope.of(context).lotes.eliminar(lote.id);
+    navegador.pop();
+  }
+
+  /// Terminar: si no se escaneó nada, el lote no se guarda.
+  Future<void> _terminar(Lote lote) async {
+    final repo = AppScope.of(context).lotes;
+    if ((await repo.items(lote.id)).isEmpty) {
+      await repo.eliminar(lote.id);
+      if (!mounted) return;
+      avisar(context, 'El lote estaba vacío y no se guardó');
+      Navigator.of(context).pop();
+      return;
     }
+    await repo.cerrar(lote.id);
   }
 
   Future<void> _exportar(Lote lote) async {
@@ -123,7 +157,11 @@ class _LoteScreenState extends State<LoteScreen> {
   @override
   Widget build(BuildContext context) {
     final repo = AppScope.of(context).lotes;
-    return Consulta<Lote?>(
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) _descartarSiVacio();
+      },
+      child: Consulta<Lote?>(
       claves: [widget.loteId],
       cargar: () => repo.obtener(widget.loteId),
       builder: (context, lote) {
@@ -155,15 +193,14 @@ class _LoteScreenState extends State<LoteScreen> {
             ],
           ),
           body: SafeArea(
-            child: Column(
-              children: [
-                if (!lote.cerrado) ...[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                    child: SizedBox(height: 220, child: EscanerVista(alLeer: _leido)),
-                  ),
-                  if (_ultimoMensaje != null)
-                    Padding(
+            child: LayoutBuilder(builder: (context, limites) {
+              final escaner = Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: EscanerVista(alLeer: _leido),
+              );
+              final mensaje = _ultimoMensaje == null
+                  ? const SizedBox.shrink()
+                  : Padding(
                       padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                       child: Row(
                         children: [
@@ -173,9 +210,8 @@ class _LoteScreenState extends State<LoteScreen> {
                           Expanded(child: Text(_ultimoMensaje!, style: const TextStyle(fontSize: 14))),
                         ],
                       ),
-                    ),
-                ],
-                Padding(
+                    );
+              final resumen = Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                   child: Consulta<Resumen>(
                     claves: [lote.id],
@@ -201,9 +237,8 @@ class _LoteScreenState extends State<LoteScreen> {
                       );
                     },
                   ),
-                ),
-                Expanded(
-                  child: Consulta<List<ItemLote>>(
+                );
+              final lista = Consulta<List<ItemLote>>(
                     claves: [lote.id],
                     cargar: () => repo.items(lote.id),
                     builder: (context, items) {
@@ -228,15 +263,16 @@ class _LoteScreenState extends State<LoteScreen> {
                               padding: const EdgeInsets.only(right: 20),
                               child: const Icon(Icons.remove_circle_outline, color: CatalogColors.rojo),
                             ),
+                            confirmDismiss: (_) =>
+                                confirmarConHuella(context, 'Confirma para quitar ${items[i].compra.codigo} del lote'),
                             onDismissed: (_) => _quitar(items[i]),
                             child: CompraTile(compra: items[i].compra),
                           ),
                         ),
                       );
                     },
-                  ),
-                ),
-                Padding(
+                  );
+              final botones = Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                   child: Row(
                     children: [
@@ -251,19 +287,39 @@ class _LoteScreenState extends State<LoteScreen> {
                       if (!lote.cerrado) const SizedBox(width: 10),
                       Expanded(
                         child: FilledButton.icon(
-                          onPressed: lote.cerrado ? null : () => repo.cerrar(lote.id),
+                          onPressed: lote.cerrado ? null : () => _terminar(lote),
                           icon: const Icon(Icons.done_all),
                           label: Text(lote.cerrado ? 'Lote cerrado' : 'Terminar'),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
+                );
+
+              // Teléfono de lado o tablet: cámara a la izquierda, lista a la derecha.
+              if (!lote.cerrado && limites.maxWidth > limites.maxHeight) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(flex: 5, child: Column(children: [Expanded(child: escaner), mensaje, const SizedBox(height: 12)])),
+                    Expanded(flex: 6, child: Column(children: [resumen, Expanded(child: lista), botones])),
+                  ],
+                );
+              }
+              final altoEscaner = (limites.maxHeight * 0.36).clamp(160.0, 240.0);
+              return Column(
+                children: [
+                  if (!lote.cerrado) ...[SizedBox(height: altoEscaner, child: escaner), mensaje],
+                  resumen,
+                  Expanded(child: lista),
+                  botones,
+                ],
+              );
+            }),
           ),
         );
       },
+      ),
     );
   }
 }

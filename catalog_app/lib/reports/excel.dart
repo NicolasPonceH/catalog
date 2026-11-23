@@ -8,41 +8,108 @@ import 'package:share_plus/share_plus.dart';
 import '../data/compra.dart';
 import '../data/lotes_repo.dart';
 import '../domain/formato.dart';
-import '../domain/tipos.dart';
 import 'reporte.dart';
 
-final _dinero = CellStyle(numberFormat: NumFormat.custom(formatCode: r'"$"#,##0'));
-final _dineroNegrita = CellStyle(numberFormat: NumFormat.custom(formatCode: r'"$"#,##0'), bold: true);
-final _fecha = CellStyle(numberFormat: NumFormat.custom(formatCode: 'dd/mm/yyyy'));
-final _hora = CellStyle(numberFormat: NumFormat.custom(formatCode: 'hh:mm'));
-final _negrita = CellStyle(bold: true);
-final _titulo = CellStyle(bold: true, fontSize: 14);
-final _encabezado = CellStyle(
-  bold: true,
-  fontColorHex: ExcelColor.white,
-  backgroundColorHex: ExcelColor.fromHexString('FF0E2A47'),
-);
+// ---------- Estilo de marca ----------
 
-/// Escribe una fila al final de la hoja, con estilos por columna.
-void _fila(Sheet hoja, List<CellValue?> valores, {Map<int, CellStyle> estilos = const {}, CellStyle? todo}) {
-  final r = hoja.maxRows;
-  for (var c = 0; c < valores.length; c++) {
-    hoja.updateCell(
-      CellIndex.indexByColumnRow(columnIndex: c, rowIndex: r),
-      valores[c],
-      cellStyle: estilos[c] ?? todo,
+final _azul = ExcelColor.fromHexString('FF0E2A47');
+final _naranja = ExcelColor.fromHexString('FFFF7A1A');
+final _niebla = ExcelColor.fromHexString('FFF4F6F8');
+final _naranjaClaro = ExcelColor.fromHexString('FFFFE9D9');
+final _acero = ExcelColor.fromHexString('FF5B6B7C');
+final _lineas = ExcelColor.fromHexString('FFDCE3EA');
+
+enum _F { texto, dinero, fecha, hora, entero, porcentaje, enlace }
+
+NumFormat _numero(_F f) => switch (f) {
+      _F.dinero => NumFormat.custom(formatCode: r'"$"#,##0'),
+      _F.fecha => NumFormat.custom(formatCode: 'dd/mm/yyyy'),
+      _F.hora => NumFormat.custom(formatCode: 'hh:mm'),
+      _F.entero => NumFormat.custom(formatCode: '#,##0'),
+      _F.porcentaje => NumFormat.custom(formatCode: '0%'),
+      _F.texto || _F.enlace => NumFormat.standard_0,
+    };
+
+Border _borde([ExcelColor? color, BorderStyle estilo = BorderStyle.Thin]) =>
+    Border(borderStyle: estilo, borderColorHex: color ?? _lineas);
+
+HorizontalAlign _alinear(_F f) => switch (f) {
+      _F.texto || _F.enlace => HorizontalAlign.Left,
+      _F.fecha || _F.hora => HorizontalAlign.Center,
+      _ => HorizontalAlign.Right,
+    };
+
+/// Celda de tabla: franjas alternadas, bordes finos y formato según el tipo.
+CellStyle _celda(_F f, {bool franja = false, bool anulada = false}) => CellStyle(
+      numberFormat: _numero(f),
+      backgroundColorHex: franja ? _niebla : ExcelColor.none,
+      fontColorHex: f == _F.enlace ? _naranja : (anulada ? _acero : ExcelColor.black),
+      italic: anulada,
+      underline: f == _F.enlace ? Underline.Single : Underline.None,
+      horizontalAlign: _alinear(f),
+      verticalAlign: VerticalAlign.Center,
+      leftBorder: _borde(),
+      rightBorder: _borde(),
+      topBorder: _borde(),
+      bottomBorder: _borde(),
     );
-  }
-}
+
+CellStyle _encabezado([HorizontalAlign alinear = HorizontalAlign.Center]) => CellStyle(
+      bold: true,
+      fontColorHex: ExcelColor.white,
+      backgroundColorHex: _azul,
+      horizontalAlign: alinear,
+      verticalAlign: VerticalAlign.Center,
+      textWrapping: TextWrapping.WrapText,
+      leftBorder: _borde(_azul),
+      rightBorder: _borde(_azul),
+      topBorder: _borde(_azul),
+      bottomBorder: _borde(_azul),
+    );
+
+CellStyle _total(_F f) => CellStyle(
+      bold: true,
+      numberFormat: _numero(f),
+      backgroundColorHex: _naranjaClaro,
+      horizontalAlign: _alinear(f),
+      topBorder: _borde(_naranja, BorderStyle.Medium),
+      bottomBorder: _borde(_naranja, BorderStyle.Medium),
+    );
+
+final _titulo = CellStyle(bold: true, fontSize: 20, fontColorHex: _azul, verticalAlign: VerticalAlign.Center);
+final _marca = CellStyle(bold: true, fontSize: 12, fontColorHex: _naranja);
+final _subtitulo = CellStyle(fontSize: 11, fontColorHex: _acero);
+final _seccion = CellStyle(bold: true, fontSize: 13, fontColorHex: _azul, bottomBorder: _borde(_naranja, BorderStyle.Medium));
+final _kpiEtiqueta = CellStyle(fontSize: 10, fontColorHex: _acero, backgroundColorHex: _niebla, horizontalAlign: HorizontalAlign.Center);
+CellStyle _kpiValor(_F f) => CellStyle(
+      bold: true,
+      fontSize: 18,
+      fontColorHex: _azul,
+      numberFormat: _numero(f),
+      backgroundColorHex: _niebla,
+      horizontalAlign: HorizontalAlign.Center,
+      bottomBorder: _borde(_naranja, BorderStyle.Thick),
+    );
+
+// ---------- Ayudas ----------
 
 TextCellValue _t(String s) => TextCellValue(s);
 IntCellValue _i(int n) => IntCellValue(n);
 DateCellValue _d(DateTime f) => DateCellValue(year: f.year, month: f.month, day: f.day);
 TimeCellValue _h(DateTime f) => TimeCellValue(hour: f.hour, minute: f.minute);
 
-void _anchos(Sheet hoja, List<double> anchos) {
+CellIndex _c(int col, int fila) => CellIndex.indexByColumnRow(columnIndex: col, rowIndex: fila);
+
+/// Escribe valores en la fila [fila] desde la columna [desde].
+void _escribir(Sheet h, int fila, List<CellValue?> valores, List<CellStyle?> estilos, {int desde = 0}) {
+  for (var i = 0; i < valores.length; i++) {
+    h.updateCell(_c(desde + i, fila), valores[i], cellStyle: i < estilos.length ? estilos[i] : null);
+  }
+}
+
+void _anchos(Sheet h, List<double> anchos) {
   for (var i = 0; i < anchos.length; i++) {
-    hoja.setColumnWidth(i, anchos[i]);
+    h.setColumnWidth(i, anchos[i]);
   }
 }
 
@@ -53,101 +120,213 @@ Excel _nuevo(String primeraHoja) {
   return excel;
 }
 
+/// Encabezado de marca común: "CataLog" + título + datos del informe.
+/// Devuelve la siguiente fila libre.
+int _cabecera(Sheet h, String titulo, List<String> lineas, {int columnas = 6}) {
+  _escribir(h, 0, [_t('CataLog')], [_marca]);
+  _escribir(h, 1, [_t(titulo)], [_titulo]);
+  h.merge(_c(0, 1), _c(columnas - 1, 1));
+  h.setRowHeight(1, 30);
+  var fila = 2;
+  for (final l in lineas) {
+    _escribir(h, fila, [_t(l)], [_subtitulo]);
+    h.merge(_c(0, fila), _c(columnas - 1, fila));
+    fila++;
+  }
+  return fila + 1;
+}
+
+/// Tarjetas de cifras grandes (etiqueta arriba, valor abajo), de 2 columnas cada una.
+int _tarjetas(Sheet h, int fila, List<(String, CellValue, _F)> datos) {
+  for (var k = 0; k < datos.length; k++) {
+    final col = k * 2;
+    final (etiqueta, valor, f) = datos[k];
+    h.updateCell(_c(col, fila), _t(etiqueta), cellStyle: _kpiEtiqueta);
+    h.merge(_c(col, fila), _c(col + 1, fila));
+    h.updateCell(_c(col, fila + 1), valor, cellStyle: _kpiValor(f));
+    h.merge(_c(col, fila + 1), _c(col + 1, fila + 1));
+  }
+  h.setRowHeight(fila + 1, 34);
+  return fila + 3;
+}
+
+/// Tabla de grupos (tipo, vendedor o mes) con % del total. Devuelve la siguiente fila libre.
+int _tablaGrupos(Sheet h, int fila, String titulo, String columna, List<FilaGrupo> filas, int total) {
+  _escribir(h, fila, [_t(titulo)], [_seccion]);
+  h.merge(_c(0, fila), _c(4, fila));
+  fila++;
+  _escribir(h, fila, [_t(columna), _t('Cantidad'), _t('Total pagado'), _t('Promedio'), _t('% del total')],
+      [_encabezado(HorizontalAlign.Left), _encabezado(), _encabezado(), _encabezado(), _encabezado()]);
+  fila++;
+  for (var k = 0; k < filas.length; k++) {
+    final g = filas[k];
+    final franja = k.isOdd;
+    _escribir(h, fila, [
+      _t(g.nombre),
+      _i(g.cantidad),
+      _i(g.total),
+      _i(g.promedio),
+      DoubleCellValue(total == 0 ? 0 : g.total / total),
+    ], [
+      _celda(_F.texto, franja: franja),
+      _celda(_F.entero, franja: franja),
+      _celda(_F.dinero, franja: franja),
+      _celda(_F.dinero, franja: franja),
+      _celda(_F.porcentaje, franja: franja),
+    ]);
+    fila++;
+  }
+  final cantidad = filas.fold<int>(0, (s, g) => s + g.cantidad);
+  _escribir(h, fila, [_t('Total'), _i(cantidad), _i(total), null, DoubleCellValue(total == 0 ? 0 : 1)],
+      [_total(_F.texto), _total(_F.entero), _total(_F.dinero), _total(_F.dinero), _total(_F.porcentaje)]);
+  return fila + 2;
+}
+
+String _mes(DateTime f) {
+  const nombres = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
+      'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  return '${capitalizar(nombres[f.month - 1])} ${f.year}';
+}
+
+List<FilaGrupo> _porMes(List<Compra> compras) {
+  final cantidad = <int, int>{};
+  final total = <int, int>{};
+  for (final c in compras.where((c) => !c.anulada)) {
+    final k = c.fechaCompra.year * 100 + c.fechaCompra.month;
+    cantidad[k] = (cantidad[k] ?? 0) + 1;
+    total[k] = (total[k] ?? 0) + c.precio;
+  }
+  final claves = cantidad.keys.toList()..sort();
+  return [for (final k in claves) FilaGrupo(_mes(DateTime(k ~/ 100, k % 100)), cantidad[k]!, total[k]!)];
+}
+
+CellValue? _mapa(Compra c) => c.lat == null || c.lng == null
+    ? null
+    : FormulaCellValue('HYPERLINK("https://www.google.com/maps?q=${c.lat},${c.lng}","Ver mapa")');
+
+// ---------- Reporte por período ----------
+
 const _columnasCompras = [
-  'Código', 'Fecha de compra', 'Hora', 'Vendedor', 'Lugar', 'Precio', 'Motor', 'Material',
-  'Original', 'Código de fábrica', 'Autos', 'Latitud', 'Longitud', 'Notas', 'Estado', 'Anotado el',
+  'Código', 'Fecha de compra', 'Hora', 'Vendedor', 'Lugar', 'Tipo', 'Código de fábrica',
+  'Autos', 'Precio', 'Estado', 'Ubicación', 'Notas', 'Anotado el',
 ];
 
-void _filaCompra(Sheet hoja, Compra c) {
-  _fila(hoja, [
-    _t(c.codigo),
-    _d(c.fechaCompra),
-    _h(c.fechaCompra),
-    _t(c.vendedor),
-    _t(c.lugar),
-    _i(c.precio),
-    _t(c.motor.etiqueta),
-    _t(c.material.etiqueta),
-    _t(c.original ? 'Sí' : 'No'),
-    _t(c.codigoFabrica),
-    _t(c.autos),
-    c.lat == null ? null : DoubleCellValue(c.lat!),
-    c.lng == null ? null : DoubleCellValue(c.lng!),
-    _t(c.notas),
-    _t(c.anulada ? 'Anulada' : 'Activa'),
-    _t(fechaHora(c.creadoEn)),
-  ], estilos: {1: _fecha, 2: _hora, 5: _dinero});
-}
-
-void _hojaGrupos(Excel excel, String nombre, String columna, List<FilaGrupo> filas) {
-  final hoja = excel[nombre];
-  _fila(hoja, [_t(columna), _t('Cantidad'), _t('Total pagado'), _t('Promedio')], todo: _encabezado);
-  for (final f in filas) {
-    _fila(hoja, [_t(f.nombre), _i(f.cantidad), _i(f.total), _i(f.promedio)], estilos: {2: _dinero, 3: _dinero});
-  }
-  _anchos(hoja, [30, 12, 16, 14]);
-}
-
-/// Excel del reporte: hojas Resumen, Compras, Por tipo y Por vendedor.
+/// Excel del reporte: Resumen (cifras y tablas) y Compras (detalle).
 List<int> excelDeReporte(Reporte r, {String comprador = '', DateTime? generado}) {
   final excel = _nuevo('Resumen');
+
+  // Resumen
   final res = excel['Resumen'];
-  _fila(res, [_t('CataLog · Reporte de compras')], todo: _titulo);
-  _fila(res, [_t('Período'), _t(r.titulo)]);
-  if (comprador.isNotEmpty) _fila(res, [_t('Comprador'), _t(comprador)]);
-  _fila(res, [_t('Generado el'), _t(fechaHora(generado ?? DateTime.now()))]);
-  _fila(res, []);
-  _fila(res, [_t('Total gastado'), _i(r.resumen.total)], estilos: {0: _negrita, 1: _dineroNegrita});
-  _fila(res, [_t('Catalíticos'), _i(r.resumen.cantidad)], estilos: {0: _negrita});
-  _fila(res, [_t('Promedio por catalítico'), _i(r.resumen.promedio)], estilos: {1: _dinero});
-  if (r.anuladas > 0) _fila(res, [_t('Compras anuladas (no suman)'), _i(r.anuladas)]);
-  _anchos(res, [28, 30]);
-
-  final hoja = excel['Compras'];
-  _fila(hoja, [for (final c in _columnasCompras) _t(c)], todo: _encabezado);
-  for (final c in r.compras) {
-    _filaCompra(hoja, c);
+  var fila = _cabecera(res, 'Reporte de compras', [
+    'Período: ${r.titulo}',
+    if (comprador.isNotEmpty) 'Comprador: $comprador',
+    'Generado el ${fechaHora(generado ?? DateTime.now())}',
+  ]);
+  fila = _tarjetas(res, fila, [
+    ('TOTAL GASTADO', _i(r.resumen.total), _F.dinero),
+    ('CATALÍTICOS', _i(r.resumen.cantidad), _F.entero),
+    ('PROMEDIO', _i(r.resumen.promedio), _F.dinero),
+  ]);
+  if (r.anuladas > 0) {
+    _escribir(res, fila - 1, [_t('${r.anuladas} compras anuladas no se suman en los totales.')], [_subtitulo]);
+    res.merge(_c(0, fila - 1), _c(5, fila - 1));
+    fila++;
   }
-  _fila(hoja, [_t('TOTAL'), null, null, null, null, _i(r.resumen.total)], estilos: {0: _negrita, 5: _dineroNegrita});
-  _anchos(hoja, [18, 14, 8, 20, 20, 12, 11, 11, 9, 16, 24, 11, 11, 24, 10, 18]);
+  fila = _tablaGrupos(res, fila, 'Por tipo de catalítico', 'Tipo', r.porTipo, r.resumen.total);
+  final meses = _porMes(r.compras);
+  if (meses.length > 1) fila = _tablaGrupos(res, fila, 'Por mes', 'Mes', meses, r.resumen.total);
+  _tablaGrupos(res, fila, 'Por vendedor', 'Vendedor', r.porVendedor, r.resumen.total);
+  _anchos(res, [30, 13, 16, 15, 13, 13]);
 
-  _hojaGrupos(excel, 'Por tipo', 'Tipo', r.porTipo);
-  _hojaGrupos(excel, 'Por vendedor', 'Vendedor', r.porVendedor);
+  // Compras (detalle, con el encabezado fijo al bajar)
+  final h = excel['Compras'];
+  _escribir(h, 0, [for (final c in _columnasCompras) _t(c)], [for (final _ in _columnasCompras) _encabezado()]);
+  h.setRowHeight(0, 30);
+  var f = 1;
+  for (final c in r.compras) {
+    final franja = f.isEven;
+    final a = c.anulada;
+    _escribir(h, f, [
+      _t(c.codigo), _d(c.fechaCompra), _h(c.fechaCompra), _t(c.vendedor), _t(c.lugar), _t(c.tipo),
+      _t(c.codigoFabrica), _t(c.autos), _i(c.precio), _t(a ? 'Anulada' : 'Activa'), _mapa(c), _t(c.notas),
+      _t(fechaHora(c.creadoEn)),
+    ], [
+      _celda(_F.texto, franja: franja, anulada: a),
+      _celda(_F.fecha, franja: franja, anulada: a),
+      _celda(_F.hora, franja: franja, anulada: a),
+      _celda(_F.texto, franja: franja, anulada: a),
+      _celda(_F.texto, franja: franja, anulada: a),
+      _celda(_F.texto, franja: franja, anulada: a),
+      _celda(_F.texto, franja: franja, anulada: a),
+      _celda(_F.texto, franja: franja, anulada: a),
+      _celda(_F.dinero, franja: franja, anulada: a),
+      _celda(_F.texto, franja: franja, anulada: a),
+      _celda(_F.enlace, franja: franja),
+      _celda(_F.texto, franja: franja, anulada: a),
+      _celda(_F.texto, franja: franja, anulada: a),
+    ]);
+    f++;
+  }
+  _escribir(h, f, [_t('TOTAL (${r.resumen.cantidad} activas)'), null, null, null, null, null, null, null, _i(r.resumen.total)],
+      [_total(_F.texto), _total(_F.texto), _total(_F.texto), _total(_F.texto), _total(_F.texto), _total(_F.texto),
+       _total(_F.texto), _total(_F.texto), _total(_F.dinero)]);
+  h.freezePanes(rows: 1, columns: 1);
+  _anchos(h, [19, 15, 8, 22, 22, 22, 17, 24, 13, 10, 12, 28, 18]);
+
   excel.setDefaultSheet('Resumen');
   return excel.encode()!;
 }
 
-/// Excel de un lote escaneado: datos del lote y los catalíticos con su precio.
+// ---------- Lote escaneado ----------
+
+/// Excel de un lote escaneado: datos del lote, cifras y los catalíticos con su precio.
 List<int> excelDeLote(Lote lote, List<ItemLote> items, {String comprador = '', DateTime? generado}) {
   final excel = _nuevo('Lote');
-  final hoja = excel['Lote'];
+  final h = excel['Lote'];
   final activos = items.where((i) => !i.compra.anulada).toList();
   final total = activos.fold<int>(0, (s, i) => s + i.compra.precio);
 
-  _fila(hoja, [_t('CataLog · ${lote.nombre}')], todo: _titulo);
-  _fila(hoja, [_t('Creado el'), _t(fechaHora(lote.creadoEn))]);
-  if (lote.cerradoEn != null) _fila(hoja, [_t('Cerrado el'), _t(fechaHora(lote.cerradoEn!))]);
-  if (comprador.isNotEmpty) _fila(hoja, [_t('Comprador'), _t(comprador)]);
-  _fila(hoja, [_t('Generado el'), _t(fechaHora(generado ?? DateTime.now()))]);
-  _fila(hoja, [_t('Catalíticos'), _i(activos.length)], estilos: {0: _negrita});
-  _fila(hoja, [_t('Total pagado'), _i(total)], estilos: {0: _negrita, 1: _dineroNegrita});
-  _fila(hoja, []);
+  var fila = _cabecera(h, lote.nombre, [
+    'Creado el ${fechaHora(lote.creadoEn)}${lote.cerradoEn != null ? ' · cerrado el ${fechaHora(lote.cerradoEn!)}' : ''}',
+    if (comprador.isNotEmpty) 'Comprador: $comprador',
+    'Generado el ${fechaHora(generado ?? DateTime.now())}',
+  ], columnas: 9);
+  fila = _tarjetas(h, fila, [
+    ('TOTAL PAGADO', _i(total), _F.dinero),
+    ('CATALÍTICOS', _i(activos.length), _F.entero),
+    ('PROMEDIO', _i(activos.isEmpty ? 0 : (total / activos.length).round()), _F.dinero),
+  ]);
 
-  _fila(hoja, [
-    _t('Código'), _t('Fecha de compra'), _t('Hora'), _t('Vendedor'), _t('Tipo'),
-    _t('Código de fábrica'), _t('Autos'), _t('Precio'), _t('Escaneado el'), _t('Estado'),
-  ], todo: _encabezado);
+  const columnas = ['Código', 'Fecha de compra', 'Hora', 'Vendedor', 'Tipo', 'Código de fábrica', 'Autos', 'Precio', 'Escaneado el'];
+  _escribir(h, fila, [for (final c in columnas) _t(c)], [for (final _ in columnas) _encabezado()]);
+  h.setRowHeight(fila, 30);
+  fila++;
+  var k = 0;
   for (final i in items.reversed) {
     final c = i.compra;
-    _fila(hoja, [
-      _t(c.codigo), _d(c.fechaCompra), _h(c.fechaCompra), _t(c.vendedor), _t(c.tipo),
+    final franja = k.isOdd;
+    final a = c.anulada;
+    _escribir(h, fila, [
+      _t(c.codigo), _d(c.fechaCompra), _h(c.fechaCompra), _t(c.vendedor), _t(a ? '${c.tipo} (anulada)' : c.tipo),
       _t(c.codigoFabrica), _t(c.autos), _i(c.precio), _t(fechaHora(i.escaneadoEn)),
-      _t(c.anulada ? 'Anulada' : 'Activa'),
-    ], estilos: {1: _fecha, 2: _hora, 7: _dinero});
+    ], [
+      _celda(_F.texto, franja: franja, anulada: a),
+      _celda(_F.fecha, franja: franja, anulada: a),
+      _celda(_F.hora, franja: franja, anulada: a),
+      _celda(_F.texto, franja: franja, anulada: a),
+      _celda(_F.texto, franja: franja, anulada: a),
+      _celda(_F.texto, franja: franja, anulada: a),
+      _celda(_F.texto, franja: franja, anulada: a),
+      _celda(_F.dinero, franja: franja, anulada: a),
+      _celda(_F.texto, franja: franja, anulada: a),
+    ]);
+    fila++;
+    k++;
   }
-  _fila(hoja, [_t('TOTAL'), null, null, null, null, null, null, _i(total)],
-      estilos: {0: _negrita, 7: _dineroNegrita});
-  _anchos(hoja, [18, 14, 8, 20, 26, 16, 24, 12, 18, 10]);
+  _escribir(h, fila, [_t('TOTAL'), null, null, null, null, null, null, _i(total)],
+      [_total(_F.texto), _total(_F.texto), _total(_F.texto), _total(_F.texto), _total(_F.texto), _total(_F.texto),
+       _total(_F.texto), _total(_F.dinero)]);
+  _anchos(h, [19, 15, 8, 22, 22, 17, 24, 13, 18]);
   return excel.encode()!;
 }
 
@@ -160,8 +339,7 @@ Future<void> compartirExcel(List<int> bytes, String nombreArchivo, {String? text
   await archivo.writeAsBytes(bytes, flush: true);
   await SharePlus.instance.share(ShareParams(
     files: [
-      XFile(archivo.path,
-          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+      XFile(archivo.path, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
     ],
     text: texto,
   ));

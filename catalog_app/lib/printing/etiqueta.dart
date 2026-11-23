@@ -25,42 +25,61 @@ class DatosEtiqueta {
 /// El sticker se diseña para 384 puntos de ancho (papel de 58 mm a 203 ppp).
 /// Para papel de 80 mm se escala a 576 puntos.
 const anchoEtiqueta = 384.0;
-const altoEtiqueta = 344.0;
+const altoEtiqueta = 378.0;
 
 const _negro = Color(0xFF000000);
 const _blanco = Color(0xFFFFFFFF);
 
-/// Dibuja el sticker completo en un espacio de 384 x 344, en blanco y negro.
+/// Número de pieza del día, tomado del final del código (CTL-261121-0007 -> 7).
+int? _piezaDelDia(String codigo) => int.tryParse(codigo.split('-').last);
+
+/// Dibuja el sticker completo en un espacio de 384 x 378, en blanco y negro.
 void pintarEtiqueta(Canvas canvas, DatosEtiqueta d) {
   final negro = Paint()..color = _negro;
   canvas.drawRect(const Rect.fromLTWH(0, 0, anchoEtiqueta, altoEtiqueta), Paint()..color = _blanco);
 
-  // Logo y fecha/hora de compra.
+  // Banda negra con el logo en blanco y la fecha y hora de compra.
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(const Rect.fromLTWH(6, 6, 372, 52), const Radius.circular(10)),
+    negro,
+  );
   canvas.save();
-  canvas.translate(10, 9);
-  const CatalogMarkPainter(cuerpo: _negro, tubos: _negro).paint(canvas, const Size(58, 31.2));
+  canvas.translate(16, 18);
+  const CatalogMarkPainter(cuerpo: _blanco, tubos: _blanco).paint(canvas, const Size(54, 27.2));
   canvas.restore();
-  _texto(canvas, 'CataLog', x: 76, y: 6, tamano: 27, ancho: 150, familia: fuenteUi, peso: FontWeight.w700);
+  _texto(canvas, 'CataLog', x: 78, y: 14, tamano: 27, ancho: 140, familia: fuenteUi, peso: FontWeight.w700, color: _blanco);
   _texto(canvas, fechaCorta(d.fechaCompra),
-      x: 200, y: 4, tamano: 21, ancho: 176, familia: fuenteMono, alinear: TextAlign.right);
+      x: 200, y: 10, tamano: 19, ancho: 168, familia: fuenteMono, alinear: TextAlign.right, color: _blanco);
   _texto(canvas, hora(d.fechaCompra),
-      x: 200, y: 29, tamano: 21, ancho: 176, familia: fuenteMono, alinear: TextAlign.right);
+      x: 200, y: 32, tamano: 19, ancho: 168, familia: fuenteMono, alinear: TextAlign.right, color: _blanco);
 
   // Código grande.
   _texto(canvas, d.codigo,
-      x: 0, y: 58, tamano: 30, ancho: anchoEtiqueta, familia: fuenteMono,
+      x: 0, y: 64, tamano: 32, ancho: anchoEtiqueta, familia: fuenteMono,
       peso: FontWeight.w500, alinear: TextAlign.center);
-  canvas.drawRect(const Rect.fromLTWH(10, 100, 364, 2), negro);
+  canvas.drawRect(const Rect.fromLTWH(10, 108, 364, 2), negro);
 
   // QR (con guiones) y datos a su derecha.
-  _qr(canvas, d.codigo, const Rect.fromLTWH(8, 108, 154, 154));
-  _texto(canvas, 'Comprado', x: 172, y: 112, tamano: 17, ancho: 204, familia: fuenteUi);
-  _texto(canvas, fechaCorta(d.fechaCompra), x: 172, y: 134, tamano: 25, ancho: 204, familia: fuenteMono);
-  _texto(canvas, hora(d.fechaCompra), x: 172, y: 164, tamano: 25, ancho: 204, familia: fuenteMono);
-  _texto(canvas, d.tipo, x: 172, y: 200, tamano: 18, ancho: 204, familia: fuenteUi, maxLineas: 3);
+  _qr(canvas, d.codigo, const Rect.fromLTWH(8, 116, 156, 156));
+  _texto(canvas, 'C O M P R A D O', x: 174, y: 120, tamano: 13, ancho: 202, familia: fuenteUi, peso: FontWeight.w700);
+  _texto(canvas, fechaCorta(d.fechaCompra), x: 174, y: 138, tamano: 26, ancho: 202, familia: fuenteMono, peso: FontWeight.w500);
+  _texto(canvas, hora(d.fechaCompra), x: 174, y: 168, tamano: 26, ancho: 202, familia: fuenteMono, peso: FontWeight.w500);
+  _texto(canvas, d.tipo, x: 174, y: 204, tamano: 18, ancho: 202, familia: fuenteUi, maxLineas: 2);
+  final pieza = _piezaDelDia(d.codigo);
+  if (pieza != null && pieza > 0) {
+    _texto(canvas, 'Pieza N° $pieza del día', x: 174, y: 248, tamano: 17, ancho: 202, familia: fuenteMono, peso: FontWeight.w500);
+  }
 
   // Code 128 (sin guiones, para que quepa con barras de 2 puntos).
-  _code128(canvas, codigoParaBarras(d.codigo), arriba: 270, alto: 66);
+  _code128(canvas, codigoParaBarras(d.codigo), arriba: 282, alto: 60);
+
+  // Pie: hecho con CataLog.
+  canvas.drawRect(const Rect.fromLTWH(60, 350, 264, 1.5), negro);
+  canvas.save();
+  canvas.translate(118, 357);
+  const CatalogMarkPainter(cuerpo: _negro, tubos: _negro).paint(canvas, const Size(28, 14.1));
+  canvas.restore();
+  _texto(canvas, 'Hecho con CataLog', x: 150, y: 354, tamano: 15, ancho: 180, familia: fuenteUi, peso: FontWeight.w700);
 }
 
 void _texto(
@@ -74,6 +93,7 @@ void _texto(
   FontWeight peso = FontWeight.w400,
   TextAlign alinear = TextAlign.left,
   int maxLineas = 1,
+  Color color = _negro,
 }) {
   final pb = ui.ParagraphBuilder(ui.ParagraphStyle(
     textAlign: alinear,
@@ -83,7 +103,7 @@ void _texto(
     fontSize: tamano,
     fontWeight: peso,
   ))
-    ..pushStyle(ui.TextStyle(color: _negro, fontFamily: familia, fontSize: tamano, fontWeight: peso))
+    ..pushStyle(ui.TextStyle(color: color, fontFamily: familia, fontSize: tamano, fontWeight: peso))
     ..addText(texto);
   final parrafo = pb.build()..layout(ui.ParagraphConstraints(width: ancho));
   canvas.drawParagraph(parrafo, Offset(x, y));

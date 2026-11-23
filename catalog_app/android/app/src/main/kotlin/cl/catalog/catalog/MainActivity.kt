@@ -20,7 +20,9 @@ import java.io.File
  *
  * Canal "cl.catalog/sistema":
  *  - archivoRecibido: ruta del .zip que se abrió con CataLog desde otra app.
- *  - guardarEnDescargas: guarda el respaldo diario en Descargas/CataLog.
+ *  - guardarEnDescargas: guarda un respaldo en Descargas/<carpeta>.
+ *  - listarRespaldos: respaldos que esta app guardó en Descargas/<carpeta>.
+ *  - leerArchivo: bytes de un archivo (por su uri).
  */
 class MainActivity : FlutterFragmentActivity() {
     private var archivoPendiente: String? = null
@@ -29,24 +31,28 @@ class MainActivity : FlutterFragmentActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "cl.catalog/sistema")
             .setMethodCallHandler { call, result ->
-                when (call.method) {
-                    "archivoRecibido" -> {
-                        val ruta = archivoPendiente
-                        archivoPendiente = null
-                        result.success(ruta)
-                    }
-                    "guardarEnDescargas" -> {
-                        try {
-                            val nombre = call.argument<String>("nombre")!!
-                            val bytes = call.argument<ByteArray>("bytes")!!
-                            val prefijoBorrar = call.argument<String>("prefijoBorrar")
-                            val conservar = call.argument<Int>("conservar") ?: 3
-                            result.success(guardarEnDescargas(nombre, bytes, prefijoBorrar, conservar))
-                        } catch (e: Exception) {
-                            result.error("descargas", e.message, null)
+                try {
+                    when (call.method) {
+                        "archivoRecibido" -> {
+                            val ruta = archivoPendiente
+                            archivoPendiente = null
+                            result.success(ruta)
                         }
+                        "guardarEnDescargas" -> result.success(
+                            guardarEnDescargas(
+                                call.argument<String>("nombre")!!,
+                                call.argument<ByteArray>("bytes")!!,
+                                call.argument<String>("carpeta") ?: "Respaldo CataLog",
+                                call.argument<String>("prefijoBorrar"),
+                                call.argument<Int>("conservar") ?: 3,
+                            )
+                        )
+                        "listarRespaldos" -> result.success(listarRespaldos(call.argument<String>("carpeta") ?: "Respaldo CataLog"))
+                        "leerArchivo" -> result.success(leerArchivo(call.argument<String>("uri")!!))
+                        else -> result.notImplemented()
                     }
-                    else -> result.notImplemented()
+                } catch (e: Exception) {
+                    result.error("sistema", e.message, null)
                 }
             }
     }
@@ -86,11 +92,24 @@ class MainActivity : FlutterFragmentActivity() {
         intent.action = null
     }
 
-    private fun guardarEnDescargas(nombre: String, bytes: ByteArray, prefijoBorrar: String?, conservar: Int): String {
+    private fun rutaRelativa(carpeta: String) = Environment.DIRECTORY_DOWNLOADS + "/" + carpeta
+
+    @Suppress("DEPRECATION")
+    private fun carpetaPublica(carpeta: String) =
+        File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), carpeta)
+
+    private fun pedirPermisoAntiguo() {
+        if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 7)
+            throw Exception("Falta el permiso de almacenamiento")
+        }
+    }
+
+    private fun guardarEnDescargas(nombre: String, bytes: ByteArray, carpeta: String, prefijoBorrar: String?, conservar: Int): String {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val resolver = contentResolver
             val coleccion = MediaStore.Downloads.EXTERNAL_CONTENT_URI
-            val relativa = Environment.DIRECTORY_DOWNLOADS + "/CataLog"
+            val relativa = rutaRelativa(carpeta)
             val columnaNombre = MediaStore.MediaColumns.DISPLAY_NAME
             val columnaRuta = MediaStore.MediaColumns.RELATIVE_PATH
 
@@ -126,21 +145,66 @@ class MainActivity : FlutterFragmentActivity() {
                 }
             }
         } else {
-            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 7)
-                throw Exception("Falta el permiso de almacenamiento")
-            }
-            @Suppress("DEPRECATION")
-            val carpeta = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "CataLog")
-            carpeta.mkdirs()
-            File(carpeta, nombre).writeBytes(bytes)
+            pedirPermisoAntiguo()
+            val dir = carpetaPublica(carpeta)
+            dir.mkdirs()
+            File(dir, nombre).writeBytes(bytes)
             if (prefijoBorrar != null) {
-                carpeta.listFiles { f -> f.name.startsWith(prefijoBorrar) }
+                dir.listFiles { f -> f.name.startsWith(prefijoBorrar) }
                     ?.sortedByDescending { it.name }
                     ?.drop(conservar)
                     ?.forEach { it.delete() }
             }
         }
-        return "Descargas/CataLog/$nombre"
+        return "Descargas/$carpeta/$nombre"
     }
+
+    /** Respaldos (.zip) de la carpeta, el más nuevo primero. */
+    private fun listarRespaldos(carpeta: String): List<Map<String, Any>> {
+        val lista = mutableListOf<Map<String, Any>>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val coleccion = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            contentResolver.query(
+                coleccion,
+                arrayOf(
+                    MediaStore.MediaColumns._ID,
+                    MediaStore.MediaColumns.DISPLAY_NAME,
+                    MediaStore.MediaColumns.DATE_MODIFIED,
+                    MediaStore.MediaColumns.SIZE,
+                ),
+                "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ? AND ${MediaStore.MediaColumns.DISPLAY_NAME} LIKE ?",
+                arrayOf("${rutaRelativa(carpeta)}%", "%.zip"),
+                "${MediaStore.MediaColumns.DATE_MODIFIED} DESC",
+            )?.use { c ->
+                while (c.moveToNext()) {
+                    lista.add(
+                        mapOf(
+                            "nombre" to c.getString(1),
+                            "uri" to ContentUris.withAppendedId(coleccion, c.getLong(0)).toString(),
+                            "fecha" to c.getLong(2) * 1000,
+                            "tamano" to c.getLong(3),
+                        )
+                    )
+                }
+            }
+        } else {
+            carpetaPublica(carpeta).listFiles { f -> f.name.endsWith(".zip") }
+                ?.sortedByDescending { it.lastModified() }
+                ?.forEach { f ->
+                    lista.add(
+                        mapOf(
+                            "nombre" to f.name,
+                            "uri" to Uri.fromFile(f).toString(),
+                            "fecha" to f.lastModified(),
+                            "tamano" to f.length(),
+                        )
+                    )
+                }
+        }
+        return lista
+    }
+
+    private fun leerArchivo(uri: String): ByteArray =
+        contentResolver.openInputStream(Uri.parse(uri))?.use { it.readBytes() }
+            ?: throw Exception("No se pudo abrir el archivo")
 }

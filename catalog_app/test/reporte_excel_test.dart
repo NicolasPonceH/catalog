@@ -78,23 +78,32 @@ void main() {
   test('el Excel del reporte tiene sus hojas y los totales cuadran', () {
     final bytes = excelDeReporte(Reporte.de(compras, titulo: 'Noviembre 2026'), comprador: 'Papá');
     final excel = Excel.decodeBytes(bytes);
-    expect(excel.tables.keys, containsAll(['Resumen', 'Compras', 'Por tipo', 'Por vendedor']));
+    expect(excel.tables.keys, containsAll(['Resumen', 'Compras']));
 
+    // Resumen: tarjeta "TOTAL GASTADO" con el valor en la fila de abajo.
     final res = excel['Resumen'];
-    final filaTotal = res.rows.firstWhere((f) => texto(f.first?.value) == 'Total gastado');
-    expect(entero(filaTotal[1]?.value), 635000);
+    final filas = res.rows;
+    final i = filas.indexWhere((f) => texto(f.first?.value) == 'TOTAL GASTADO');
+    expect(i, greaterThan(0));
+    expect(entero(filas[i + 1].first?.value), 635000);
+    expect(filas.any((f) => texto(f.first?.value) == 'Por tipo de catalítico'), isTrue);
+    expect(filas.any((f) => texto(f.first?.value) == 'Por vendedor'), isTrue);
+    expect(filas.any((f) => texto(f.first?.value) == 'DPF · Diésel'), isTrue);
 
     final hoja = excel['Compras'];
     expect(texto(hoja.rows.first.first?.value), 'Código');
     // Encabezado + 5 compras (incluida la anulada) + fila TOTAL.
     expect(hoja.maxRows, 7);
     final ultima = hoja.rows.last;
-    expect(texto(ultima.first?.value), 'TOTAL');
-    expect(entero(ultima[5]?.value), 635000);
-    final anulada = hoja.rows.firstWhere((f) => texto(f[14]?.value) == 'Anulada');
-    expect(entero(anulada[5]?.value), 999999);
-    // La fecha de compra va como fecha real de Excel.
+    expect(texto(ultima.first?.value), startsWith('TOTAL'));
+    expect(entero(ultima[8]?.value), 635000);
+    final anulada = hoja.rows.firstWhere((f) => texto(f[9]?.value) == 'Anulada');
+    expect(entero(anulada[8]?.value), 999999);
+    // La fecha de compra va como fecha real de Excel y hay enlace al mapa.
     expect(hoja.rows[1][1]?.value, isA<DateCellValue>());
+    expect(hoja.rows[1][10]?.value, isA<FormulaCellValue>());
+    // Ya no existe la columna "Original".
+    expect(hoja.rows.first.map((c) => texto(c?.value)), isNot(contains('Original')));
   });
 
   test('el Excel del lote lista los catalíticos y su total', () {
@@ -102,8 +111,8 @@ void main() {
     final items = [for (final c in compras.take(3)) ItemLote(c, DateTime(2026, 11, 21, 16))];
     final excel = Excel.decodeBytes(excelDeLote(lote, items));
     final hoja = excel['Lote'];
-    final total = hoja.rows.firstWhere((f) => texto(f.first?.value) == 'Total pagado');
-    expect(entero(total[1]?.value), 335000);
+    final i = hoja.rows.indexWhere((f) => texto(f.first?.value) == 'TOTAL PAGADO');
+    expect(entero(hoja.rows[i + 1].first?.value), 335000);
     expect(texto(hoja.rows.last.first?.value), 'TOTAL');
     expect(entero(hoja.rows.last[7]?.value), 335000);
   });

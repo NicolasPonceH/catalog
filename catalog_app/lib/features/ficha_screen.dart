@@ -8,6 +8,7 @@ import '../data/compra.dart';
 import '../domain/formato.dart';
 import '../printing/etiqueta.dart';
 import '../printing/imprimir.dart';
+import '../system/confirmar.dart';
 import '../theme.dart';
 import '../widgets/consulta.dart';
 import 'compra_form_screen.dart';
@@ -72,10 +73,11 @@ class _FichaScreenState extends State<FichaScreen> {
         ],
       ),
     );
-    if (ok == true && mounted) {
-      await AppScope.of(context).compras.anular(c.id, motivo.text);
-    }
+    final texto = motivo.text;
     motivo.dispose();
+    if (ok != true || !mounted) return;
+    if (!await confirmarConHuella(context, 'Confirma para anular ${c.codigo}')) return;
+    if (mounted) await AppScope.of(context).compras.anular(c.id, texto);
   }
 
   Future<void> _reactivar(Compra c) async {

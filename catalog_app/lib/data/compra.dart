@@ -141,7 +141,7 @@ class Compra {
   final DateTime? fechaCompraEditadaEn;
 
   bool get tieneUbicacion => lat != null && lng != null;
-  String get tipo => tipoTexto(motor, material, original);
+  String get tipo => tipoTexto(motor, material);
 }
 
 /// Total y cantidad de compras activas en un período.

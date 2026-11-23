@@ -25,7 +25,7 @@ void main() {
   final datos = DatosEtiqueta(
     codigo: 'CTL-261121-0007',
     fechaCompra: DateTime(2026, 11, 21, 10, 42),
-    tipo: 'Cerámico · Bencinero · Original',
+    tipo: 'Cerámico · Bencinero',
   );
 
   testWidgets('el sticker sale en blanco y negro al ancho de la impresora', (tester) async {

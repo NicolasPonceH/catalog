@@ -19,6 +19,6 @@ extension TipoMaterialEtiqueta on TipoMaterial {
       };
 }
 
-/// Texto corto del tipo, por ejemplo "Cerámico · Bencinero · Original".
-String tipoTexto(Motor motor, TipoMaterial material, bool original) =>
-    '${material.etiqueta} · ${motor.etiqueta}${original ? ' · Original' : ''}';
+/// Texto corto del tipo, por ejemplo "Cerámico · Bencinero".
+/// (Siempre se compran catalíticos originales, por eso no se indica.)
+String tipoTexto(Motor motor, TipoMaterial material) => '${material.etiqueta} · ${motor.etiqueta}';

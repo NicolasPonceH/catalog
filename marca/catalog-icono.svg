@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="1024" height="1024">
-  <rect width="64" height="64" rx="14" fill="#0E2A47"/>
-  <g transform="translate(32 32) scale(0.88) translate(-32 -32)">
-    <rect x="6" y="28.5" width="13" height="7" rx="2.5" fill="#FF7A1A"/>
-    <rect x="45" y="28.5" width="13" height="7" rx="2.5" fill="#FF7A1A"/>
-    <path fill="#F4F6F8" fill-rule="evenodd" d="M27 18H37A12 12 0 0 1 49 30V34A12 12 0 0 1 37 46H27A12 12 0 0 1 15 34V30A12 12 0 0 1 27 18Z M22 25.5h2.2v13H22Z M25.6 25.5h1.1v13h-1.1Z M28 25.5h2.6v13H28Z M32 25.5h1.1v13H32Z M34.6 25.5h2.2v13h-2.2Z M38.2 25.5h1.1v13h-1.1Z M40.5 25.5h1.8v13h-1.8Z"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="1024" height="1024" role="img" aria-label="Ícono de CataLog"><rect width="64" height="64" rx="0" fill="#0E2A47"/><g transform="translate(32 32) scale(.88) translate(-32 -32)"><path fill="#FF7A1A" fill-rule="evenodd" d="M7.2 27.3h2.6l1.1 1.4h10v6.6h-10l-1.1 1.4H7.2A1.2 1.2 0 0 1 6 35.5v-7a1.2 1.2 0 0 1 1.2-1.2ZM45 28.6h11.6a1.4 1.4 0 0 1 1.4 1.4v4a1.4 1.4 0 0 1-1.4 1.4H45Z"/><path fill="#F4F6F8" fill-rule="evenodd" d="M15 29.1a2.3 2.3 0 0 1 .7-1.7l8.8-7.9a2.3 2.3 0 0 1 1.6-.6h14.5a2.3 2.3 0 0 1 1.8.8l6.1 7.3a2.3 2.3 0 0 1 .5 1.5v7a2.3 2.3 0 0 1-.5 1.5l-6.1 7.3a2.3 2.3 0 0 1-1.8.8H26.1a2.3 2.3 0 0 1-1.6-.6l-8.8-7.9a2.3 2.3 0 0 1-.7-1.7Z M22.6 25.4h2.7v13.2h-2.7Zm4.5 0h1.7v13.2h-1.7Zm3.5 0h3.2v13.2h-3.2Zm5 0h1.9v13.2h-1.9Zm3.7 0h2.7v13.2h-2.7Z"/></g></svg>

@@ -218,6 +218,9 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
   }
 }
 
+/// Ancho máximo de la app en pantallas grandes.
+const anchoMaximoApp = 760.0;
+
 class CatalogApp extends StatelessWidget {
   const CatalogApp({
     super.key,
@@ -243,12 +246,34 @@ class CatalogApp extends StatelessWidget {
       locale: const Locale('es', 'CL'),
       supportedLocales: const [Locale('es', 'CL'), Locale('es')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      builder: (context, child) => Stack(
-        children: [
-          child ?? const SizedBox(),
-          if (bloqueada) PantallaBloqueo(alDesbloquear: alDesbloquear ?? () {}),
-        ],
-      ),
+      builder: (context, child) {
+        // Respeta el tamaño de letra del teléfono, con un tope para que nada se desarme.
+        final mq = MediaQuery.of(context);
+        final contenido = MediaQuery(
+          data: mq.copyWith(textScaler: mq.textScaler.clamp(minScaleFactor: 0.9, maxScaleFactor: 1.3)),
+          child: child ?? const SizedBox(),
+        );
+        // En pantallas anchas (tablet o teléfono de lado) la app se centra con un ancho cómodo.
+        final app = LayoutBuilder(
+          builder: (context, c) => c.maxWidth > anchoMaximoApp
+              ? ColoredBox(
+                  color: CatalogColors.marino,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: anchoMaximoApp),
+                      child: ClipRect(child: contenido),
+                    ),
+                  ),
+                )
+              : contenido,
+        );
+        return Stack(
+          children: [
+            app,
+            if (bloqueada) PantallaBloqueo(alDesbloquear: alDesbloquear ?? () {}),
+          ],
+        );
+      },
       home: const InicioScreen(),
     );
   }

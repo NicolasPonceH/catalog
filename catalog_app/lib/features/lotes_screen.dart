@@ -11,9 +11,36 @@ import 'lote_screen.dart';
 class LotesScreen extends StatelessWidget {
   const LotesScreen({super.key});
 
+  /// Pide el nombre apenas se crea el lote (sugiere la fecha y hora).
   Future<void> _nuevo(BuildContext context) async {
-    final lote = await AppScope.of(context).lotes.crear();
-    if (context.mounted) await abrir(context, LoteScreen(loteId: lote.id));
+    final sugerido = 'Lote ${fechaHora(DateTime.now())}';
+    final control = TextEditingController(text: sugerido)
+      ..selection = TextSelection(baseOffset: 0, extentOffset: sugerido.length);
+    final nombre = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Nuevo lote'),
+        content: TextField(
+          controller: control,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(labelText: 'Nombre del lote', hintText: 'Entrega a fundición'),
+          onSubmitted: (v) => Navigator.pop(context, v),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(96, 44)),
+            onPressed: () => Navigator.pop(context, control.text),
+            child: const Text('Crear'),
+          ),
+        ],
+      ),
+    );
+    control.dispose();
+    if (nombre == null || !context.mounted) return;
+    final lote = await AppScope.of(context).lotes.crear(nombre: nombre.trim().isEmpty ? sugerido : nombre);
+    if (context.mounted) await abrir(context, LoteScreen(loteId: lote.id, nuevo: true));
   }
 
   @override
