@@ -38,7 +38,11 @@ String iniciales(String nombre) {
   return palabras.take(2).map((p) => p.characters.first.toUpperCase()).join();
 }
 
+/// Estado de la lectura de huella en la pantalla de bloqueo.
+enum _Huella { esperando, analizando, ok, error }
+
 class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
+  _Huella _huella = _Huella.esperando;
   late final _intro = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400));
   late final _escaneo = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
   late final _espera = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
@@ -57,6 +61,8 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
     super.initState();
     _escaneo.repeat(reverse: true);
     _latido.repeat();
+    // Con bloqueo, la entrada es más corta: lo importante es pedir la huella.
+    if (widget.bloqueada) _intro.duration = const Duration(milliseconds: 1300);
     _intro.forward().whenComplete(_trasIntro);
   }
 
@@ -95,11 +101,21 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
 
   Future<void> _pedirHuella() async {
     if (_pidiendo || _saliendo) return;
-    setState(() => _pidiendo = true);
+    setState(() {
+      _pidiendo = true;
+      _huella = _Huella.analizando;
+    });
     final ok = await Bloqueo.desbloquear('Entra a CataLog');
     if (!mounted) return;
-    setState(() => _pidiendo = false);
-    if (ok) _entrar();
+    setState(() {
+      _pidiendo = false;
+      _huella = ok ? _Huella.ok : _Huella.error;
+    });
+    if (!ok) return;
+    // Un momento con la huella en verde antes de entrar.
+    HapticFeedback.mediumImpact();
+    await Future<void>.delayed(const Duration(milliseconds: 650));
+    _entrar();
   }
 
   void _entrar() {
@@ -157,7 +173,8 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
                         child: IntrinsicHeight(
                           child: AnimatedBuilder(
                             animation: Listenable.merge([_intro, _escaneo, _espera, _latido]),
-                            builder: (context, _) => _contenido(context),
+                            builder: (context, _) =>
+                                widget.bloqueada ? _contenidoBloqueo(context) : _contenido(context),
                           ),
                         ),
                       ),
@@ -233,7 +250,7 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
         const Spacer(flex: 2),
         _aparecer(0.68, 0.92, _tarjetaSaludo()),
         SizedBox(height: bajo ? 16 : 26),
-        _aparecer(0.8, 1, widget.bloqueada ? _botonHuella() : _botonEntrar()),
+        _aparecer(0.8, 1, _botonEntrar()),
         const Spacer(),
         Opacity(
           opacity: tramo(i, 0.85, 1) * 0.6,
@@ -241,6 +258,133 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
             'Versión $versionApp · Hecho en Arica',
             style: TextStyle(color: Colors.white, fontSize: 12),
           ),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  /// Pantalla de bloqueo: el símbolo arriba, el saludo y una huella grande que
+  /// se analiza (crestas que se encienden y una línea de lector). Los montos no
+  /// se muestran hasta entrar.
+  Widget _contenidoBloqueo(BuildContext context) {
+    final i = _intro.value;
+    final corto = _nombre.isEmpty ? '' : _nombre.split(RegExp(r'\s+')).first;
+    final bajo = MediaQuery.sizeOf(context).height < 700;
+    const verde = Color(0xFF5DCAA5);
+    final (texto, colorTexto) = switch (_huella) {
+      _Huella.esperando => ('Listo para leer tu huella', Colors.white70),
+      _Huella.analizando => ('Analizando huella…', CatalogColors.naranja),
+      _Huella.ok => ('Huella reconocida', verde),
+      _Huella.error => ('No se reconoció. Toca para intentar de nuevo', const Color(0xFFFFB4A8)),
+    };
+    final encendido = switch (_huella) {
+      _Huella.analizando => _latido.value,
+      _Huella.ok => 1.0,
+      _ => 0.0,
+    };
+    final colorHuella = _huella == _Huella.ok ? verde : CatalogColors.naranja;
+    final diametro = bajo ? 170.0 : 200.0;
+    return Column(
+      children: [
+        const Spacer(flex: 2),
+        CustomPaint(
+          size: Size(bajo ? 90 : 110, bajo ? 46 : 56),
+          painter: PintorMarcaAnimada(armado: tramo(i, 0, 0.6)),
+        ),
+        const SizedBox(height: 12),
+        _aparecer(
+          0.35,
+          0.75,
+          Text(
+            corto.isEmpty ? 'Hola' : 'Hola, $corto',
+            style: const TextStyle(color: CatalogColors.niebla, fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+          sube: 10,
+        ),
+        const SizedBox(height: 4),
+        _aparecer(
+          0.45,
+          0.85,
+          Text(saludoPorHora(DateTime.now()), style: const TextStyle(color: Colors.white60, fontSize: 14)),
+          sube: 8,
+        ),
+        SizedBox(height: bajo ? 22 : 34),
+        _aparecer(
+          0.5,
+          1,
+          GestureDetector(
+            onTap: _pedirHuella,
+            child: Container(
+              width: diametro,
+              height: diametro,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.05),
+                border: Border.all(color: colorHuella.withValues(alpha: _huella == _Huella.esperando ? 0.25 : 0.7), width: 2),
+              ),
+              padding: EdgeInsets.all(diametro * 0.14),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: PintorHuella(
+                        encendido: encendido,
+                        escaneo: _huella == _Huella.analizando ? Curves.easeInOut.transform(_escaneo.value) : null,
+                        color: colorHuella,
+                      ),
+                    ),
+                  ),
+                  if (_huella == _Huella.ok)
+                    const Align(
+                      alignment: Alignment.bottomRight,
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: verde,
+                        child: Icon(Icons.check, color: CatalogColors.marino, size: 24),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          sube: 0,
+        ),
+        SizedBox(height: bajo ? 18 : 26),
+        Text(
+          texto,
+          textAlign: TextAlign.center,
+          style: mono(size: 14, color: colorTexto),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: 190,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: switch (_huella) {
+                _Huella.analizando => null,
+                _Huella.ok => 1,
+                _ => 0,
+              },
+              minHeight: 4,
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              color: colorHuella,
+            ),
+          ),
+        ),
+        const Spacer(flex: 2),
+        Opacity(
+          opacity: 0.6,
+          child: Text(
+            _huella == _Huella.analizando ? 'Pon tu dedo en el lector del teléfono' : 'Toca la huella para entrar',
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Opacity(
+          opacity: tramo(i, 0.6, 1) * 0.45,
+          child: const Text('Versión $versionApp · Hecho en Arica', style: TextStyle(color: Colors.white, fontSize: 12)),
         ),
         const SizedBox(height: 12),
       ],
@@ -390,52 +534,6 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _botonHuella() {
-    final t = _latido.value;
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: _pedirHuella,
-          child: SizedBox(
-            width: 112,
-            height: 112,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                for (final desfase in [0.0, 0.5])
-                  Builder(builder: (context) {
-                    final f = (t + desfase) % 1.0;
-                    return Container(
-                      width: 72 + 40 * f,
-                      height: 72 + 40 * f,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: CatalogColors.naranja.withValues(alpha: 0.6 * (1 - f)),
-                          width: 2,
-                        ),
-                      ),
-                    );
-                  }),
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: const BoxDecoration(color: CatalogColors.naranja, shape: BoxShape.circle),
-                  child: const Icon(Icons.fingerprint, size: 42, color: CatalogColors.marino),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          _pidiendo ? 'Esperando tu huella o PIN…' : 'Toca para entrar con tu huella',
-          style: const TextStyle(color: CatalogColors.niebla, fontSize: 15),
-        ),
-      ],
     );
   }
 

@@ -14,6 +14,7 @@ import 'data/sesiones.dart';
 import 'features/bienvenida.dart';
 import 'features/inicio_screen.dart';
 import 'features/presentacion_screen.dart';
+import 'features/principal_screen.dart';
 import 'features/traspaso.dart';
 import 'system/sistema.dart';
 import 'theme.dart';
@@ -314,7 +315,7 @@ class CatalogApp extends StatelessWidget {
           ],
         );
       },
-      home: const InicioScreen(),
+      home: const PrincipalScreen(),
     );
   }
 }

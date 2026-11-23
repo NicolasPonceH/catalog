@@ -259,7 +259,7 @@ void main() {
       await tester.tap(find.text('Siguiente'));
       await _esperar(tester);
     }
-    await tester.enterText(find.widgetWithText(TextField, 'Tu nombre'), 'Jorge Ramírez');
+    await tester.enterText(find.byType(TextField).first, 'Jorge Ramírez');
     FocusManager.instance.primaryFocus?.unfocus();
     await _capturar(tester, '9-presentacion-final');
     await _volver(tester);
@@ -287,17 +287,18 @@ void main() {
     await _capturar(tester, '2-nueva-compra');
     await _volver(tester);
 
+    // Pestañas de la barra de abajo.
     await tester.tap(find.text('Historial'));
     await _capturar(tester, '4-historial');
-    await _volver(tester);
 
     await tester.tap(find.text('Reportes'));
     await _capturar(tester, '5-reportes');
-    await _volver(tester);
 
     await tester.tap(find.text('Lotes'));
     await _capturar(tester, '6-lotes');
-    await _volver(tester);
+
+    await tester.tap(find.text('Inicio'));
+    await _esperar(tester);
 
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
     await tester.runAsync(base.cerrar);

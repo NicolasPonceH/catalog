@@ -121,8 +121,8 @@ void main() {
     }
 
     // Última página: nombre, prefijo y vista previa del código.
-    await tester.enterText(find.widgetWithText(TextField, 'Tu nombre'), 'María González');
-    await tester.enterText(find.widgetWithText(TextField, 'Prefijo de los códigos'), 'mgz');
+    await tester.enterText(find.byType(TextField).first, 'María González');
+    await tester.enterText(find.byType(TextField).last, 'mgz');
     await _avanzar(tester, ms: 400);
     expect(find.text('MG'), findsOneWidget);
     expect(find.textContaining('MGZ-'), findsOneWidget);

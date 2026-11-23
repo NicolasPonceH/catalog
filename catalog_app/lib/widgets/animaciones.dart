@@ -107,6 +107,95 @@ class PintorMarcaAnimada extends CustomPainter {
 }
 
 // ---------------------------------------------------------------------------
+// Huella que se analiza (pantalla de bloqueo)
+// ---------------------------------------------------------------------------
+
+/// Huella dactilar dibujada con crestas: se van encendiendo de adentro hacia
+/// afuera según [encendido] (0 a 1) y una línea de lector la recorre según
+/// [escaneo]. Se dibuja en un lienzo de 100 x 100, dentro de un círculo.
+class PintorHuella extends CustomPainter {
+  PintorHuella({
+    required this.encendido,
+    this.escaneo,
+    this.color = CatalogColors.naranja,
+  });
+
+  final double encendido;
+  final double? escaneo;
+  final Color color;
+
+  static const _centro = Offset(50, 54);
+
+  /// Crestas: (radio, ángulo inicial, ángulo final) en grados; algunas cortadas en dos.
+  static final List<Path> _crestas = () {
+    const datos = [
+      [5.0, 200.0, 340.0],
+      [10.0, 185.0, 360.0],
+      [15.0, 175.0, 262.0], [15.0, 274.0, 372.0],
+      [20.0, 165.0, 368.0],
+      [25.0, 160.0, 238.0], [25.0, 250.0, 380.0],
+      [30.0, 158.0, 300.0], [30.0, 312.0, 384.0],
+      [35.0, 166.0, 376.0],
+      [40.0, 178.0, 252.0], [40.0, 266.0, 364.0],
+    ];
+    return [
+      for (final d in datos)
+        Path()
+          ..addArc(
+            Rect.fromCircle(center: _centro, radius: d[0]),
+            d[1] * math.pi / 180,
+            (d[2] - d[1]) * math.pi / 180,
+          ),
+    ];
+  }();
+
+  /// Radio de cada cresta (para encenderlas de adentro hacia afuera).
+  static const _radios = [5.0, 10.0, 15.0, 15.0, 20.0, 25.0, 25.0, 30.0, 30.0, 35.0, 40.0, 40.0];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = math.min(size.width, size.height) / 100;
+    canvas.save();
+    canvas.translate((size.width - 100 * s) / 2, (size.height - 100 * s) / 2);
+    canvas.scale(s);
+    for (var i = 0; i < _crestas.length; i++) {
+      final umbral = (_radios[i] - 5) / 35; // 0 la de adentro, 1 la de afuera
+      final luz = ((encendido - umbral) * 5).clamp(0.0, 1.0);
+      canvas.drawPath(
+        _crestas[i],
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3.4
+          ..strokeCap = StrokeCap.round
+          ..color = Color.lerp(Colors.white.withValues(alpha: 0.22), color, luz)!,
+      );
+    }
+    final e = escaneo;
+    if (e != null) {
+      canvas.save();
+      canvas.clipPath(Path()..addOval(Rect.fromCircle(center: const Offset(50, 50), radius: 47)));
+      final y = 10 + 80 * e;
+      canvas.drawRect(
+        Rect.fromLTRB(0, y - 9, 100, y + 9),
+        Paint()
+          ..shader = ui.Gradient.linear(Offset(0, y - 9), Offset(0, y + 9), [
+            color.withValues(alpha: 0),
+            color.withValues(alpha: 0.35),
+            color.withValues(alpha: 0),
+          ], [0, 0.5, 1]),
+      );
+      canvas.drawRect(Rect.fromLTRB(4, y - 0.9, 96, y + 0.9), Paint()..color = color);
+      canvas.restore();
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(PintorHuella old) =>
+      old.encendido != encendido || old.escaneo != escaneo || old.color != color;
+}
+
+// ---------------------------------------------------------------------------
 // Fondo azul con partículas que suben (barras de código, cuadritos y anillos)
 // ---------------------------------------------------------------------------
 

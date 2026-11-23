@@ -11,10 +11,7 @@ import '../widgets/consulta.dart';
 import '../widgets/guia.dart';
 import 'ajustes_screen.dart';
 import 'compra_form_screen.dart';
-import 'escanear_screen.dart';
-import 'historial_screen.dart';
-import 'lotes_screen.dart';
-import 'reportes_screen.dart';
+import 'principal_screen.dart';
 import 'traspaso.dart';
 
 /// Al subir su valor, el Inicio muestra su guía (la pide la presentación de la primera vez).
@@ -33,8 +30,6 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
   // Partes que ilumina la guía.
   final _gMes = GlobalKey();
   final _gNueva = GlobalKey();
-  final _gEscanear = GlobalKey();
-  final _gAccesos = GlobalKey();
   final _gUltimas = GlobalKey();
   final _gTraspaso = GlobalKey();
   final _gAjustes = GlobalKey();
@@ -63,6 +58,7 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
 
   Future<void> _mostrarGuia() {
     final revision = AppScope.of(context).soloLectura;
+    final barra = BarraPrincipal.of(context);
     return mostrarGuia(context, [
       PasoGuia(
         clave: _gMes,
@@ -76,18 +72,21 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
         titulo: 'Registra una compra',
         texto: 'Anota vendedor, precio, tipo y foto. La fecha, la hora y el GPS se llenan solos.',
       ),
-      PasoGuia(
-        clave: _gEscanear,
-        icono: Icons.qr_code_scanner,
-        titulo: 'Escanea un sticker',
-        texto: 'Apunta la cámara al QR o al código de barras del sticker y se abre la ficha del catalítico.',
-      ),
-      PasoGuia(
-        clave: _gAccesos,
-        icono: Icons.apps,
-        titulo: 'Historial, lotes y reportes',
-        texto: 'Busca compras pasadas, escanea muchos stickers seguidos en un lote o saca el Excel del mes.',
-      ),
+      if (barra != null) ...[
+        PasoGuia(
+          clave: barra.claveEscanear,
+          icono: Icons.qr_code_scanner,
+          titulo: 'Escanea un sticker',
+          texto: 'El botón naranja de abajo abre la cámara: apunta al QR o al código de barras y se abre la ficha.',
+        ),
+        PasoGuia(
+          clave: barra.claveBarra,
+          icono: Icons.apps,
+          titulo: 'Historial, lotes y reportes',
+          texto: 'Cambia de pestaña aquí abajo: busca compras pasadas, escanea muchos stickers en un lote o '
+              'saca el Excel del mes.',
+        ),
+      ],
       PasoGuia(
         clave: _gUltimas,
         icono: Icons.receipt_long_outlined,
@@ -223,44 +222,9 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
                 icon: const Icon(Icons.add),
                 label: const Text('Nueva compra'),
               ),
-              const SizedBox(height: 10),
             ],
-            OutlinedButton.icon(
-              key: _gEscanear,
-              onPressed: () => abrir(context, const EscanearScreen()),
-              icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('Escanear sticker'),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              key: _gAccesos,
-              children: [
-                Expanded(
-                  child: _BotonChico(
-                    icono: Icons.history,
-                    texto: 'Historial',
-                    alTocar: () => abrir(context, const HistorialScreen()),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _BotonChico(
-                    icono: Icons.inventory_2_outlined,
-                    texto: 'Lotes',
-                    alTocar: () => abrir(context, const LotesScreen()),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _BotonChico(
-                    icono: Icons.bar_chart,
-                    texto: 'Reportes',
-                    alTocar: () => abrir(context, const ReportesScreen()),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+            // Escanear, Historial, Lotes y Reportes están en la barra de abajo.
+            const SizedBox(height: 14),
             const Text('Últimas compras', style: etiqueta),
             const SizedBox(height: 8),
             Consulta<List<Compra>>(
@@ -298,31 +262,6 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
   }
 }
 
-class _BotonChico extends StatelessWidget {
-  const _BotonChico({required this.icono, required this.texto, required this.alTocar});
-
-  final IconData icono;
-  final String texto;
-  final VoidCallback alTocar;
-
-  @override
-  Widget build(BuildContext context) => Card(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: alTocar,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Column(
-              children: [
-                Icon(icono, color: CatalogColors.marino),
-                const SizedBox(height: 4),
-                Text(texto, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-              ],
-            ),
-          ),
-        ),
-      );
-}
 
 /// Avisa que se están viendo datos de otro celular, sin poder modificarlos.
 class _AvisoRevision extends StatelessWidget {
