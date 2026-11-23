@@ -151,7 +151,13 @@ class _LoteScreenState extends State<LoteScreen> {
 
   Future<void> _quitar(ItemLote item) async {
     await AppScope.of(context).lotes.quitar(widget.loteId, item.compra.id);
-    if (mounted) avisar(context, '${item.compra.codigo} quitado del lote');
+    if (!mounted) return;
+    // La línea de estado no debe seguir diciendo "Agregado …" de lo que se acaba de quitar.
+    setState(() {
+      _ultimoMensaje = '${item.compra.codigo} quitado del lote';
+      _ultimoBien = true;
+    });
+    avisar(context, '${item.compra.codigo} quitado del lote');
   }
 
   @override
