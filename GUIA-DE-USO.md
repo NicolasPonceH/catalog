@@ -4,7 +4,7 @@ CataLog registra cada catalítico que compras, le imprime un sticker con su cód
 
 ## 1. Instalar
 
-1. Pasa el archivo `CataLog-1.0.apk` al celular, por WhatsApp o con el cable.
+1. Pasa el APK más nuevo (hoy `CataLog-1.2.1.apk`) al celular, por WhatsApp o con el cable.
 2. Ábrelo y acepta **instalar apps desconocidas** cuando el teléfono lo pida.
 3. Si aparece un aviso de seguridad (Xiaomi o Play Protect), toca **Instalar de todas formas**.
 
