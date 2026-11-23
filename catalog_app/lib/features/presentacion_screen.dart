@@ -241,18 +241,20 @@ class _PresentacionScreenState extends State<PresentacionScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         for (var i = 0; i < _total; i++)
-          Builder(builder: (context) {
-            final cerca = (1 - (_pos - i).abs()).clamp(0.0, 1.0);
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: 8 + 18 * cerca,
-              height: 8,
-              decoration: BoxDecoration(
-                color: Color.lerp(Colors.white24, CatalogColors.naranja, cerca),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            );
-          }),
+          Builder(
+            builder: (context) {
+              final cerca = (1 - (_pos - i).abs()).clamp(0.0, 1.0);
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: 8 + 18 * cerca,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: Color.lerp(Colors.white24, CatalogColors.naranja, cerca),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              );
+            },
+          ),
       ],
     );
   }
@@ -273,38 +275,43 @@ class _PresentacionScreenState extends State<PresentacionScreen> {
 
   Widget _contenidoPagina(_Pagina p, double delta, double visible, double altoIlustracion) {
     return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            height: altoIlustracion,
-            child: Opacity(
-              opacity: visible,
-              child: Transform.translate(
-                offset: Offset(-90 * delta, 0),
-                child: Center(child: IlustracionAnimada(p.ilustracion)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 22),
-          Transform.translate(
-            offset: Offset(-40 * delta, 0),
-            child: Text(
-              p.titulo,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: CatalogColors.niebla, fontSize: 28, fontWeight: FontWeight.w700, height: 1.15),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Opacity(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SizedBox(
+          height: altoIlustracion,
+          child: Opacity(
             opacity: visible,
-            child: Text(
-              p.texto,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 16, height: 1.45),
+            child: Transform.translate(
+              offset: Offset(-90 * delta, 0),
+              child: Center(child: IlustracionAnimada(p.ilustracion)),
             ),
           ),
-          const SizedBox(height: 12),
-        ],
+        ),
+        const SizedBox(height: 22),
+        Transform.translate(
+          offset: Offset(-40 * delta, 0),
+          child: Text(
+            p.titulo,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: CatalogColors.niebla,
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              height: 1.15,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Opacity(
+          opacity: visible,
+          child: Text(
+            p.texto,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 16, height: 1.45),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
     );
   }
 
@@ -313,115 +320,159 @@ class _PresentacionScreenState extends State<PresentacionScreen> {
     final prefijo = normalizarPrefijo(_prefijo.text.isEmpty ? prefijoPorDefecto : _prefijo.text);
     final hoy = DateTime.now();
     final ejemplo = formatearCodigo(prefijo, hoy, 1);
+    const etiquetaCampo = TextStyle(color: Colors.white70, fontSize: 13.5, fontWeight: FontWeight.w500);
+    final tarjeta = BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+    );
     return Opacity(
       opacity: (1 - delta.abs() * 0.7).clamp(0.0, 1.0),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(28, 18, 28, 12),
-        child: Column(
-          children: [
-            Container(
-              width: 88,
-              height: 88,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFFFFA25C), CatalogColors.naranja],
-                ),
-                boxShadow: [BoxShadow(color: CatalogColors.naranja.withValues(alpha: 0.35), blurRadius: 24)],
-              ),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                transitionBuilder: (h, a) => ScaleTransition(scale: a, child: h),
-                child: ini.isEmpty
-                    ? const Icon(Icons.person, key: ValueKey('sin'), size: 44, color: CatalogColors.marino)
-                    : Text(ini,
-                        key: ValueKey(ini),
-                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: CatalogColors.marino)),
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Antes de empezar',
-              style: TextStyle(color: CatalogColors.niebla, fontSize: 26, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Así CataLog te saluda por tu nombre y tus códigos no se repiten con los del otro comprador.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 15, height: 1.4),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _nombre,
-              textCapitalization: TextCapitalization.words,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Tu nombre',
-                prefixIcon: Icon(Icons.person_outline),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _prefijo,
-              textCapitalization: TextCapitalization.characters,
-              maxLength: 5,
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp('[a-zA-Z]'))],
-              style: mono(size: 16),
-              decoration: InputDecoration(
-                labelText: 'Prefijo de los códigos',
-                prefixIcon: const Icon(Icons.badge_outlined),
-                errorText: _errorPrefijo,
-                counterStyle: const TextStyle(color: Colors.white54),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.qr_code_2, color: CatalogColors.naranja, size: 30),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Así se verán tus códigos', style: TextStyle(color: Colors.white60, fontSize: 12.5)),
-                        const SizedBox(height: 2),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: Text(ejemplo, key: ValueKey(ejemplo), style: mono(size: 18, color: CatalogColors.niebla)),
-                        ),
-                      ],
+      // Centrada en el alto disponible, como las demás páginas; si no cabe, se desplaza.
+      child: LayoutBuilder(
+        builder: (context, c) => SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: c.maxHeight - 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 88,
+                    height: 88,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFFFFA25C), CatalogColors.naranja],
+                      ),
+                      boxShadow: [BoxShadow(color: CatalogColors.naranja.withValues(alpha: 0.35), blurRadius: 24)],
+                    ),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      transitionBuilder: (h, a) => ScaleTransition(scale: a, child: h),
+                      child: ini.isEmpty
+                          ? const Icon(Icons.person, key: ValueKey('sin'), size: 44, color: CatalogColors.marino)
+                          : Text(
+                              ini,
+                              key: ValueKey(ini),
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w700,
+                                color: CatalogColors.marino,
+                              ),
+                            ),
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Antes de empezar',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: CatalogColors.niebla, fontSize: 26, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Así CataLog te saluda por tu nombre y tus códigos no se repiten con los del otro comprador.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 15, height: 1.4),
+                ),
+                const SizedBox(height: 24),
+                // Etiquetas arriba de cada campo (sobre el fondo azul se leen mejor que flotando en el borde).
+                const Text('Tu nombre', style: etiquetaCampo),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _nombre,
+                  textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(hintText: 'Ej: Juan Pérez', prefixIcon: Icon(Icons.person_outline)),
+                ),
+                const SizedBox(height: 14),
+                const Text('Prefijo de los códigos (2 a 5 letras)', style: etiquetaCampo),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _prefijo,
+                  textCapitalization: TextCapitalization.characters,
+                  maxLength: 5,
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp('[a-zA-Z]'))],
+                  style: mono(size: 16),
+                  decoration: InputDecoration(
+                    hintText: 'CTL',
+                    prefixIcon: const Icon(Icons.badge_outlined),
+                    errorText: _errorPrefijo,
+                    errorStyle: const TextStyle(color: Color(0xFFFFB4A8)),
+                    counterText: '',
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: tarjeta,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.qr_code_2, color: CatalogColors.naranja, size: 30),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Así se verán tus códigos',
+                              style: TextStyle(color: Colors.white60, fontSize: 12.5),
+                            ),
+                            const SizedBox(height: 2),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              child: Text(
+                                ejemplo,
+                                key: ValueKey(ejemplo),
+                                style: mono(size: 18, color: CatalogColors.niebla),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // Misma tarjeta y mismos bordes que la de arriba, para que todo quede alineado.
+                Material(
+                  type: MaterialType.transparency,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () => setState(() => _verGuia = !_verGuia),
+                    child: Ink(
+                      padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+                      decoration: tarjeta,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.help_outline, color: CatalogColors.naranja, size: 28),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Mostrarme una guía rápida al entrar',
+                              style: TextStyle(color: CatalogColors.niebla, fontSize: 15),
+                            ),
+                          ),
+                          Switch(
+                            value: _verGuia,
+                            onChanged: (v) => setState(() => _verGuia = v),
+                            activeThumbColor: CatalogColors.marino,
+                            activeTrackColor: CatalogColors.naranja,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 6),
-            Theme(
-              data: Theme.of(context).copyWith(unselectedWidgetColor: Colors.white70),
-              child: CheckboxListTile(
-                value: _verGuia,
-                onChanged: (v) => setState(() => _verGuia = v ?? false),
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                activeColor: CatalogColors.naranja,
-                checkColor: CatalogColors.marino,
-                side: const BorderSide(color: Colors.white70, width: 1.5),
-                title: const Text('Mostrarme una guía rápida al entrar',
-                    style: TextStyle(color: CatalogColors.niebla, fontSize: 15)),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
