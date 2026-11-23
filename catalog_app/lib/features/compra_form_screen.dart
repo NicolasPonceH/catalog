@@ -12,6 +12,7 @@ import '../domain/formato.dart';
 import '../domain/tipos.dart';
 import '../theme.dart';
 import '../widgets/campo_autocompletar.dart';
+import '../widgets/guia.dart';
 import 'ficha_screen.dart';
 
 /// Formulario para registrar una compra nueva o corregir una existente.
@@ -56,7 +57,72 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
   List<String> _lugares = const [];
   List<String> _autosUsados = const [];
 
+  // Partes que ilumina la guía.
+  final _gFecha = GlobalKey();
+  final _gVendedor = GlobalKey();
+  final _gLugar = GlobalKey();
+  final _gPrecio = GlobalKey();
+  final _gTipo = GlobalKey();
+  final _gFabrica = GlobalKey();
+  final _gFoto = GlobalKey();
+  final _gGuardar = GlobalKey();
+
   bool get _editando => widget.existente != null;
+
+  Future<void> _mostrarGuia() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    return mostrarGuia(context, [
+      PasoGuia(
+        clave: _gFecha,
+        icono: Icons.event,
+        titulo: 'Fecha y hora de compra',
+        texto: 'Es el dato más importante y se llena solo. Si anotas la compra más tarde, tócala y pon '
+            'la fecha y hora reales: el código usa esta fecha.',
+      ),
+      PasoGuia(
+        clave: _gVendedor,
+        icono: Icons.person_outline,
+        titulo: 'Vendedor',
+        texto: 'A quién se lo compraste. Al escribir, CataLog te sugiere los vendedores que ya usaste.',
+      ),
+      PasoGuia(
+        clave: _gLugar,
+        icono: Icons.place_outlined,
+        titulo: 'Lugar y GPS',
+        texto: 'Escribe el lugar; el GPS se guarda solo, aunque no haya señal. Si salió mal, toca "Actualizar".',
+      ),
+      PasoGuia(
+        clave: _gPrecio,
+        icono: Icons.payments_outlined,
+        titulo: 'Precio pagado',
+        texto: 'En pesos, sin decimales. No sale en el sticker: solo lo ves tú en la app.',
+      ),
+      PasoGuia(
+        clave: _gTipo,
+        icono: Icons.category_outlined,
+        titulo: 'Tipo de catalítico',
+        texto: 'Elige el motor y el material. Si eliges DPF, el motor queda en diésel.',
+      ),
+      PasoGuia(
+        clave: _gFabrica,
+        icono: Icons.tag,
+        titulo: 'Código de fábrica y autos',
+        texto: 'El código grabado en la pieza y de qué autos es. Sirven para buscarlo después en el historial.',
+      ),
+      PasoGuia(
+        clave: _gFoto,
+        icono: Icons.photo_camera_outlined,
+        titulo: 'Foto',
+        texto: 'Una foto del catalítico queda guardada en su ficha, como respaldo.',
+      ),
+      PasoGuia(
+        clave: _gGuardar,
+        icono: Icons.check_circle_outline,
+        titulo: 'Guardar',
+        texto: 'Al guardar se crea el código único y se abre la ficha, lista para imprimir el sticker.',
+      ),
+    ]);
+  }
 
   @override
   void initState() {
@@ -286,16 +352,21 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
         if (!didPop) _confirmarSalida();
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(_editando ? 'Corregir compra' : 'Nueva compra')),
+        appBar: AppBar(
+          title: Text(_editando ? 'Corregir compra' : 'Nueva compra'),
+          actions: [BotonAyuda(alTocar: _mostrarGuia)],
+        ),
         body: SafeArea(
           child: Form(
             key: _form,
             child: ListView(
+              scrollCacheExtent: const ScrollCacheExtent.pixels(4000), // construye todo el formulario, para la guía
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
               children: [
-                _tarjetaFecha(),
+                KeyedSubtree(key: _gFecha, child: _tarjetaFecha()),
                 const SizedBox(height: 16),
                 CampoAutocompletar(
+                  key: _gVendedor,
                   controller: _vendedor,
                   etiqueta: 'Vendedor',
                   opciones: _vendedores,
@@ -305,16 +376,23 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                       (v == null || v.trim().isEmpty) ? 'Escribe a quién se lo compraste' : null,
                 ),
                 const SizedBox(height: 12),
-                CampoAutocompletar(
-                  controller: _lugar,
-                  etiqueta: 'Lugar de compra',
-                  ayuda: 'Feria Agro, taller, domicilio…',
-                  opciones: _lugares,
-                  icono: Icons.place_outlined,
+                Column(
+                  key: _gLugar,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    CampoAutocompletar(
+                      controller: _lugar,
+                      etiqueta: 'Lugar de compra',
+                      ayuda: 'Feria Agro, taller, domicilio…',
+                      opciones: _lugares,
+                      icono: Icons.place_outlined,
+                    ),
+                    _estadoGps(),
+                  ],
                 ),
-                _estadoGps(),
                 const SizedBox(height: 12),
                 TextFormField(
+                  key: _gPrecio,
                   controller: _precio,
                   keyboardType: TextInputType.number,
                   inputFormatters: [ClpInputFormatter()],
@@ -327,9 +405,10 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                   validator: (v) => parseClp(v ?? '') == null ? 'Escribe el precio' : null,
                 ),
                 const SizedBox(height: 18),
-                _tipo(),
+                KeyedSubtree(key: _gTipo, child: _tipo()),
                 const SizedBox(height: 16),
                 TextFormField(
+                  key: _gFabrica,
                   controller: _codigoFabrica,
                   textCapitalization: TextCapitalization.characters,
                   style: mono(size: 16),
@@ -348,7 +427,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                   icono: Icons.directions_car_outlined,
                 ),
                 const SizedBox(height: 16),
-                _seccionFoto(),
+                KeyedSubtree(key: _gFoto, child: _seccionFoto()),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _notas,
@@ -358,6 +437,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                 ),
                 const SizedBox(height: 24),
                 FilledButton.icon(
+                  key: _gGuardar,
                   onPressed: _guardando ? null : _guardar,
                   icon: _guardando
                       ? const SizedBox(

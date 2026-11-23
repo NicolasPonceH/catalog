@@ -8,6 +8,7 @@ import '../theme.dart';
 import '../widgets/catalog_logo.dart';
 import '../widgets/compra_tile.dart';
 import '../widgets/consulta.dart';
+import '../widgets/guia.dart';
 import 'ajustes_screen.dart';
 import 'compra_form_screen.dart';
 import 'escanear_screen.dart';
@@ -15,6 +16,9 @@ import 'historial_screen.dart';
 import 'lotes_screen.dart';
 import 'reportes_screen.dart';
 import 'traspaso.dart';
+
+/// Al subir su valor, el Inicio muestra su guía (la pide la presentación de la primera vez).
+final pedirGuiaInicio = ValueNotifier<int>(0);
 
 class InicioScreen extends StatefulWidget {
   const InicioScreen({super.key});
@@ -26,16 +30,89 @@ class InicioScreen extends StatefulWidget {
 class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver {
   DateTime _ahora = DateTime.now();
 
+  // Partes que ilumina la guía.
+  final _gMes = GlobalKey();
+  final _gNueva = GlobalKey();
+  final _gEscanear = GlobalKey();
+  final _gAccesos = GlobalKey();
+  final _gUltimas = GlobalKey();
+  final _gTraspaso = GlobalKey();
+  final _gAjustes = GlobalKey();
+  final _gAyuda = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    pedirGuiaInicio.addListener(_guiaPedida);
   }
 
   @override
   void dispose() {
+    pedirGuiaInicio.removeListener(_guiaPedida);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void _guiaPedida() {
+    if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _mostrarGuia();
+    });
+  }
+
+  Future<void> _mostrarGuia() {
+    final revision = AppScope.of(context).soloLectura;
+    return mostrarGuia(context, [
+      PasoGuia(
+        clave: _gMes,
+        icono: Icons.insights_outlined,
+        titulo: revision ? 'Lo recibido este mes' : 'Lo gastado este mes',
+        texto: 'Suma lo pagado por los catalíticos comprados este mes. Debajo ves lo de hoy.',
+      ),
+      PasoGuia(
+        clave: _gNueva,
+        icono: Icons.add_circle_outline,
+        titulo: 'Registra una compra',
+        texto: 'Anota vendedor, precio, tipo y foto. La fecha, la hora y el GPS se llenan solos.',
+      ),
+      PasoGuia(
+        clave: _gEscanear,
+        icono: Icons.qr_code_scanner,
+        titulo: 'Escanea un sticker',
+        texto: 'Apunta la cámara al QR o al código de barras del sticker y se abre la ficha del catalítico.',
+      ),
+      PasoGuia(
+        clave: _gAccesos,
+        icono: Icons.apps,
+        titulo: 'Historial, lotes y reportes',
+        texto: 'Busca compras pasadas, escanea muchos stickers seguidos en un lote o saca el Excel del mes.',
+      ),
+      PasoGuia(
+        clave: _gUltimas,
+        icono: Icons.receipt_long_outlined,
+        titulo: 'Tus últimas compras',
+        texto: 'Toca cualquiera para ver su ficha completa y reimprimir el sticker.',
+      ),
+      PasoGuia(
+        clave: _gTraspaso,
+        icono: Icons.swap_horiz,
+        titulo: 'Respaldo y traspaso',
+        texto: 'Crea un respaldo, manda tus compras a otro celular o cambia de sesión.',
+      ),
+      PasoGuia(
+        clave: _gAjustes,
+        icono: Icons.settings_outlined,
+        titulo: 'Ajustes',
+        texto: 'Tu nombre, el prefijo de los códigos, la impresora y el bloqueo con huella.',
+      ),
+      PasoGuia(
+        clave: _gAyuda,
+        icono: Icons.help_outline,
+        titulo: 'Ayuda en cada pantalla',
+        texto: 'Cuando tengas una duda, toca este botón: te muestra una guía como esta de la pantalla en la que estás.',
+      ),
+    ]);
   }
 
   // Al volver a la app (por ejemplo al día siguiente) se recalculan "hoy" y "este mes".
@@ -54,14 +131,22 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
 
     return Scaffold(
       appBar: AppBar(
-        title: const CatalogLogo(altura: 26, oscuro: true),
+        // En teléfonos chicos con letra grande el logo se achica para dejar sitio a los botones.
+        title: const FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: CatalogLogo(altura: 26, oscuro: true),
+        ),
         actions: [
+          BotonAyuda(key: _gAyuda, alTocar: _mostrarGuia),
           IconButton(
+            key: _gTraspaso,
             tooltip: 'Respaldo y traspaso',
             icon: const Icon(Icons.swap_horiz),
             onPressed: () => mostrarRespaldoYTraspaso(context),
           ),
           IconButton(
+            key: _gAjustes,
             tooltip: 'Ajustes',
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => abrir(context, const AjustesScreen()),
@@ -70,6 +155,7 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
       ),
       body: SafeArea(
         child: ListView(
+          scrollCacheExtent: const ScrollCacheExtent.pixels(4000), // construye todo el Inicio, para la guía
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
             if (revision) _AvisoRevision(nombre: scope.sesion?.nombre ?? 'Revisión'),
@@ -99,6 +185,7 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
               builder: (context, r) {
                 r ??= Resumen.vacio;
                 return Card(
+                  key: _gMes,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -131,6 +218,7 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
             const SizedBox(height: 18),
             if (!revision) ...[
               FilledButton.icon(
+                key: _gNueva,
                 onPressed: () => abrir(context, const CompraFormScreen()),
                 icon: const Icon(Icons.add),
                 label: const Text('Nueva compra'),
@@ -138,12 +226,14 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
               const SizedBox(height: 10),
             ],
             OutlinedButton.icon(
+              key: _gEscanear,
               onPressed: () => abrir(context, const EscanearScreen()),
               icon: const Icon(Icons.qr_code_scanner),
               label: const Text('Escanear sticker'),
             ),
             const SizedBox(height: 10),
             Row(
+              key: _gAccesos,
               children: [
                 Expanded(
                   child: _BotonChico(
@@ -178,8 +268,9 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
               builder: (context, lista) {
                 if (lista == null) return const SizedBox(height: 40);
                 if (lista.isEmpty) {
-                  return const Card(
-                    child: Padding(
+                  return Card(
+                    key: _gUltimas,
+                    child: const Padding(
                       padding: EdgeInsets.all(16),
                       child: Text(
                         'Todavía no hay compras. Toca "Nueva compra" para registrar la primera.',
@@ -189,6 +280,7 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
                   );
                 }
                 return Column(
+                  key: _gUltimas,
                   children: [
                     for (final c in lista)
                       Padding(

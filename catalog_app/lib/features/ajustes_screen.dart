@@ -9,7 +9,11 @@ import '../printing/impresora.dart';
 import '../printing/imprimir.dart';
 import '../system/bloqueo.dart';
 import '../theme.dart';
+import '../version.dart';
 import '../widgets/consulta.dart';
+import '../widgets/guia.dart';
+import 'inicio_screen.dart';
+import 'presentacion_screen.dart';
 import 'traspaso.dart';
 
 class AjustesScreen extends StatefulWidget {
@@ -31,6 +35,75 @@ class _AjustesScreenState extends State<AjustesScreen> {
   bool _bloqueo = false;
 
   AjustesDispositivo? get _dispositivo => AppScope.of(context).dispositivo;
+
+  // Partes que ilumina la guía.
+  final _gNombre = GlobalKey();
+  final _gImpresora = GlobalKey();
+  final _gPapel = GlobalKey();
+  final _gPrueba = GlobalKey();
+  final _gSeguridad = GlobalKey();
+  final _gRespaldo = GlobalKey();
+  final _gPresentacion = GlobalKey();
+
+  Future<void> _mostrarGuia() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    return mostrarGuia(context, [
+      PasoGuia(
+        clave: _gNombre,
+        icono: Icons.badge_outlined,
+        titulo: 'Tu nombre y prefijo',
+        texto: 'El nombre sale en el saludo y en los Excel. El prefijo inicia tus códigos: usa uno '
+            'distinto en cada teléfono para que nunca se repitan.',
+      ),
+      PasoGuia(
+        clave: _gImpresora,
+        icono: Icons.print_outlined,
+        titulo: 'Tu impresora',
+        texto: 'Enciéndela, toca Buscar y elígela. CataLog detecta solo si es clásica, BLE o de las mini de AliExpress.',
+      ),
+      PasoGuia(
+        clave: _gPapel,
+        icono: Icons.straighten,
+        titulo: 'Ancho del papel',
+        texto: 'El de tu rollo: 58 mm (el más común) u 80 mm.',
+      ),
+      PasoGuia(
+        clave: _gPrueba,
+        icono: Icons.receipt_long_outlined,
+        titulo: 'Sticker de prueba',
+        texto: 'Imprime uno de prueba para confirmar que la impresora funciona.',
+      ),
+      PasoGuia(
+        clave: _gSeguridad,
+        icono: Icons.fingerprint,
+        titulo: 'Huella al abrir',
+        texto: 'Si lo activas, CataLog pide tu huella o PIN al abrirla y después de 2 minutos fuera de la app.',
+      ),
+      PasoGuia(
+        clave: _gRespaldo,
+        icono: Icons.backup_outlined,
+        titulo: 'Respaldo',
+        texto: 'Guarda todas tus compras y fotos en Descargas/Respaldo CataLog. Mándalo a tu correo de vez en cuando.',
+      ),
+      PasoGuia(
+        clave: _gPresentacion,
+        icono: Icons.slideshow_outlined,
+        titulo: 'Ver la presentación',
+        texto: 'Vuelve a ver la presentación de CataLog cuando quieras.',
+      ),
+    ]);
+  }
+
+  Future<void> _verPresentacion() async {
+    final navegador = Navigator.of(context);
+    final verGuia = await abrirPresentacion(navegador);
+    if (!mounted) return;
+    await _cargar();
+    if (verGuia) {
+      navegador.popUntil((r) => r.isFirst);
+      pedirGuiaInicio.value++;
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -178,11 +251,15 @@ class _AjustesScreenState extends State<AjustesScreen> {
     final autoLugar = scope.dispositivo?.leer(AjustesDispositivo.lugarAutoRespaldo) ?? 'Descargas/Respaldo CataLog';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ajustes')),
+      appBar: AppBar(
+        title: const Text('Ajustes'),
+        actions: [BotonAyuda(alTocar: _mostrarGuia)],
+      ),
       body: SafeArea(
         child: Form(
           key: _form,
           child: ListView(
+            scrollCacheExtent: const ScrollCacheExtent.pixels(4000), // construye toda la pantalla, para la guía
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
             children: [
               const _Titulo('Este teléfono'),
@@ -194,6 +271,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
                 )
               else ...[
                 TextFormField(
+                  key: _gNombre,
                   controller: _nombre,
                   textCapitalization: TextCapitalization.words,
                   decoration: const InputDecoration(
@@ -227,6 +305,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
               const SizedBox(height: 32),
               const _Titulo('Impresora de stickers'),
               Card(
+                key: _gImpresora,
                 child: ListTile(
                   leading: const Icon(Icons.print_outlined),
                   title: Text(_impresora == null
@@ -245,6 +324,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
               const Text('Ancho del papel', style: etiqueta),
               const SizedBox(height: 6),
               SizedBox(
+                key: _gPapel,
                 width: double.infinity,
                 child: SegmentedButton<String>(
                   segments: const [
@@ -258,6 +338,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
+                key: _gPrueba,
                 onPressed: _buscando ? null : (_impresora == null ? _elegirImpresora : _imprimirPrueba),
                 icon: const Icon(Icons.receipt_long_outlined),
                 label: const Text('Imprimir sticker de prueba'),
@@ -274,6 +355,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
               const SizedBox(height: 32),
               const _Titulo('Seguridad'),
               Card(
+                key: _gSeguridad,
                 child: SwitchListTile(
                   secondary: const Icon(Icons.fingerprint),
                   title: const Text('Pedir huella o PIN al abrir'),
@@ -304,6 +386,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
                 ),
                 const SizedBox(height: 12),
                 FilledButton.icon(
+                  key: _gRespaldo,
                   onPressed: () => crearRespaldoYEnviar(context),
                   icon: const Icon(Icons.backup_outlined),
                   label: const Text('Crear respaldo'),
@@ -346,7 +429,22 @@ class _AjustesScreenState extends State<AjustesScreen> {
               ),
 
               const SizedBox(height: 32),
-              const Text('CataLog · versión 1.2', style: etiqueta),
+              const _Titulo('Ayuda'),
+              OutlinedButton.icon(
+                key: _gPresentacion,
+                onPressed: _verPresentacion,
+                icon: const Icon(Icons.slideshow_outlined),
+                label: const Text('Ver la presentación de nuevo'),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'En cada pantalla, el botón con el signo de pregunta (arriba a la derecha) te muestra '
+                'una guía de esa pantalla.',
+                style: TextStyle(fontSize: 14, height: 1.4, color: CatalogColors.acero),
+              ),
+
+              const SizedBox(height: 32),
+              const Text('CataLog · versión $versionApp', style: etiqueta),
               const Text('Los datos se guardan solo en este teléfono.', style: etiqueta),
             ],
           ),

@@ -8,6 +8,7 @@ import '../reports/excel.dart';
 import '../reports/reporte.dart';
 import '../theme.dart';
 import '../widgets/consulta.dart';
+import '../widgets/guia.dart';
 
 enum _TipoReporte { hoy, semana, mes, rango, todo }
 
@@ -82,16 +83,61 @@ class _ReportesScreenState extends State<ReportesScreen> {
     }
   }
 
+  // Partes que ilumina la guía.
+  final _gPeriodo = GlobalKey();
+  final _gTotal = GlobalKey();
+  final _gExcel = GlobalKey();
+  final _gTipo = GlobalKey();
+  final _gVendedor = GlobalKey();
+
+  Future<void> _mostrarGuia() => mostrarGuia(context, [
+        PasoGuia(
+          clave: _gPeriodo,
+          icono: Icons.date_range,
+          titulo: 'Elige el período',
+          texto: 'Hoy, la semana, el mes, unas fechas que elijas o todas las compras. '
+              'Cuenta la fecha de compra, no la del registro.',
+        ),
+        PasoGuia(
+          clave: _gTotal,
+          icono: Icons.payments_outlined,
+          titulo: 'Total gastado',
+          texto: 'Lo pagado en el período, cuántos catalíticos y el promedio por pieza. Las anuladas no suman.',
+        ),
+        PasoGuia(
+          clave: _gExcel,
+          icono: Icons.table_view_outlined,
+          titulo: 'Exportar a Excel',
+          texto: 'Arma un Excel con el resumen y una fila por compra, listo para mandar por WhatsApp o correo.',
+        ),
+        PasoGuia(
+          clave: _gTipo,
+          icono: Icons.category_outlined,
+          titulo: 'Por tipo',
+          texto: 'Cuánto se fue en cada tipo de catalítico. La barra muestra su parte del total.',
+        ),
+        PasoGuia(
+          clave: _gVendedor,
+          icono: Icons.people_outline,
+          titulo: 'Por vendedor',
+          texto: 'A quién le compraste más en el período.',
+        ),
+      ]);
+
   @override
   Widget build(BuildContext context) {
     final repo = AppScope.of(context).compras;
     final periodo = _periodo;
     return Scaffold(
-      appBar: AppBar(title: const Text('Reportes')),
+      appBar: AppBar(
+        title: const Text('Reportes'),
+        actions: [BotonAyuda(alTocar: _mostrarGuia)],
+      ),
       body: SafeArea(
         child: Column(
           children: [
             SizedBox(
+              key: _gPeriodo,
               height: 56,
               child: ListView(
                 scrollDirection: Axis.horizontal,
@@ -118,11 +164,13 @@ class _ReportesScreenState extends State<ReportesScreen> {
                   if (compras == null) return const Center(child: CircularProgressIndicator());
                   final r = Reporte.de(compras, titulo: _titulo);
                   return ListView(
+                    scrollCacheExtent: const ScrollCacheExtent.pixels(4000), // construye todo el reporte, para la guía
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                     children: [
                       Text(_titulo, style: etiqueta),
                       const SizedBox(height: 6),
                       Card(
+                        key: _gTotal,
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
@@ -142,6 +190,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                       ),
                       const SizedBox(height: 12),
                       FilledButton.icon(
+                        key: _gExcel,
                         onPressed: _exportando || compras.isEmpty ? null : () => _exportar(r),
                         icon: _exportando
                             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
@@ -150,11 +199,11 @@ class _ReportesScreenState extends State<ReportesScreen> {
                       ),
                       if (r.porTipo.isNotEmpty) ...[
                         const SizedBox(height: 20),
-                        _Grupos(titulo: 'Por tipo', filas: r.porTipo, total: r.resumen.total),
+                        _Grupos(key: _gTipo, titulo: 'Por tipo', filas: r.porTipo, total: r.resumen.total),
                       ],
                       if (r.porVendedor.isNotEmpty) ...[
                         const SizedBox(height: 16),
-                        _Grupos(titulo: 'Por vendedor', filas: r.porVendedor, total: r.resumen.total),
+                        _Grupos(key: _gVendedor, titulo: 'Por vendedor', filas: r.porVendedor, total: r.resumen.total),
                       ],
                       if (compras.isEmpty)
                         const Padding(
@@ -174,7 +223,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
 }
 
 class _Grupos extends StatelessWidget {
-  const _Grupos({required this.titulo, required this.filas, required this.total});
+  const _Grupos({super.key, required this.titulo, required this.filas, required this.total});
 
   final String titulo;
   final List<FilaGrupo> filas;

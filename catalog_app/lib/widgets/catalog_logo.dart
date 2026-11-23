@@ -29,7 +29,28 @@ class CatalogMarkPainter extends CustomPainter {
     'M22.6 25.4h2.7v13.2h-2.7Zm4.5 0h1.7v13.2h-1.7Zm3.5 0h3.2v13.2h-3.2Zm5 0h1.9v13.2h-1.9Zm3.7 0h2.7v13.2h-2.7Z',
   )..fillType = PathFillType.evenOdd;
 
-  // Caja que ocupa el símbolo dentro del lienzo de 64 x 64.
+  // Piezas sueltas, para las animaciones (mismas medidas del SVG).
+  static final Path tuboIzquierdo = parseSvgPathData(
+    'M7.2 27.3h2.6l1.1 1.4h10v6.6h-10l-1.1 1.4H7.2A1.2 1.2 0 0 1 6 35.5v-7a1.2 1.2 0 0 1 1.2-1.2Z',
+  );
+  static final Path tuboDerecho = parseSvgPathData(
+    'M45 28.6h11.6a1.4 1.4 0 0 1 1.4 1.4v4a1.4 1.4 0 0 1-1.4 1.4H45Z',
+  );
+  static final Path contorno = parseSvgPathData(
+    'M15 29.1a2.3 2.3 0 0 1 .7-1.7l8.8-7.9a2.3 2.3 0 0 1 1.6-.6h14.5a2.3 2.3 0 0 1 1.8.8l6.1 7.3'
+    'a2.3 2.3 0 0 1 .5 1.5v7a2.3 2.3 0 0 1-.5 1.5l-6.1 7.3a2.3 2.3 0 0 1-1.8.8H26.1a2.3 2.3 0 0 1-1.6-.6'
+    'l-8.8-7.9a2.3 2.3 0 0 1-.7-1.7Z',
+  );
+  static const barras = [
+    Rect.fromLTWH(22.6, 25.4, 2.7, 13.2),
+    Rect.fromLTWH(27.1, 25.4, 1.7, 13.2),
+    Rect.fromLTWH(30.6, 25.4, 3.2, 13.2),
+    Rect.fromLTWH(35.6, 25.4, 1.9, 13.2),
+    Rect.fromLTWH(39.3, 25.4, 2.7, 13.2),
+  ];
+
+  /// Caja que ocupa el símbolo dentro del lienzo de 64 x 64.
+  static const caja = Rect.fromLTWH(_vx, _vy, _vw, _vh);
   static const _vx = 6.0, _vy = 18.9, _vw = 52.0, _vh = 26.2;
 
   /// Proporción ancho/alto del símbolo.

@@ -11,6 +11,7 @@ import '../printing/imprimir.dart';
 import '../system/confirmar.dart';
 import '../theme.dart';
 import '../widgets/consulta.dart';
+import '../widgets/guia.dart';
 import 'compra_form_screen.dart';
 
 /// Toda la información de un catalítico. La fecha de compra va arriba.
@@ -25,6 +26,74 @@ class FichaScreen extends StatefulWidget {
 }
 
 class _FichaScreenState extends State<FichaScreen> {
+  // Partes que ilumina la guía.
+  final _gCodigo = GlobalKey();
+  final _gFecha = GlobalKey();
+  final _gSticker = GlobalKey();
+  final _gImprimir = GlobalKey();
+  final _gCompartir = GlobalKey();
+  final _gDetalles = GlobalKey();
+  final _gMapa = GlobalKey();
+  final _gCorregir = GlobalKey();
+  final _gMenu = GlobalKey();
+
+  Future<void> _mostrarGuia() => mostrarGuia(context, [
+        PasoGuia(
+          clave: _gCodigo,
+          icono: Icons.qr_code_2,
+          titulo: 'Código único',
+          texto: 'Prefijo del teléfono, día de compra y número de pieza de ese día. Es el mismo que va en el sticker.',
+        ),
+        PasoGuia(
+          clave: _gFecha,
+          icono: Icons.event,
+          titulo: 'Cuándo se compró',
+          texto: 'La fecha y hora de compra. Abajo dice cuándo se anotó y, si alguien la corrigió, cuándo fue.',
+        ),
+        PasoGuia(
+          clave: _gSticker,
+          icono: Icons.sticky_note_2_outlined,
+          titulo: 'Vista del sticker',
+          texto: 'Así sale impreso: QR, código de barras, fecha y tipo. El precio no va en el sticker.',
+        ),
+        PasoGuia(
+          clave: _gImprimir,
+          icono: Icons.print_outlined,
+          titulo: 'Imprimir',
+          texto: 'Lo manda a tu impresora Bluetooth (se elige en Ajustes). Arriba ves cuántas veces se imprimió.',
+        ),
+        PasoGuia(
+          clave: _gCompartir,
+          icono: Icons.share_outlined,
+          titulo: 'Compartir como imagen',
+          texto: 'Si la impresora no conecta, manda el sticker como imagen e imprímelo con la app de la impresora.',
+        ),
+        PasoGuia(
+          clave: _gDetalles,
+          icono: Icons.list_alt,
+          titulo: 'Datos de la compra',
+          texto: 'Vendedor, lugar, precio, tipo, código de fábrica y autos.',
+        ),
+        PasoGuia(
+          clave: _gMapa,
+          icono: Icons.map_outlined,
+          titulo: 'Dónde se compró',
+          texto: 'Abre el mapa en el punto GPS que se guardó al registrar la compra.',
+        ),
+        PasoGuia(
+          clave: _gCorregir,
+          icono: Icons.edit_outlined,
+          titulo: 'Corregir',
+          texto: 'Cambia cualquier dato. El código no cambia, porque puede estar impreso.',
+        ),
+        PasoGuia(
+          clave: _gMenu,
+          icono: Icons.block,
+          titulo: 'Anular',
+          texto: 'Una compra no se borra: se anula. Sale de los totales, queda en el historial y pide tu huella.',
+        ),
+      ]);
+
   @override
   void initState() {
     super.initState();
@@ -101,37 +170,44 @@ class _FichaScreenState extends State<FichaScreen> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Catalítico'),
-            // En una sesión de revisión los datos son de otro celular: no se corrigen.
-            actions: AppScope.of(context).soloLectura ? const [] : [
-              IconButton(
-                tooltip: 'Corregir',
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: () => abrir(context, CompraFormScreen(existente: c)),
-              ),
-              PopupMenuButton<String>(
-                onSelected: (v) => v == 'anular' ? _anular(c) : _reactivar(c),
-                itemBuilder: (_) => [
-                  if (!c.anulada) const PopupMenuItem(value: 'anular', child: Text('Anular compra')),
-                  if (c.anulada) const PopupMenuItem(value: 'reactivar', child: Text('Reactivar compra')),
-                ],
-              ),
+            actions: [
+              BotonAyuda(alTocar: _mostrarGuia),
+              // En una sesión de revisión los datos son de otro celular: no se corrigen.
+              if (!AppScope.of(context).soloLectura) ...[
+                IconButton(
+                  key: _gCorregir,
+                  tooltip: 'Corregir',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => abrir(context, CompraFormScreen(existente: c)),
+                ),
+                PopupMenuButton<String>(
+                  key: _gMenu,
+                  onSelected: (v) => v == 'anular' ? _anular(c) : _reactivar(c),
+                  itemBuilder: (_) => [
+                    if (!c.anulada) const PopupMenuItem(value: 'anular', child: Text('Anular compra')),
+                    if (c.anulada) const PopupMenuItem(value: 'reactivar', child: Text('Reactivar compra')),
+                  ],
+                ),
+              ],
             ],
           ),
           body: SafeArea(
             child: ListView(
+              scrollCacheExtent: const ScrollCacheExtent.pixels(4000), // construye toda la ficha, para la guía
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
               children: [
                 if (c.anulada) _avisoAnulada(c),
-                Center(child: SelectableText(c.codigo, style: mono(size: 24))),
+                Center(child: SelectableText(key: _gCodigo, c.codigo, style: mono(size: 24))),
                 const SizedBox(height: 14),
-                _tarjetaFecha(c),
+                KeyedSubtree(key: _gFecha, child: _tarjetaFecha(c)),
                 const SizedBox(height: 12),
                 _tarjetaSticker(c),
                 const SizedBox(height: 12),
-                _detalles(c),
+                KeyedSubtree(key: _gDetalles, child: _detalles(c)),
                 if (c.tieneUbicacion) ...[
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
+                    key: _gMapa,
                     onPressed: () => _abrirMapa(c),
                     icon: const Icon(Icons.map_outlined),
                     label: const Text('Ver dónde se compró'),
@@ -270,14 +346,16 @@ class _FichaScreenState extends State<FichaScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            EtiquetaVista(datos: datos),
+            EtiquetaVista(key: _gSticker, datos: datos),
             const SizedBox(height: 12),
             FilledButton.icon(
+              key: _gImprimir,
               onPressed: c.anulada ? null : () => imprimirSticker(context, datos, compraId: c.id),
               icon: const Icon(Icons.print_outlined),
               label: Text(c.impresiones == 0 ? 'Imprimir sticker' : 'Reimprimir sticker'),
             ),
             TextButton.icon(
+              key: _gCompartir,
               onPressed: () async {
                 try {
                   await compartirSticker(datos);

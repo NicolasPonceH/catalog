@@ -20,6 +20,12 @@ class AjustesDispositivo {
   static const ultimoAutoRespaldo = 'auto_respaldo';
   static const lugarAutoRespaldo = 'auto_respaldo_lugar';
 
+  /// Ya se vio la presentación (carrusel) de la primera vez.
+  static const presentacionVista = 'presentacion_vista';
+
+  /// Ya se usó el botón de ayuda (deja de destacarse).
+  static const ayudaUsada = 'ayuda_usada';
+
   static Future<AjustesDispositivo> abrir(Directory carpeta) async {
     final archivo = File(p.join(carpeta.path, 'dispositivo.json'));
     var datos = <String, dynamic>{};

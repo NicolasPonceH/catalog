@@ -11,9 +11,10 @@ import 'data/compras_repo.dart';
 import 'data/dispositivo.dart';
 import 'data/fotos.dart';
 import 'data/sesiones.dart';
+import 'features/bienvenida.dart';
 import 'features/inicio_screen.dart';
+import 'features/presentacion_screen.dart';
 import 'features/traspaso.dart';
-import 'system/bloqueo.dart';
 import 'system/sistema.dart';
 import 'theme.dart';
 
@@ -60,6 +61,10 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
   GlobalKey<ScaffoldMessengerState> _mensajes = GlobalKey();
   GlobalKey<NavigatorState> _navegador = GlobalKey();
   late bool _bloqueada = widget.dispositivo.activado(AjustesDispositivo.bloqueo);
+
+  /// Pantalla de bienvenida animada: se muestra al abrir la app.
+  bool _bienvenida = true;
+  bool _presentando = false;
   DateTime? _enSegundoPlanDesde;
   List<int>? _archivoPendiente;
 
@@ -117,7 +122,7 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
 
   void _procesarArchivoPendiente() {
     final bytes = _archivoPendiente;
-    if (bytes == null || _bloqueada) return;
+    if (bytes == null || _bloqueada || _bienvenida) return;
     _archivoPendiente = null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final contexto = _navegador.currentContext;
@@ -125,9 +130,30 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
     });
   }
 
-  void _desbloquear() {
-    setState(() => _bloqueada = false);
+  /// Se pasó la bienvenida (y la huella, si estaba bloqueada).
+  void _entrar() {
+    setState(() {
+      _bienvenida = false;
+      _bloqueada = false;
+    });
     _procesarArchivoPendiente();
+    _quizasPresentacion();
+  }
+
+  /// La primera vez: presentación en carrusel y, si se pide, la guía del Inicio.
+  Future<void> _quizasPresentacion() async {
+    if (_presentando || widget.dispositivo.activado(AjustesDispositivo.presentacionVista)) return;
+    _presentando = true;
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    final navegador = _navegador.currentState;
+    if (navegador == null || !mounted) {
+      _presentando = false;
+      return;
+    }
+    final verGuia = await abrirPresentacion(navegador);
+    await widget.dispositivo.guardar(AjustesDispositivo.presentacionVista, '1');
+    _presentando = false;
+    if (verGuia) pedirGuiaInicio.value++;
   }
 
   /// Cierra la base abierta, prepara la nueva sesión y la abre. La app vuelve
@@ -211,8 +237,9 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
         key: ObjectKey(_base),
         mensajes: _mensajes,
         navegador: _navegador,
+        bienvenida: _bienvenida,
         bloqueada: _bloqueada,
-        alDesbloquear: _desbloquear,
+        alEntrar: _entrar,
       ),
     );
   }
@@ -226,14 +253,20 @@ class CatalogApp extends StatelessWidget {
     super.key,
     this.mensajes,
     this.navegador,
+    this.bienvenida = false,
     this.bloqueada = false,
-    this.alDesbloquear,
+    this.alEntrar,
   });
 
   final GlobalKey<ScaffoldMessengerState>? mensajes;
   final GlobalKey<NavigatorState>? navegador;
+
+  /// Muestra la bienvenida animada encima de todo.
+  final bool bienvenida;
+
+  /// La bienvenida pide huella o PIN para entrar.
   final bool bloqueada;
-  final VoidCallback? alDesbloquear;
+  final VoidCallback? alEntrar;
 
   @override
   Widget build(BuildContext context) {
@@ -270,7 +303,14 @@ class CatalogApp extends StatelessWidget {
         return Stack(
           children: [
             app,
-            if (bloqueada) PantallaBloqueo(alDesbloquear: alDesbloquear ?? () {}),
+            if (bienvenida || bloqueada)
+              Positioned.fill(
+                child: Bienvenida(
+                  key: ValueKey(bloqueada),
+                  bloqueada: bloqueada,
+                  alEntrar: alEntrar ?? () {},
+                ),
+              ),
           ],
         );
       },

@@ -5,11 +5,38 @@ import '../data/lotes_repo.dart';
 import '../domain/formato.dart';
 import '../theme.dart';
 import '../widgets/consulta.dart';
+import '../widgets/guia.dart';
 import 'lote_screen.dart';
 
 /// Lista de lotes escaneados.
-class LotesScreen extends StatelessWidget {
+class LotesScreen extends StatefulWidget {
   const LotesScreen({super.key});
+
+  @override
+  State<LotesScreen> createState() => _LotesScreenState();
+}
+
+class _LotesScreenState extends State<LotesScreen> {
+  // Partes que ilumina la guía.
+  final _gNuevo = GlobalKey();
+  final _gLista = GlobalKey();
+
+  Future<void> _mostrarGuia() => mostrarGuia(context, [
+        PasoGuia(
+          clave: _gLista,
+          icono: Icons.inventory_2_outlined,
+          titulo: 'Tus lotes',
+          texto: 'Un lote junta varios catalíticos escaneados, por ejemplo los que entregas juntos. '
+              'Cada uno muestra cuántos tiene y cuánto pagaste por ellos. Toca uno para abrirlo.',
+        ),
+        PasoGuia(
+          clave: _gNuevo,
+          icono: Icons.qr_code_scanner,
+          titulo: 'Nuevo lote',
+          texto: 'Le pones un nombre (viene sugerido con la fecha) y escaneas los stickers uno tras otro. '
+              'Si sales sin escanear nada, el lote no se guarda.',
+        ),
+      ]);
 
   /// Pide el nombre apenas se crea el lote (sugiere la fecha y hora).
   Future<void> _nuevo(BuildContext context) async {
@@ -47,8 +74,12 @@ class LotesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final repo = AppScope.of(context).lotes;
     return Scaffold(
-      appBar: AppBar(title: const Text('Lotes escaneados')),
+      appBar: AppBar(
+        title: const Text('Lotes escaneados'),
+        actions: [BotonAyuda(alTocar: _mostrarGuia)],
+      ),
       floatingActionButton: FloatingActionButton.extended(
+        key: _gNuevo,
         onPressed: () => _nuevo(context),
         backgroundColor: CatalogColors.naranja,
         foregroundColor: CatalogColors.marino,
@@ -61,9 +92,10 @@ class LotesScreen extends StatelessWidget {
           builder: (context, lista) {
             if (lista == null) return const Center(child: CircularProgressIndicator());
             if (lista.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
+              return Padding(
+                key: _gLista,
+                padding: const EdgeInsets.all(24),
+                child: const Text(
                   'Un lote junta varios catalíticos escaneados, por ejemplo los que '
                   'entregas juntos. CataLog suma lo que pagaste por ellos y te arma el Excel.\n\n'
                   'Toca "Nuevo lote" y escanea los stickers uno tras otro.',
@@ -78,6 +110,7 @@ class LotesScreen extends StatelessWidget {
               itemBuilder: (context, i) {
                 final l = lista[i];
                 return Card(
+                  key: i == 0 ? _gLista : null,
                   child: ListTile(
                     onTap: () => abrir(context, LoteScreen(loteId: l.lote.id)),
                     title: Text(l.lote.nombre, style: const TextStyle(fontWeight: FontWeight.w500)),

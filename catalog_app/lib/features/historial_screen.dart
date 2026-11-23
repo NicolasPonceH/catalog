@@ -8,6 +8,7 @@ import '../domain/tipos.dart';
 import '../theme.dart';
 import '../widgets/compra_tile.dart';
 import '../widgets/consulta.dart';
+import '../widgets/guia.dart';
 
 /// Todas las compras, agrupadas por día de compra, con búsqueda y filtros.
 class HistorialScreen extends StatefulWidget {
@@ -22,21 +23,61 @@ class _HistorialScreenState extends State<HistorialScreen> {
   TipoPeriodo _periodo = TipoPeriodo.todo;
   TipoMaterial? _material;
 
+  // Partes que ilumina la guía.
+  final _gBuscar = GlobalKey();
+  final _gFiltros = GlobalKey();
+  final _gResumen = GlobalKey();
+  final _gPrimera = GlobalKey();
+
   @override
   void dispose() {
     _buscar.dispose();
     super.dispose();
   }
 
+  Future<void> _mostrarGuia() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    return mostrarGuia(context, [
+      PasoGuia(
+        clave: _gBuscar,
+        icono: Icons.search,
+        titulo: 'Buscar',
+        texto: 'Escribe parte del vendedor, el código, el auto, el lugar o el código de fábrica.',
+      ),
+      PasoGuia(
+        clave: _gFiltros,
+        icono: Icons.filter_list,
+        titulo: 'Filtros',
+        texto: 'Elige el período (hoy, semana, mes…) y el material. Desliza hacia el lado para ver más.',
+      ),
+      PasoGuia(
+        clave: _gResumen,
+        icono: Icons.functions,
+        titulo: 'Total del filtro',
+        texto: 'Cuántos catalíticos y cuánto pagaste por los que muestra la lista. Las anuladas no suman.',
+      ),
+      PasoGuia(
+        clave: _gPrimera,
+        icono: Icons.touch_app_outlined,
+        titulo: 'Abrir una compra',
+        texto: 'Las compras van por día de compra, de la más nueva a la más vieja. Toca una para ver su ficha.',
+      ),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final repo = AppScope.of(context).compras;
     return Scaffold(
-      appBar: AppBar(title: const Text('Historial de compras')),
+      appBar: AppBar(
+        title: const Text('Historial de compras'),
+        actions: [BotonAyuda(alTocar: _mostrarGuia)],
+      ),
       body: SafeArea(
         child: Column(
           children: [
             Padding(
+              key: _gBuscar,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
               child: TextField(
                 controller: _buscar,
@@ -54,6 +95,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
               ),
             ),
             SizedBox(
+              key: _gFiltros,
               height: 46,
               child: ListView(
                 scrollDirection: Axis.horizontal,
@@ -91,7 +133,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
                 )),
                 builder: (context, lista) {
                   if (lista == null) return const Center(child: CircularProgressIndicator());
-                  return _Lista(compras: lista);
+                  return _Lista(compras: lista, claveResumen: _gResumen, clavePrimera: _gPrimera);
                 },
               ),
             ),
@@ -103,9 +145,11 @@ class _HistorialScreenState extends State<HistorialScreen> {
 }
 
 class _Lista extends StatelessWidget {
-  const _Lista({required this.compras});
+  const _Lista({required this.compras, this.claveResumen, this.clavePrimera});
 
   final List<Compra> compras;
+  final Key? claveResumen;
+  final Key? clavePrimera;
 
   @override
   Widget build(BuildContext context) {
@@ -131,6 +175,7 @@ class _Lista extends StatelessWidget {
       itemBuilder: (context, i) {
         if (i == 0) {
           return Padding(
+            key: claveResumen,
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               compras.isEmpty
@@ -149,6 +194,8 @@ class _Lista extends StatelessWidget {
           );
         }
         return Padding(
+          // La primera compra de la lista se ilumina en la guía.
+          key: i == 2 ? clavePrimera : null,
           padding: const EdgeInsets.only(bottom: 8),
           child: CompraTile(compra: item as Compra),
         );

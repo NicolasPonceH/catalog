@@ -11,6 +11,7 @@ import '../theme.dart';
 import '../widgets/compra_tile.dart';
 import '../widgets/consulta.dart';
 import '../widgets/escaner_vista.dart';
+import '../widgets/guia.dart';
 
 /// Un lote: se escanean stickers seguidos y se suma lo pagado.
 class LoteScreen extends StatefulWidget {
@@ -28,6 +29,61 @@ class LoteScreen extends StatefulWidget {
 class _LoteScreenState extends State<LoteScreen> {
   String? _ultimoMensaje;
   bool _ultimoBien = true;
+
+  // Partes que ilumina la guía.
+  final _gCamara = GlobalKey();
+  final _gResumen = GlobalKey();
+  final _gLista = GlobalKey();
+  final _gMano = GlobalKey();
+  final _gTerminar = GlobalKey();
+  final _gExcel = GlobalKey();
+  final _gMenu = GlobalKey();
+
+  Future<void> _mostrarGuia() => mostrarGuia(context, [
+        PasoGuia(
+          clave: _gCamara,
+          icono: Icons.qr_code_scanner,
+          titulo: 'Escanea los stickers',
+          texto: 'Apunta al QR o al código de barras, uno tras otro. Vibra con cada lectura y el mismo '
+              'catalítico no se cuenta dos veces. Con poca luz, usa la linterna.',
+        ),
+        PasoGuia(
+          clave: _gResumen,
+          icono: Icons.functions,
+          titulo: 'Total del lote',
+          texto: 'Cuántos catalíticos lleva el lote y cuánto pagaste por ellos en total.',
+        ),
+        PasoGuia(
+          clave: _gLista,
+          icono: Icons.swipe_left_outlined,
+          titulo: 'Los catalíticos del lote',
+          texto: 'Toca uno para ver su ficha. Para quitarlo, deslízalo hacia la izquierda: pide tu huella.',
+        ),
+        PasoGuia(
+          clave: _gMano,
+          icono: Icons.keyboard_outlined,
+          titulo: 'Escribir a mano',
+          texto: 'Si un sticker está dañado y no se lee, escribe su código.',
+        ),
+        PasoGuia(
+          clave: _gTerminar,
+          icono: Icons.done_all,
+          titulo: 'Terminar',
+          texto: 'Cierra el lote. Si no escaneaste nada, no se guarda.',
+        ),
+        PasoGuia(
+          clave: _gExcel,
+          icono: Icons.table_view_outlined,
+          titulo: 'Excel del lote',
+          texto: 'Arma el Excel con cada catalítico y el total, para mandarlo por WhatsApp o correo.',
+        ),
+        PasoGuia(
+          clave: _gMenu,
+          icono: Icons.more_vert,
+          titulo: 'Más opciones',
+          texto: 'Cambiar el nombre, seguir escaneando un lote cerrado o borrarlo (con huella).',
+        ),
+      ]);
   LotesRepo? _repo;
 
   @override
@@ -178,12 +234,15 @@ class _LoteScreenState extends State<LoteScreen> {
           appBar: AppBar(
             title: Text(lote.nombre, overflow: TextOverflow.ellipsis),
             actions: [
+              BotonAyuda(alTocar: _mostrarGuia),
               IconButton(
+                key: _gExcel,
                 tooltip: 'Exportar a Excel',
                 icon: const Icon(Icons.table_view_outlined),
                 onPressed: () => _exportar(lote),
               ),
               PopupMenuButton<String>(
+                key: _gMenu,
                 onSelected: (v) => switch (v) {
                   'renombrar' => _renombrar(lote),
                   'reabrir' => repo.reabrir(lote.id),
@@ -201,6 +260,7 @@ class _LoteScreenState extends State<LoteScreen> {
           body: SafeArea(
             child: LayoutBuilder(builder: (context, limites) {
               final escaner = Padding(
+                key: _gCamara,
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: EscanerVista(alLeer: _leido),
               );
@@ -218,6 +278,7 @@ class _LoteScreenState extends State<LoteScreen> {
                       ),
                     );
               final resumen = Padding(
+                  key: _gResumen,
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                   child: Consulta<Resumen>(
                     claves: [lote.id],
@@ -250,9 +311,10 @@ class _LoteScreenState extends State<LoteScreen> {
                     builder: (context, items) {
                       if (items == null) return const SizedBox();
                       if (items.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Text('Escanea los stickers uno tras otro. Cada uno suma su precio.',
+                        return Padding(
+                          key: _gLista,
+                          padding: const EdgeInsets.all(20),
+                          child: const Text('Escanea los stickers uno tras otro. Cada uno suma su precio.',
                               style: TextStyle(fontSize: 15, color: CatalogColors.acero)),
                         );
                       }
@@ -260,6 +322,7 @@ class _LoteScreenState extends State<LoteScreen> {
                         padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                         itemCount: items.length,
                         itemBuilder: (context, i) => Padding(
+                          key: i == 0 ? _gLista : null,
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Dismissible(
                             key: ValueKey(items[i].compra.id),
@@ -285,6 +348,7 @@ class _LoteScreenState extends State<LoteScreen> {
                       if (!lote.cerrado)
                         Expanded(
                           child: OutlinedButton.icon(
+                            key: _gMano,
                             onPressed: _manual,
                             icon: const Icon(Icons.keyboard_outlined),
                             label: const Text('A mano'),
@@ -293,6 +357,7 @@ class _LoteScreenState extends State<LoteScreen> {
                       if (!lote.cerrado) const SizedBox(width: 10),
                       Expanded(
                         child: FilledButton.icon(
+                          key: _gTerminar,
                           onPressed: lote.cerrado ? null : () => _terminar(lote),
                           icon: const Icon(Icons.done_all),
                           label: Text(lote.cerrado ? 'Lote cerrado' : 'Terminar'),
