@@ -75,7 +75,7 @@ void main() {
     await tester.tap(find.text('Listo'));
     await _avanzar(tester);
     expect(find.text('Paso de abajo'), findsNothing);
-    expect(find.text('Salir de la guía'), findsNothing);
+    expect(find.byTooltip('Salir de la guía'), findsNothing);
   });
 
   testWidgets('"Salir de la guía" la cierra en cualquier paso', (tester) async {
@@ -83,7 +83,7 @@ void main() {
     await tester.tap(find.byTooltip('Ayuda: guía de esta pantalla'));
     await _avanzar(tester);
     expect(find.text('Paso A'), findsOneWidget);
-    await tester.tap(find.text('Salir de la guía'));
+    await tester.tap(find.byTooltip('Salir de la guía'));
     await _avanzar(tester);
     expect(find.text('Paso A'), findsNothing);
   });

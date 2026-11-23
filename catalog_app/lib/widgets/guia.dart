@@ -186,23 +186,10 @@ class _GuiaEncimaState extends State<_GuiaEncima> with TickerProviderStateMixin 
                   ultimo: ultimo,
                   alAtras: _i == 0 ? null : () => _irA(_i - 1),
                   alSiguiente: _siguiente,
+                  alCerrar: _cerrar,
                 ),
               ),
             ),
-          Positioned(
-            top: relleno.top + 8,
-            right: 12,
-            child: TextButton.icon(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: const Color(0x33FFFFFF),
-                shape: const StadiumBorder(),
-              ),
-              onPressed: _cerrar,
-              icon: const Icon(Icons.close, size: 18),
-              label: const Text('Salir de la guía'),
-            ),
-          ),
         ],
       ),
     );
@@ -219,6 +206,7 @@ class _Tarjeta extends StatelessWidget {
     required this.ultimo,
     required this.alAtras,
     required this.alSiguiente,
+    required this.alCerrar,
   });
 
   final PasoGuia paso;
@@ -227,6 +215,9 @@ class _Tarjeta extends StatelessWidget {
   final bool ultimo;
   final VoidCallback? alAtras;
   final VoidCallback alSiguiente;
+
+  /// La ✕ va dentro de la tarjeta para no tapar los botones de la barra de arriba.
+  final VoidCallback alCerrar;
 
   @override
   Widget build(BuildContext context) {
@@ -259,6 +250,18 @@ class _Tarjeta extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(paso.texto, style: const TextStyle(fontSize: 14.5, height: 1.38)),
                     ],
+                  ),
+                ),
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: IconButton(
+                    tooltip: 'Salir de la guía',
+                    padding: EdgeInsets.zero,
+                    iconSize: 20,
+                    color: CatalogColors.acero,
+                    onPressed: alCerrar,
+                    icon: const Icon(Icons.close),
                   ),
                 ),
               ],

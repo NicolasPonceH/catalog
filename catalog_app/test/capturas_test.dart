@@ -3,6 +3,7 @@
 //   flutter test test/capturas_test.dart --dart-define=CAPTURAS=true
 //
 // Deja los PNG en build/capturas/. Sin el --dart-define la prueba se salta.
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -13,6 +14,7 @@ import 'package:catalog/data/compras_repo.dart';
 import 'package:catalog/data/fotos.dart';
 import 'package:catalog/data/lotes_repo.dart';
 import 'package:catalog/domain/tipos.dart';
+import 'package:catalog/features/presentacion_screen.dart';
 import 'package:catalog/main.dart';
 import 'package:catalog/printing/etiqueta.dart';
 import 'package:catalog/printing/raster.dart';
@@ -61,7 +63,7 @@ Future<void> _cargarFuentes() async {
 Future<List<Compra>> _poblar(CatalogDb base, DateTime ahora) async {
   final compras = ComprasRepo(base);
   await compras.guardarAjuste('prefijo', 'CTL');
-  await compras.guardarAjuste('nombre', 'Comprador de ejemplo');
+  await compras.guardarAjuste('nombre', 'Jorge Ramírez');
 
   final ayer = DateTime(ahora.year, ahora.month, ahora.day).subtract(const Duration(days: 1));
   DateTime dia(int diasAtras, int h, int m) =>
@@ -139,8 +141,8 @@ Future<void> _esperar(WidgetTester t) async {
   }
 }
 
-Future<void> _capturar(WidgetTester t, String nombre) async {
-  await _esperar(t);
+Future<void> _capturar(WidgetTester t, String nombre, {bool esperar = true}) async {
+  if (esperar) await _esperar(t);
   final ro = t.renderObject<RenderRepaintBoundary>(find.byKey(_raiz));
   await t.runAsync(() async {
     final img = await ro.toImage(pixelRatio: _dpr);
@@ -209,11 +211,58 @@ void main() {
       File('${_salida.path}/sticker.png').writeAsBytesSync(await pngDeMonocromo(mono));
     });
 
+    // Bienvenida animada: se captura cuando terminó de armarse, antes de entrar.
+    var bienvenida = true;
     await tester.pumpWidget(RepaintBoundary(
       key: _raiz,
-      child: AppScope(base: base, fotos: FotosStore(Directory.systemTemp), child: const CatalogApp()),
+      child: AppScope(
+        base: base,
+        fotos: FotosStore(Directory.systemTemp),
+        child: StatefulBuilder(
+          builder: (context, setState) => CatalogApp(
+            bienvenida: bienvenida,
+            alEntrar: () => setState(() => bienvenida = false),
+          ),
+        ),
+      ),
     ));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
+    for (var i = 0; i < 29; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await _capturar(tester, '8-bienvenida', esperar: false);
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(bienvenida, isFalse);
+
     await _capturar(tester, '1-inicio');
+
+    // Guía del Inicio (botón de ayuda), en el segundo paso.
+    await tester.tap(find.byTooltip('Ayuda: guía de esta pantalla'));
+    await _esperar(tester);
+    await tester.tap(find.text('Siguiente'));
+    await _capturar(tester, '10-guia');
+    await tester.tap(find.byTooltip('Salir de la guía'));
+    await _esperar(tester);
+
+    // Presentación: la página del sticker (a mitad de la animación) y la última.
+    final navegador = tester.state<NavigatorState>(find.byType(Navigator).first);
+    unawaited(abrirPresentacion(navegador));
+    await _esperar(tester);
+    for (var i = 0; i < 2; i++) {
+      await tester.tap(find.text('Siguiente'));
+      await _esperar(tester);
+    }
+    await _capturar(tester, '9-presentacion');
+    for (var i = 0; i < 4; i++) {
+      await tester.tap(find.text('Siguiente'));
+      await _esperar(tester);
+    }
+    await tester.enterText(find.widgetWithText(TextField, 'Tu nombre'), 'Jorge Ramírez');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await _capturar(tester, '9-presentacion-final');
+    await _volver(tester);
 
     // Respaldo y traspaso (botón de flechas).
     await tester.tap(find.byTooltip('Respaldo y traspaso'));
