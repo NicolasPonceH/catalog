@@ -3,13 +3,13 @@
 </p>
 
 <p align="center">
-  <img alt="Versión 1.2.1" src="https://img.shields.io/badge/versi%C3%B3n-1.2.1-FF7A1A">
+  <img alt="Versión 1.3" src="https://img.shields.io/badge/versi%C3%B3n-1.3.0-FF7A1A">
   <img alt="Flutter 3.50" src="https://img.shields.io/badge/Flutter-3.50-02569B?logo=flutter&logoColor=white">
   <img alt="Dart 3.14" src="https://img.shields.io/badge/Dart-3.14-0175C2?logo=dart&logoColor=white">
   <img alt="Android 7.0 o más" src="https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local-003B57?logo=sqlite&logoColor=white">
   <img alt="Sin internet" src="https://img.shields.io/badge/funciona-sin%20internet-0E2A47">
-  <img alt="66 pruebas" src="https://img.shields.io/badge/pruebas-66%20OK-2E7D32">
+  <img alt="74 pruebas" src="https://img.shields.io/badge/pruebas-74%20OK-2E7D32">
 </p>
 
 **CataLog** es una app para Android que lleva el control de las compras de catalíticos de un negocio familiar en Arica, Chile. Cada compra queda registrada con su fecha, vendedor, lugar, precio y tipo. La app le imprime al catalítico un sticker con QR y código de barras, lo lee después con la cámara y arma los reportes en Excel. Funciona sin internet y los datos se guardan solo en el teléfono.
@@ -48,6 +48,9 @@ CataLog anota cada compra en el momento y le asigna un código único. Ese códi
 | **Respaldo y traspaso** | Respaldos `.zip` en `Descargas/Respaldo CataLog` (manuales y uno automático al día). Se restauran desde la misma app, y las compras se pueden mandar a otro celular por WhatsApp. |
 | **Sesiones** | Las compras propias van en la *sesión de compra* y los datos recibidos de otro teléfono en una *sesión de revisión*, de solo lectura, que no se mezcla con las compras propias. |
 | **Seguridad** | Bloqueo opcional con huella o PIN. Además pide la huella antes de anular, borrar o reemplazar datos. |
+| **Bienvenida animada** | Al abrir, el logo se arma solo (cuerpo, tubos y barras que se abren, con una línea de escaneo). Te saluda por tu nombre y muestra lo gastado en el mes con un contador. Con el bloqueo activo, ahí mismo se entra con la huella. |
+| **Presentación** | La primera vez muestra un carrusel de seis páginas con ilustraciones animadas, paralaje y un fondo que cambia de tono. La última página pide el nombre y el prefijo, con vista previa del código. |
+| **Guía interactiva** | El botón de ayuda (el círculo con el signo de pregunta) de cada pantalla oscurece todo, ilumina un botón a la vez con un pulso naranja y explica para qué sirve. |
 | **Responsiva** | Se adapta a teléfonos chicos, letra grande, tablets y el teléfono de lado. |
 
 ## Pantallas
@@ -68,6 +71,17 @@ CataLog anota cada compra en el momento y le asigna un código único. Ese códi
 </table>
 
 <sub>Las capturas usan datos de ejemplo (vendedores y autos inventados) y se generan con la propia app en <code>catalog_app/test/capturas_test.dart</code>. La última es una captura real de un Xiaomi 11T Pro.</sub>
+
+### Bienvenida, presentación y guía
+
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="docs/pantallas/8-bienvenida.png" alt="Bienvenida animada"><br><sub><b>Bienvenida</b><br>Logo que se arma y saludo</sub></td>
+    <td align="center" width="25%"><img src="docs/pantallas/9-presentacion.png" alt="Presentación"><br><sub><b>Presentación</b><br>Ilustraciones animadas</sub></td>
+    <td align="center" width="25%"><img src="docs/pantallas/9-presentacion-final.png" alt="Última página de la presentación"><br><sub><b>Antes de empezar</b><br>Nombre, prefijo y vista del código</sub></td>
+    <td align="center" width="25%"><img src="docs/pantallas/10-guia.png" alt="Guía interactiva"><br><sub><b>Guía</b><br>Botón de ayuda en cada pantalla</sub></td>
+  </tr>
+</table>
 
 ## El sticker
 
@@ -115,6 +129,7 @@ flowchart LR
 | Respaldo | `archive` · `file_picker` · Kotlin (MediaStore) | `.zip` con la base y las fotos, guardado en Descargas y abierto con "Abrir con CataLog". |
 | Seguridad | `local_auth` | Huella, rostro o PIN del teléfono. |
 | Marca | Space Grotesk · IBM Plex Mono · `path_drawing` | Fuentes incluidas en la app; el logo se dibuja desde sus trazados SVG. |
+| Animaciones | `CustomPainter` · `AnimationController` | La bienvenida, las ilustraciones de la presentación y el foco de la guía se dibujan a mano, sin paquetes extra. |
 
 ## Arquitectura
 
@@ -126,12 +141,12 @@ catalog_app/lib/
 ├── app_scope.dart       acceso a base, repositorios y sesión desde cualquier pantalla
 ├── data/                SQLite, migraciones, compras, lotes, sesiones, GPS, fotos
 ├── domain/              código PREFIJO-AAMMDD-NNNN, formato CLP, períodos, tipos
-├── features/            una pantalla por archivo (inicio, compra, ficha, lotes, reportes…)
+├── features/            una pantalla por archivo (bienvenida, presentación, inicio, compra, ficha…)
 ├── printing/            sticker, Code 128, ESC/POS, raster 1 bit, protocolo "gato", Bluetooth
 ├── reports/             cálculos de reportes y exportación a Excel
 ├── backup/              respaldo .zip y copia automática diaria
 ├── system/              huella/PIN, canal nativo con Android (MediaStore, archivos)
-└── widgets/             logo, escáner, autocompletar, tarjetas
+└── widgets/             logo, animaciones, guía con botón de ayuda, escáner, autocompletar
 ```
 
 ### Datos y privacidad
@@ -143,7 +158,7 @@ catalog_app/lib/
 
 ## Pruebas
 
-**66 pruebas automáticas** (`flutter test`). Cubren:
+**74 pruebas automáticas** (`flutter test`). Cubren:
 
 - La fecha de compra: obligatoria, no futura, se usa en el código y queda registro de sus correcciones.
 - El generador de códigos: no repite números y reinicia el contador cada día.
@@ -154,6 +169,9 @@ catalog_app/lib/
 - El respaldo: después de borrar y restaurar, los datos quedan iguales.
 - Las sesiones de revisión.
 - Pantallas sin desbordes en un teléfono chico con letra grande, en un teléfono normal y en una tablet.
+- La bienvenida: saludo, contador del mes y entrada sola. La presentación: recorre las seis páginas y guarda el nombre y el prefijo; con "Saltar" no cambia nada.
+- La guía: avanza y retrocede, salta los pasos que no existen, baja hasta los de abajo y se cierra en cualquier paso.
+- La versión que muestra la app coincide con la del `pubspec.yaml`.
 
 ```bash
 cd catalog_app
@@ -182,7 +200,8 @@ La llave de firma (`llaves/`, `key.properties`) y los APK compilados (`apk/`) **
 
 | Versión | Fecha | Cambios principales |
 |---|---|---|
-| **1.2.1** | 23-11-2026 | Probada en el celular real. Arreglo del aviso al quitar un catalítico de un lote. |
+| **1.3** | 23-11-2026 | Bienvenida animada (con huella si hay bloqueo), presentación en carrusel, guía interactiva con botón de ayuda en cada pantalla y arranque nativo en azul marino. |
+| 1.2.1 | 23-11-2026 | Probada en el celular real. Arreglo del aviso al quitar un catalítico de un lote. |
 | 1.2 | 23-11-2026 | Logo refinado, sticker nuevo con "Hecho con CataLog", Excel rediseñado, carpeta `Respaldo CataLog` con restauración desde la app, nombre al crear lotes, huella para borrar, diseño responsivo. |
 | 1.1 | 22-11-2026 | Sesiones de compra y revisión, envío a otro celular, respaldo diario, bloqueo con huella o PIN. |
 | 1.0 | 22-11-2026 | Registro, sticker, impresión Bluetooth, escáner, lotes, reportes en Excel y respaldo. |

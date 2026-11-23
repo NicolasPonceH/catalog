@@ -4,13 +4,19 @@ CataLog registra cada catalítico que compras, le imprime un sticker con su cód
 
 ## 1. Instalar
 
-1. Pasa el APK más nuevo (hoy `CataLog-1.2.1.apk`) al celular, por WhatsApp o con el cable.
+1. Pasa el APK más nuevo (hoy `CataLog-1.3.apk`) al celular, por WhatsApp o con el cable.
 2. Ábrelo y acepta **instalar apps desconocidas** cuando el teléfono lo pida.
 3. Si aparece un aviso de seguridad (Xiaomi o Play Protect), toca **Instalar de todas formas**.
 
 Las versiones nuevas se instalan encima de la anterior **sin borrar las compras**.
 
-## 2. La primera vez
+## 2. Al abrir CataLog
+
+- **Bienvenida:** el logo se arma solo, te saluda por tu nombre y muestra lo gastado en el mes. Entra sola en un par de segundos, o toca la pantalla para entrar antes. Si activaste el bloqueo, aquí mismo pones tu huella.
+- **La primera vez** aparece una **presentación** de seis páginas: desliza o toca **Siguiente**. En la última escribes tu nombre y el prefijo de los códigos (ves al tiro cómo quedarán). Si dejas marcada la guía rápida, al entrar te muestra el Inicio paso a paso. Para verla de nuevo: **Ajustes > Ayuda > Ver la presentación de nuevo**.
+- **Botón de ayuda** (el círculo con el signo de pregunta, arriba a la derecha de cada pantalla): ilumina cada botón de esa pantalla y explica para qué sirve. Toca **Siguiente** para avanzar o **Salir de la guía** para cerrarla. Hasta que lo uses por primera vez, el botón late con un punto naranja.
+
+## 3. Lo que hay que configurar
 
 En **Ajustes** (la ruedita, arriba a la derecha):
 
@@ -20,7 +26,7 @@ En **Ajustes** (la ruedita, arriba a la derecha):
   - Si un equipo aparece dos veces y uno no imprime, prueba con el otro.
 - Usa **rollos térmicos adhesivos** para que el sticker pegue.
 
-## 3. Registrar una compra
+## 4. Registrar una compra
 
 1. Toca **Nueva compra**.
 2. Revisa la **fecha y hora de compra**: se llena sola. Si anotas la compra más tarde, tócala y pon la fecha y hora reales.
@@ -35,20 +41,20 @@ En **Ajustes** (la ruedita, arriba a la derecha):
 
 El precio **no** sale en el sticker: solo se ve al escanearlo con CataLog.
 
-## 4. Ver un catalítico
+## 5. Ver un catalítico
 
 En el Inicio, toca **Escanear sticker** y apunta al QR o al código de barras. Se abre su ficha completa: fecha de compra, vendedor, lugar con mapa, precio, tipo y foto.
 
 Si el sticker está dañado, toca **Escribir el código a mano**.
 
-## 5. Lotes (varios catalíticos juntos)
+## 6. Lotes (varios catalíticos juntos)
 
 1. Toca **Lotes > Nuevo lote** y escribe el nombre (viene sugerido con la fecha y hora).
 2. Escanea los stickers uno tras otro. Cada uno suma lo que pagaste por él, y el mismo catalítico no se cuenta dos veces.
 3. Al final toca **Terminar**. Si sales sin escanear nada, el lote no se guarda.
 4. Con el botón de tabla (arriba) se manda el **Excel del lote** por WhatsApp o correo.
 
-## 6. Reportes y Excel
+## 7. Reportes y Excel
 
 En **Reportes** eliges el período: hoy, semana, mes, unas fechas o todo. Ahí ves el total gastado, la cantidad, el promedio y los totales por tipo y por vendedor.
 
@@ -58,13 +64,13 @@ En **Reportes** eliges el período: hoy, semana, mes, unas fechas o todo. Ahí v
 - Por tipo
 - Por vendedor
 
-## 7. Corregir o anular
+## 8. Corregir o anular
 
 - **Corregir:** en la ficha, toca el lápiz. Si cambias la fecha de compra, la ficha muestra que se corrigió y cuándo.
 - **Anular:** en la ficha, menú de tres puntos > **Anular compra**. Sale de los totales, pero queda en el historial y su número no se vuelve a usar.
 - **Para borrar o anular cualquier cosa** (una compra, un lote, un catalítico de un lote, una revisión, o reemplazar tus compras con un respaldo) CataLog pide tu **huella o PIN**.
 
-## 8. Respaldo (muy importante)
+## 9. Respaldo (muy importante)
 
 Las compras viven solo en el teléfono. Si se pierde o se rompe, se pierden. Para evitarlo:
 
@@ -74,7 +80,7 @@ Las compras viven solo en el teléfono. Si se pierde o se rompe, se pierden. Par
 - CataLog te recuerda en el Inicio cuando toca hacerlo.
 - **Restaurar:** **Ajustes > Restaurar desde un respaldo**. La app muestra los respaldos de la carpeta Respaldo CataLog; eliges uno y lo extrae sola. Si el archivo está en otra parte (WhatsApp, Drive), toca **Buscar otro archivo**, o tócalo directamente y elige **Abrir con CataLog**.
 
-## 9. Pasar las compras a otro celular (sesiones)
+## 10. Pasar las compras a otro celular (sesiones)
 
 CataLog separa los datos en **sesiones**:
 
@@ -92,7 +98,7 @@ CataLog separa los datos en **sesiones**:
 
 Si te vuelven a mandar datos del mismo teléfono, la revisión se actualiza (no se duplica).
 
-## 10. Bloqueo con huella o PIN
+## 11. Bloqueo con huella o PIN
 
 En **Ajustes > Seguridad** activa **Pedir huella o PIN al abrir**. CataLog usa el bloqueo del teléfono (huella, rostro, PIN o patrón) y lo vuelve a pedir si la app estuvo cerrada más de 2 minutos.
 
