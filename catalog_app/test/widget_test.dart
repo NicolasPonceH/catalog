@@ -28,8 +28,9 @@ void main() {
     await tester.pump();
 
     expect(find.text('Nueva compra'), findsOneWidget);
-    expect(find.text('Gastado este mes'), findsOneWidget);
-    expect(find.text(r'$0'), findsOneWidget);
+    expect(find.textContaining('Gastado en'), findsOneWidget);
+    // El total del mes y el de hoy (los dos en cero con la base vacía).
+    expect(find.text(r'$0'), findsNWidgets(2));
     await tester.runAsync(base.cerrar);
   });
 }

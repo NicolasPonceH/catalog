@@ -113,10 +113,13 @@ class _LoteScreenState extends State<LoteScreen> {
       ResultadoEscaneo.noExiste => ('$codigo no está registrado en este teléfono', false),
       ResultadoEscaneo.noEsCodigo => ('Ese código no es de CataLog', false),
     };
+    // Vibración y sonido, si están activados en Ajustes.
+    final d = AppScope.of(context).dispositivo;
+    final vibrar = d?.vibrar ?? true;
     if (resultado == ResultadoEscaneo.agregado) {
-      HapticFeedback.mediumImpact();
-      SystemSound.play(SystemSoundType.click);
-    } else if (!bien) {
+      if (vibrar) HapticFeedback.mediumImpact();
+      if (d?.sonar ?? true) SystemSound.play(SystemSoundType.click);
+    } else if (!bien && vibrar) {
       HapticFeedback.heavyImpact();
     }
     setState(() {
@@ -314,7 +317,7 @@ class _LoteScreenState extends State<LoteScreen> {
                         return Padding(
                           key: _gLista,
                           padding: const EdgeInsets.all(20),
-                          child: const Text('Escanea los stickers uno tras otro. Cada uno suma su precio.',
+                          child: Text('Escanea los stickers uno tras otro. Cada uno suma su precio.',
                               style: TextStyle(fontSize: 15, color: CatalogColors.acero)),
                         );
                       }
@@ -330,7 +333,7 @@ class _LoteScreenState extends State<LoteScreen> {
                             background: Container(
                               alignment: Alignment.centerRight,
                               padding: const EdgeInsets.only(right: 20),
-                              child: const Icon(Icons.remove_circle_outline, color: CatalogColors.rojo),
+                              child: Icon(Icons.remove_circle_outline, color: CatalogColors.rojo),
                             ),
                             confirmDismiss: (_) =>
                                 confirmarConHuella(context, 'Confirma para quitar ${items[i].compra.codigo} del lote'),

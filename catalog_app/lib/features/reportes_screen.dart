@@ -176,7 +176,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Total gastado', style: etiqueta),
+                              Text('Total gastado', style: etiqueta),
                               Text(clp(r.resumen.total), style: mono(size: 30)),
                               Text(
                                 '${r.resumen.cantidad} ${r.resumen.cantidad == 1 ? 'catalítico' : 'catalíticos'}'
@@ -206,7 +206,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                         _Grupos(key: _gVendedor, titulo: 'Por vendedor', filas: r.porVendedor, total: r.resumen.total),
                       ],
                       if (compras.isEmpty)
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.only(top: 20),
                           child: Text('No hay compras en este período.', style: etiqueta),
                         ),

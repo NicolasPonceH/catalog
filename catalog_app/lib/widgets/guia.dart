@@ -222,7 +222,7 @@ class _Tarjeta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: CatalogColors.superficie,
       elevation: 12,
       shadowColor: Colors.black54,
       borderRadius: BorderRadius.circular(18),
@@ -238,7 +238,7 @@ class _Tarjeta extends StatelessWidget {
                 Container(
                   width: 40,
                   height: 40,
-                  decoration: const BoxDecoration(color: CatalogColors.naranjaClara, shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: CatalogColors.naranjaClara, shape: BoxShape.circle),
                   child: Icon(paso.icono, color: CatalogColors.naranja, size: 22),
                 ),
                 const SizedBox(width: 12),

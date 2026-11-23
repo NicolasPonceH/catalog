@@ -124,33 +124,34 @@ class PintorHuella extends CustomPainter {
   final double? escaneo;
   final Color color;
 
-  static const _centro = Offset(50, 54);
+  static const _centro = Offset(50, 52);
 
-  /// Crestas: (radio, ángulo inicial, ángulo final) en grados; algunas cortadas en dos.
-  static final List<Path> _crestas = () {
-    const datos = [
-      [5.0, 200.0, 340.0],
-      [10.0, 185.0, 360.0],
-      [15.0, 175.0, 262.0], [15.0, 274.0, 372.0],
-      [20.0, 165.0, 368.0],
-      [25.0, 160.0, 238.0], [25.0, 250.0, 380.0],
-      [30.0, 158.0, 300.0], [30.0, 312.0, 384.0],
-      [35.0, 166.0, 376.0],
-      [40.0, 178.0, 252.0], [40.0, 266.0, 364.0],
-    ];
-    return [
-      for (final d in datos)
-        Path()
-          ..addArc(
-            Rect.fromCircle(center: _centro, radius: d[0]),
-            d[1] * math.pi / 180,
-            (d[2] - d[1]) * math.pi / 180,
-          ),
-    ];
-  }();
+  /// Crestas ovaladas (más altas que anchas), como una huella real: las de
+  /// afuera bajan por los lados y quedan abiertas abajo; algunas cortadas en dos.
+  /// Cada una es (radio, ángulo inicial, ángulo final) en grados.
+  static const _datos = [
+    [6.0, 190.0, 350.0],
+    [11.0, 160.0, 380.0],
+    [16.0, 140.0, 262.0], [16.0, 276.0, 400.0],
+    [21.0, 130.0, 410.0],
+    [26.0, 125.0, 240.0], [26.0, 252.0, 415.0],
+    [31.0, 128.0, 300.0], [31.0, 312.0, 412.0],
+    [36.0, 135.0, 405.0],
+    [41.0, 150.0, 250.0], [41.0, 262.0, 390.0],
+  ];
+
+  static final List<Path> _crestas = [
+    for (final d in _datos)
+      Path()
+        ..addArc(
+          Rect.fromCenter(center: _centro, width: d[0] * 2 * 0.84, height: d[0] * 2),
+          d[1] * math.pi / 180,
+          (d[2] - d[1]) * math.pi / 180,
+        ),
+  ];
 
   /// Radio de cada cresta (para encenderlas de adentro hacia afuera).
-  static const _radios = [5.0, 10.0, 15.0, 15.0, 20.0, 25.0, 25.0, 30.0, 30.0, 35.0, 40.0, 40.0];
+  static final _radios = [for (final d in _datos) d[0]];
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -159,7 +160,7 @@ class PintorHuella extends CustomPainter {
     canvas.translate((size.width - 100 * s) / 2, (size.height - 100 * s) / 2);
     canvas.scale(s);
     for (var i = 0; i < _crestas.length; i++) {
-      final umbral = (_radios[i] - 5) / 35; // 0 la de adentro, 1 la de afuera
+      final umbral = (_radios[i] - 6) / 35; // 0 la de adentro, 1 la de afuera
       final luz = ((encendido - umbral) * 5).clamp(0.0, 1.0);
       canvas.drawPath(
         _crestas[i],
@@ -434,7 +435,7 @@ class _PintorIlustracion extends CustomPainter {
         ..color = CatalogColors.naranja,
     );
     _icono(canvas, Icons.event, const Offset(66, 48), 22, CatalogColors.naranja);
-    _texto(canvas, 'Fecha de compra', const Offset(82, 32), const TextStyle(fontSize: 8.5, color: CatalogColors.acero));
+    _texto(canvas, 'Fecha de compra', const Offset(82, 32), TextStyle(fontSize: 8.5, color: CatalogColors.acero));
     final hh = ahora.hour.toString().padLeft(2, '0'), mm = ahora.minute.toString().padLeft(2, '0');
     _texto(canvas, 'Hoy · $hh:$mm', const Offset(82, 44),
         const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: CatalogColors.marino));
@@ -592,7 +593,7 @@ class _PintorIlustracion extends CustomPainter {
     canvas.drawShadow(Path()..addRRect(tarjeta), Colors.black, 6, false);
     canvas.drawRRect(tarjeta, Paint()..color = Colors.white);
     _texto(canvas, 'Lote · ${math.min(hechas, 4)} piezas', const Offset(180, 156),
-        const TextStyle(fontSize: 9.5, color: CatalogColors.acero));
+        TextStyle(fontSize: 9.5, color: CatalogColors.acero));
     _texto(canvas, _clp(total), const Offset(180, 170),
         const TextStyle(fontSize: 15, fontFamily: fuenteMono, fontWeight: FontWeight.w500, color: CatalogColors.naranja));
   }
@@ -604,7 +605,7 @@ class _PintorIlustracion extends CustomPainter {
     final tarjeta = RRect.fromRectAndRadius(const Rect.fromLTWH(28, 22, 228, 182), const Radius.circular(16));
     canvas.drawShadow(Path()..addRRect(tarjeta), Colors.black, 8, false);
     canvas.drawRRect(tarjeta, Paint()..color = Colors.white);
-    _texto(canvas, 'Gastado este mes', const Offset(44, 34), const TextStyle(fontSize: 10, color: CatalogColors.acero));
+    _texto(canvas, 'Gastado este mes', const Offset(44, 34), TextStyle(fontSize: 10, color: CatalogColors.acero));
     final total = (880000 * Curves.easeOut.transform(tramo(t, 0.05, 0.5))).round();
     _texto(canvas, _clp(total), const Offset(44, 48),
         const TextStyle(fontSize: 20, fontFamily: fuenteMono, fontWeight: FontWeight.w500, color: CatalogColors.marino));

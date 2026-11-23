@@ -54,7 +54,9 @@ class _EscanearScreenState extends State<EscanearScreen> {
       avisar(context, '$codigo no está registrado en este teléfono');
       return;
     }
-    HapticFeedback.mediumImpact();
+    final d = AppScope.of(context).dispositivo;
+    if (d?.vibrar ?? true) HapticFeedback.mediumImpact();
+    if (d?.sonar ?? true) SystemSound.play(SystemSoundType.click);
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => FichaScreen(id: compra.id)),
     );
@@ -75,7 +77,7 @@ class _EscanearScreenState extends State<EscanearScreen> {
             children: [
               Expanded(child: EscanerVista(key: _gCamara, alLeer: _buscar)),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'Apunta al QR o al código de barras del sticker.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 15, color: CatalogColors.acero),

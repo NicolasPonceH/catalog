@@ -190,7 +190,7 @@ class _Lista extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.only(top: 12, bottom: 6),
             child: Text(encabezadoDia(item, hoy),
-                style: const TextStyle(fontSize: 14, color: CatalogColors.acero, fontWeight: FontWeight.w500)),
+                style: TextStyle(fontSize: 14, color: CatalogColors.acero, fontWeight: FontWeight.w500)),
           );
         }
         return Padding(

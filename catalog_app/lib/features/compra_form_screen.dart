@@ -476,7 +476,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Fecha y hora de compra', style: etiqueta),
+                    Text('Fecha y hora de compra', style: etiqueta),
                     Text(fechaCompraCorta(_fecha, ahora),
                         style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700)),
                     Text(capitalizar(fechaLarga(_fecha)), style: etiqueta),
@@ -484,13 +484,13 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(_errorFecha!,
-                            style: const TextStyle(color: CatalogColors.rojo, fontSize: 13)),
+                            style: TextStyle(color: CatalogColors.rojo, fontSize: 13)),
                       ),
                   ],
                 ),
               ),
-              const Text('Cambiar',
-                  style: TextStyle(color: CatalogColors.marino, fontWeight: FontWeight.w500)),
+              Text('Cambiar',
+                  style: TextStyle(color: CatalogColors.texto, fontWeight: FontWeight.w500)),
             ],
           ),
         ),
@@ -513,7 +513,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
         );
 
     if (_buscandoGps) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.only(top: 8, left: 4),
         child: Row(
           children: [
@@ -540,7 +540,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Motor', style: etiqueta),
+        Text('Motor', style: etiqueta),
         const SizedBox(height: 6),
         SizedBox(
           width: double.infinity,
@@ -560,7 +560,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        const Text('Material', style: etiqueta),
+        Text('Material', style: etiqueta),
         const SizedBox(height: 6),
         SizedBox(
           width: double.infinity,
@@ -580,7 +580,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
         ),
         const SizedBox(height: 6),
         if (_errorTipo != null)
-          Text(_errorTipo!, style: const TextStyle(color: CatalogColors.rojo, fontSize: 13)),
+          Text(_errorTipo!, style: TextStyle(color: CatalogColors.rojo, fontSize: 13)),
       ],
     );
   }

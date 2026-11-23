@@ -18,6 +18,7 @@ import 'package:catalog/features/presentacion_screen.dart';
 import 'package:catalog/main.dart';
 import 'package:catalog/printing/etiqueta.dart';
 import 'package:catalog/printing/raster.dart';
+import 'package:catalog/theme.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -301,6 +302,71 @@ void main() {
     await _esperar(tester);
 
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
+    await tester.runAsync(base.cerrar);
+    debugDisableShadows = true;
+  });
+
+  for (final (sufijo, paleta) in [('', Paleta.clara), ('-oscuro', Paleta.oscura_)]) {
+    testWidgets('capturas del tema$sufijo', skip: !_activo, (tester) async {
+      tester.view.physicalSize = _fisico;
+      tester.view.devicePixelRatio = _dpr;
+      tester.view.padding = const FakeViewPadding(top: _barraEstado * _dpr);
+      tester.view.viewPadding = const FakeViewPadding(top: _barraEstado * _dpr);
+      addTearDown(tester.view.reset);
+      FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTouch;
+      debugDisableShadows = false;
+      CatalogColors.paleta = paleta;
+      addTearDown(() => CatalogColors.paleta = Paleta.clara);
+      late CatalogDb base;
+      await tester.runAsync(() async {
+        _salida.createSync(recursive: true);
+        await _cargarFuentes();
+        base = await CatalogDb.abrir(ruta: inMemoryDatabasePath, fabrica: databaseFactoryFfi);
+        await _poblar(base, DateTime.now());
+      });
+      await tester.pumpWidget(RepaintBoundary(
+        key: _raiz,
+        child: AppScope(base: base, fotos: FotosStore(Directory.systemTemp), child: CatalogApp(paleta: paleta)),
+      ));
+      await _capturar(tester, '12-inicio$sufijo');
+      await tester.tap(find.byTooltip('Ajustes'));
+      await _capturar(tester, '13-ajustes$sufijo');
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
+      await tester.runAsync(base.cerrar);
+      debugDisableShadows = true;
+    });
+  }
+
+  testWidgets('captura del bloqueo con huella', skip: !_activo, (tester) async {
+    tester.view.physicalSize = _fisico;
+    tester.view.devicePixelRatio = _dpr;
+    tester.view.padding = const FakeViewPadding(top: _barraEstado * _dpr);
+    tester.view.viewPadding = const FakeViewPadding(top: _barraEstado * _dpr);
+    addTearDown(tester.view.reset);
+    debugDisableShadows = false;
+    late CatalogDb base;
+    await tester.runAsync(() async {
+      _salida.createSync(recursive: true);
+      await _cargarFuentes();
+      base = await CatalogDb.abrir(ruta: inMemoryDatabasePath, fabrica: databaseFactoryFfi);
+      await ComprasRepo(base).guardarAjuste('nombre', 'Jorge Ramírez');
+    });
+    await tester.pumpWidget(RepaintBoundary(
+      key: _raiz,
+      child: AppScope(
+        base: base,
+        fotos: FotosStore(Directory.systemTemp),
+        child: const CatalogApp(bloqueada: true),
+      ),
+    ));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
+    // Entrada (1,3 s) y un momento analizando la huella.
+    for (var i = 0; i < 21; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await _capturar(tester, '11-bloqueo', esperar: false);
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
+    await tester.pump(const Duration(milliseconds: 100));
     await tester.runAsync(base.cerrar);
     debugDisableShadows = true;
   });

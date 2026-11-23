@@ -77,12 +77,47 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _alVolver());
+    widget.dispositivo.addListener(_ajustesCambiaron);
   }
 
   @override
   void dispose() {
+    widget.dispositivo.removeListener(_ajustesCambiaron);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  // ---------- Apariencia ----------
+
+  Paleta? _paletaUsada;
+
+  void _ajustesCambiaron() {
+    if (mounted) setState(() {});
+  }
+
+  // El tema "auto" sigue al modo oscuro del teléfono.
+  @override
+  void didChangePlatformBrightness() => _ajustesCambiaron();
+
+  Paleta _paleta() {
+    final d = widget.dispositivo;
+    final oscuro = switch (d.temaElegido) {
+      'oscuro' => true,
+      'auto' => WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark,
+      _ => false,
+    };
+    return Paleta.de(oscuro: oscuro, contraste: d.activado(AjustesDispositivo.contraste));
+  }
+
+  /// Los colores que dependen del tema se leen al construir cada widget: al
+  /// cambiar de tema se vuelve a construir todo (sin perder la pantalla abierta).
+  void _reconstruirTodo() {
+    void marcar(Element e) {
+      e.markNeedsBuild();
+      e.visitChildren(marcar);
+    }
+
+    if (mounted) (context as Element).visitChildren(marcar);
   }
 
   @override
@@ -226,6 +261,13 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
 
   @override
   Widget build(BuildContext context) {
+    final paleta = _paleta();
+    if (_paletaUsada != null && !identical(paleta, _paletaUsada)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _reconstruirTodo());
+    }
+    _paletaUsada = paleta;
+    CatalogColors.paleta = paleta;
+    final d = widget.dispositivo;
     return AppScope(
       base: _base,
       fotos: FotosStore(_sesion.carpeta),
@@ -241,6 +283,9 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
         bienvenida: _bienvenida,
         bloqueada: _bloqueada,
         alEntrar: _entrar,
+        paleta: paleta,
+        escalaLetra: d.escalaLetra,
+        sinAnimaciones: d.activado(AjustesDispositivo.sinAnimaciones),
       ),
     );
   }
@@ -257,10 +302,20 @@ class CatalogApp extends StatelessWidget {
     this.bienvenida = false,
     this.bloqueada = false,
     this.alEntrar,
+    this.paleta = Paleta.clara,
+    this.escalaLetra = 1.0,
+    this.sinAnimaciones = false,
   });
 
   final GlobalKey<ScaffoldMessengerState>? mensajes;
   final GlobalKey<NavigatorState>? navegador;
+
+  /// Colores del tema elegido en Ajustes.
+  final Paleta paleta;
+
+  /// Tamaño de letra elegido en Ajustes (se multiplica por el del teléfono).
+  final double escalaLetra;
+  final bool sinAnimaciones;
 
   /// Muestra la bienvenida animada encima de todo.
   final bool bienvenida;
@@ -276,22 +331,21 @@ class CatalogApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: mensajes,
       navigatorKey: navegador,
-      theme: catalogTheme(),
+      theme: catalogTheme(paleta),
       locale: const Locale('es', 'CL'),
       supportedLocales: const [Locale('es', 'CL'), Locale('es')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       builder: (context, child) {
-        // Respeta el tamaño de letra del teléfono, con un tope para que nada se desarme.
+        // Respeta el tamaño de letra del teléfono (más el elegido en Ajustes), con
+        // un tope para que nada se desarme.
         final mq = MediaQuery.of(context);
-        final contenido = MediaQuery(
-          data: mq.copyWith(textScaler: mq.textScaler.clamp(minScaleFactor: 0.9, maxScaleFactor: 1.3)),
-          child: child ?? const SizedBox(),
-        );
+        final base = mq.textScaler.clamp(minScaleFactor: 0.9, maxScaleFactor: 1.3).scale(100) / 100;
+        final contenido = child ?? const SizedBox();
         // En pantallas anchas (tablet o teléfono de lado) la app se centra con un ancho cómodo.
         final app = LayoutBuilder(
           builder: (context, c) => c.maxWidth > anchoMaximoApp
               ? ColoredBox(
-                  color: CatalogColors.marino,
+                  color: CatalogColors.barra,
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: anchoMaximoApp),
@@ -301,18 +355,24 @@ class CatalogApp extends StatelessWidget {
                 )
               : contenido,
         );
-        return Stack(
-          children: [
-            app,
-            if (bienvenida || bloqueada)
-              Positioned.fill(
-                child: Bienvenida(
-                  key: ValueKey(bloqueada),
-                  bloqueada: bloqueada,
-                  alEntrar: alEntrar ?? () {},
+        return MediaQuery(
+          data: mq.copyWith(
+            textScaler: TextScaler.linear((base * escalaLetra).clamp(0.9, 1.45)),
+            disableAnimations: mq.disableAnimations || sinAnimaciones,
+          ),
+          child: Stack(
+            children: [
+              app,
+              if (bienvenida || bloqueada)
+                Positioned.fill(
+                  child: Bienvenida(
+                    key: ValueKey(bloqueada),
+                    bloqueada: bloqueada,
+                    alEntrar: alEntrar ?? () {},
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         );
       },
       home: const PrincipalScreen(),

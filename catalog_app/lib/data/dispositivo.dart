@@ -1,14 +1,38 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import 'compras_repo.dart';
 
 /// Ajustes de ESTE TELÉFONO, que no dependen de la sesión abierta:
 /// impresora, papel, bloqueo, respaldo automático y sesión activa.
-class AjustesDispositivo {
+class AjustesDispositivo extends ChangeNotifier {
   AjustesDispositivo._(this._archivo, this._datos);
+
+  // ---- Apariencia y preferencias (avisan a la app cuando cambian) ----
+
+  /// 'claro', 'oscuro' o 'auto' (sigue al teléfono).
+  static const tema = 'tema';
+
+  /// '1' = alto contraste.
+  static const contraste = 'contraste';
+
+  /// Tamaño de letra: '1.0', '1.15' o '1.3' (sobre el del teléfono).
+  static const letra = 'letra';
+
+  /// '1' = sin animaciones.
+  static const sinAnimaciones = 'sin_animaciones';
+
+  /// '1' = no vibrar / no sonar al escanear.
+  static const sinVibrar = 'sin_vibrar';
+  static const sinSonido = 'sin_sonido';
+
+  String get temaElegido => leer(tema) ?? 'claro';
+  double get escalaLetra => double.tryParse(leer(letra) ?? '') ?? 1.0;
+  bool get vibrar => !activado(sinVibrar);
+  bool get sonar => !activado(sinSonido);
 
   final File _archivo;
   final Map<String, dynamic> _datos;
@@ -49,6 +73,7 @@ class AjustesDispositivo {
     } else {
       _datos[clave] = valor;
     }
+    notifyListeners();
     await _archivo.parent.create(recursive: true);
     await _archivo.writeAsString(jsonEncode(_datos), flush: true);
   }

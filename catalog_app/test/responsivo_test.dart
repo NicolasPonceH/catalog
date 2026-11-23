@@ -55,6 +55,9 @@ void main() {
       await tester.pump();
       expect(find.text('Nueva compra'), findsOneWidget);
 
+      // En pantallas chicas el botón puede quedar más abajo: se baja hasta él.
+      await tester.ensureVisible(find.text('Nueva compra'));
+      await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.text('Nueva compra'));
       for (var i = 0; i < 5; i++) {
         await tester.pump(const Duration(milliseconds: 200));

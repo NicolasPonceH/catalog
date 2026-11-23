@@ -119,7 +119,7 @@ Future<List<int>?> elegirArchivoCatalog(BuildContext context, {required String t
             ),
             for (final a in lista)
               ListTile(
-                leading: Icon(a.esAutomatico ? Icons.schedule : Icons.inventory_2_outlined, color: CatalogColors.marino),
+                leading: Icon(a.esAutomatico ? Icons.schedule : Icons.inventory_2_outlined, color: CatalogColors.texto),
                 title: Text(a.esAutomatico ? 'Copia automática' : 'Respaldo', style: const TextStyle(fontWeight: FontWeight.w500)),
                 subtitle: Text('${fechaHora(a.fecha)} · ${_tamano(a.tamano)}\n${a.nombre}', style: etiqueta),
                 isThreeLine: true,
@@ -221,16 +221,16 @@ Future<void> recibirDatos(BuildContext context, [List<int>? bytes]) async {
         ),
         SimpleDialogOption(
           onPressed: () => Navigator.pop(context, 'revisar'),
-          child: const ListTile(
+          child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.fact_check_outlined, color: CatalogColors.marino),
+            leading: Icon(Icons.fact_check_outlined, color: CatalogColors.texto),
             title: Text('Abrir para revisar'),
             subtitle: Text('Se guarda aparte, como sesión de revisión. Tus compras no se tocan.'),
           ),
         ),
         SimpleDialogOption(
           onPressed: () => Navigator.pop(context, 'restaurar'),
-          child: const ListTile(
+          child: ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.settings_backup_restore, color: CatalogColors.rojo),
             title: Text('Reemplazar mis compras'),
@@ -350,7 +350,7 @@ Future<void> mostrarSesiones(BuildContext context) async {
               padding: EdgeInsets.fromLTRB(20, 0, 20, 4),
               child: Text('Sesiones', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
               child: Text(
                 'La sesión de compra son tus compras. Las de revisión son datos recibidos de '
@@ -359,10 +359,10 @@ Future<void> mostrarSesiones(BuildContext context) async {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.shopping_bag_outlined, color: CatalogColors.marino),
+              leading: Icon(Icons.shopping_bag_outlined, color: CatalogColors.texto),
               title: const Text('Mis compras'),
               subtitle: const Text('Sesión de compra'),
-              trailing: actual == idSesionPrincipal ? const Icon(Icons.check, color: CatalogColors.verde) : null,
+              trailing: actual == idSesionPrincipal ? Icon(Icons.check, color: CatalogColors.verde) : null,
               onTap: () {
                 Navigator.pop(hoja);
                 if (actual != idSesionPrincipal) acciones.abrirSesion(sesiones.principal);
@@ -431,33 +431,33 @@ Future<void> mostrarRespaldoYTraspaso(BuildContext context) async {
           ),
           if (!revision)
             ListTile(
-              leading: const Icon(Icons.backup_outlined, color: CatalogColors.marino),
+              leading: Icon(Icons.backup_outlined, color: CatalogColors.texto),
               title: const Text('Crear respaldo'),
               subtitle: const Text('Se guarda en Descargas/Respaldo CataLog'),
               onTap: () => ir(hoja, crearRespaldoYEnviar),
             ),
           if (!revision)
             ListTile(
-              leading: const Icon(Icons.send_to_mobile_outlined, color: CatalogColors.marino),
+              leading: Icon(Icons.send_to_mobile_outlined, color: CatalogColors.texto),
               title: const Text('Enviar mis compras a otro celular'),
               subtitle: const Text('Para que las revise y escanee los stickers'),
               onTap: () => ir(hoja, enviarAOtroCelular),
             ),
           ListTile(
-            leading: const Icon(Icons.download_outlined, color: CatalogColors.marino),
+            leading: Icon(Icons.download_outlined, color: CatalogColors.texto),
             title: const Text('Recibir datos de otro celular'),
             subtitle: const Text('Abrir un archivo de CataLog'),
             onTap: () => ir(hoja, recibirDatos),
           ),
           ListTile(
-            leading: const Icon(Icons.swap_horiz, color: CatalogColors.marino),
+            leading: Icon(Icons.swap_horiz, color: CatalogColors.texto),
             title: const Text('Cambiar de sesión'),
             subtitle: Text('Ahora: ${scope.sesion?.nombre ?? 'Mis compras'}'),
             onTap: () => ir(hoja, mostrarSesiones),
           ),
           if (!revision)
             ListTile(
-              leading: const Icon(Icons.settings_backup_restore, color: CatalogColors.rojo),
+              leading: Icon(Icons.settings_backup_restore, color: CatalogColors.rojo),
               title: const Text('Restaurar desde un respaldo'),
               subtitle: const Text('Elige un .zip y la app recupera tus compras'),
               onTap: () => ir(hoja, restaurarDesdeArchivo),

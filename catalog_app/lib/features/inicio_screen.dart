@@ -1,7 +1,10 @@
+import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../app_scope.dart';
 import '../data/compra.dart';
+import '../data/compras_repo.dart';
+import '../data/lotes_repo.dart';
 import '../domain/formato.dart';
 import '../domain/periodos.dart';
 import '../theme.dart';
@@ -10,6 +13,7 @@ import '../widgets/compra_tile.dart';
 import '../widgets/consulta.dart';
 import '../widgets/guia.dart';
 import 'ajustes_screen.dart';
+import 'bienvenida.dart';
 import 'compra_form_screen.dart';
 import 'principal_screen.dart';
 import 'traspaso.dart';
@@ -30,6 +34,7 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
   // Partes que ilumina la guía.
   final _gMes = GlobalKey();
   final _gNueva = GlobalKey();
+  final _gHoy = GlobalKey();
   final _gUltimas = GlobalKey();
   final _gTraspaso = GlobalKey();
   final _gAjustes = GlobalKey();
@@ -64,7 +69,14 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
         clave: _gMes,
         icono: Icons.insights_outlined,
         titulo: revision ? 'Lo recibido este mes' : 'Lo gastado este mes',
-        texto: 'Suma lo pagado por los catalíticos comprados este mes. Debajo ves lo de hoy.',
+        texto: 'Suma lo pagado por los catalíticos comprados este mes, con el promedio por pieza. Las barras '
+            'son los últimos meses (el naranjo es este) y abajo ves cuánto cambió respecto al mes pasado.',
+      ),
+      PasoGuia(
+        clave: _gHoy,
+        icono: Icons.today_outlined,
+        titulo: 'Hoy y lotes',
+        texto: 'Lo comprado hoy y el lote que tengas abierto. Tócalos para ir al historial o a los lotes.',
       ),
       PasoGuia(
         clave: _gNueva,
@@ -176,56 +188,83 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
                       ),
               ),
             ],
-            Text(mes.nombre, style: etiqueta),
-            const SizedBox(height: 6),
-            Consulta<Resumen>(
-              claves: [mes.desde],
-              cargar: () => repo.resumen(mes),
-              builder: (context, r) {
-                r ??= Resumen.vacio;
-                return Card(
-                  key: _gMes,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(revision ? 'Compras recibidas de este mes' : 'Gastado este mes', style: etiqueta),
-                        Text(clp(r.total), style: mono(size: 30)),
-                        Text(
-                          '${r.cantidad} ${r.cantidad == 1 ? 'catalítico' : 'catalíticos'}',
-                          style: etiqueta,
-                        ),
-                      ],
-                    ),
+            // Saludo por la hora y el nombre.
+            Consulta<String?>(
+              claves: [_ahora.hour],
+              cargar: () => repo.leerAjuste('nombre'),
+              builder: (context, nombre) {
+                final corto = (nombre ?? '').trim().split(RegExp(r'\s+')).first;
+                return Padding(
+                  padding: const EdgeInsets.only(left: 2, bottom: 8),
+                  child: Text(
+                    corto.isEmpty ? saludoPorHora(_ahora) : '${saludoPorHora(_ahora)}, $corto',
+                    style: TextStyle(fontSize: 15, color: CatalogColors.acero),
                   ),
                 );
               },
             ),
-            const SizedBox(height: 8),
-            Consulta<Resumen>(
-              claves: [hoy.desde],
-              cargar: () => repo.resumen(hoy),
-              builder: (context, r) {
-                r ??= Resumen.vacio;
-                return Text(
-                  'Hoy: ${r.cantidad} ${r.cantidad == 1 ? 'catalítico' : 'catalíticos'} por ${clp(r.total)}',
-                  style: const TextStyle(fontSize: 15),
-                );
-              },
+            Consulta<List<Resumen>>(
+              key: _gMes,
+              claves: [mes.desde],
+              cargar: () => _ultimosMeses(repo, 6),
+              builder: (context, meses) => _TarjetaMes(
+                meses: meses,
+                ahora: _ahora,
+                revision: revision,
+              ),
             ),
-            const SizedBox(height: 18),
-            if (!revision) ...[
+            const SizedBox(height: 10),
+            Row(
+              key: _gHoy,
+              children: [
+                Expanded(
+                  child: Consulta<Resumen>(
+                    claves: [hoy.desde],
+                    cargar: () => repo.resumen(hoy),
+                    builder: (context, r) {
+                      r ??= Resumen.vacio;
+                      return _TarjetaChica(
+                        icono: Icons.today_outlined,
+                        titulo: 'Hoy',
+                        valor: clp(r.total),
+                        detalle: '${r.cantidad} ${r.cantidad == 1 ? 'catalítico' : 'catalíticos'}',
+                        alTocar: () => BarraPrincipal.of(context)?.irA(Pestana.historial),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Consulta<List<LoteConTotal>>(
+                    cargar: scope.lotes.listar,
+                    builder: (context, lotes) {
+                      final abierto = lotes?.where((l) => !l.lote.cerrado).firstOrNull;
+                      return _TarjetaChica(
+                        icono: Icons.inventory_2_outlined,
+                        titulo: abierto == null ? 'Lotes' : 'Lote abierto',
+                        valor: abierto == null ? '${lotes?.length ?? 0}' : clp(abierto.resumen.total),
+                        detalle: abierto?.lote.nombre ?? 'Ninguno abierto',
+                        alTocar: () => BarraPrincipal.of(context)?.irA(Pestana.lotes),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (!revision)
               FilledButton.icon(
                 key: _gNueva,
                 onPressed: () => abrir(context, const CompraFormScreen()),
                 icon: const Icon(Icons.add),
                 label: const Text('Nueva compra'),
               ),
-            ],
             // Escanear, Historial, Lotes y Reportes están en la barra de abajo.
-            const SizedBox(height: 14),
-            const Text('Últimas compras', style: etiqueta),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.only(left: 2),
+              child: Text('Últimas compras', style: etiqueta.copyWith(fontWeight: FontWeight.w500)),
+            ),
             const SizedBox(height: 8),
             Consulta<List<Compra>>(
               cargar: () => repo.ultimas(5),
@@ -255,6 +294,7 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
                 );
               },
             ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -262,6 +302,163 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
   }
 }
 
+
+/// Totales de los últimos [n] meses por fecha de compra, del más viejo al actual.
+Future<List<Resumen>> _ultimosMeses(ComprasRepo repo, int n) async {
+  final ahora = DateTime.now();
+  return [
+    for (var k = n - 1; k >= 0; k--) await repo.resumen(periodoMes(DateTime(ahora.year, ahora.month - k))),
+  ];
+}
+
+/// Tarjeta azul del mes: total en grande, cantidad y promedio, barras de los
+/// últimos meses y la comparación con el mes anterior.
+class _TarjetaMes extends StatelessWidget {
+  const _TarjetaMes({required this.meses, required this.ahora, required this.revision});
+
+  final List<Resumen>? meses;
+  final DateTime ahora;
+  final bool revision;
+
+  @override
+  Widget build(BuildContext context) {
+    final lista = meses ?? const <Resumen>[];
+    final r = lista.isEmpty ? Resumen.vacio : lista.last;
+    final anterior = lista.length >= 2 ? lista[lista.length - 2] : null;
+    final maximo = lista.fold<int>(1, (m, x) => x.total > m ? x.total : m);
+    final nombreMes = DateFormat('MMMM', 'es').format(ahora);
+    final nombreAnterior = DateFormat('MMMM', 'es').format(DateTime(ahora.year, ahora.month - 1));
+    String? comparacion;
+    if (anterior != null && anterior.total > 0) {
+      final pct = ((r.total - anterior.total) / anterior.total * 100).round();
+      comparacion = pct == 0
+          ? 'Igual que $nombreAnterior'
+          : '${pct > 0 ? '+' : ''}$pct% que $nombreAnterior';
+    }
+    const tenue = Color(0xB3FFFFFF);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: CatalogColors.marino,
+        borderRadius: BorderRadius.circular(18),
+        border: CatalogColors.paleta.oscura || CatalogColors.paleta.grosorBorde > 1
+            ? Border.all(color: CatalogColors.borde, width: CatalogColors.paleta.grosorBorde)
+            : null,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  revision ? 'Recibido en $nombreMes' : 'Gastado en $nombreMes',
+                  style: const TextStyle(color: tenue, fontSize: 13),
+                ),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(clp(r.total), style: mono(size: 30, color: CatalogColors.naranja)),
+                ),
+                Text(
+                  '${r.cantidad} ${r.cantidad == 1 ? 'catalítico' : 'catalíticos'}'
+                  '${r.cantidad > 0 ? ' · promedio ${clp(r.promedio)}' : ''}',
+                  style: const TextStyle(color: tenue, fontSize: 12.5),
+                ),
+                if (comparacion != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0x335DCAA5),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(comparacion, style: const TextStyle(color: Color(0xFF9FE1CB), fontSize: 12)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          // Barras de los últimos meses; la del mes actual en naranja.
+          SizedBox(
+            height: 58,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (var i = 0; i < lista.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeOutBack,
+                      width: 8,
+                      height: 6 + 52 * (lista[i].total / maximo),
+                      decoration: BoxDecoration(
+                        color: i == lista.length - 1 ? CatalogColors.naranja : const Color(0x40FFFFFF),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tarjeta chica (hoy, lote abierto) que lleva a su pestaña.
+class _TarjetaChica extends StatelessWidget {
+  const _TarjetaChica({
+    required this.icono,
+    required this.titulo,
+    required this.valor,
+    required this.detalle,
+    required this.alTocar,
+  });
+
+  final IconData icono;
+  final String titulo;
+  final String valor;
+  final String detalle;
+  final VoidCallback alTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: alTocar,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icono, size: 16, color: CatalogColors.naranja),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(titulo, style: etiqueta, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(valor, style: mono(size: 17)),
+              ),
+              Text(detalle, style: etiqueta, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// Avisa que se están viendo datos de otro celular, sin poder modificarlos.
 class _AvisoRevision extends StatelessWidget {
@@ -338,7 +535,7 @@ class _Aviso extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               child: Row(
                 children: [
-                  Icon(icono, color: CatalogColors.marino),
+                  Icon(icono, color: CatalogColors.texto),
                   const SizedBox(width: 12),
                   Expanded(child: Text(texto, style: const TextStyle(fontSize: 14, height: 1.35))),
                   const Icon(Icons.chevron_right),
@@ -362,11 +559,11 @@ class _AvisoPrefijo extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () => abrir(context, const AjustesScreen()),
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.all(14),
             child: Row(
               children: [
-                Icon(Icons.badge_outlined, color: CatalogColors.marino),
+                Icon(Icons.badge_outlined, color: CatalogColors.texto),
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(

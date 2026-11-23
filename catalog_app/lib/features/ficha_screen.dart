@@ -228,14 +228,14 @@ class _FichaScreenState extends State<FichaScreen> {
   Widget _avisoAnulada(Compra c) => Padding(
         padding: const EdgeInsets.only(bottom: 14),
         child: Card(
-          color: const Color(0xFFFCEBEB),
+          color: CatalogColors.rojo.withValues(alpha: 0.12),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Text(
               'Compra anulada${c.anuladaEn != null ? ' el ${fechaHora(c.anuladaEn!)}' : ''}'
               '${c.motivoAnulacion.isNotEmpty ? ': ${c.motivoAnulacion}' : ''}. '
               'No cuenta en los totales.',
-              style: const TextStyle(color: CatalogColors.rojo, fontSize: 14),
+              style: TextStyle(color: CatalogColors.rojo, fontSize: 14),
             ),
           ),
         ),
@@ -257,7 +257,7 @@ class _FichaScreenState extends State<FichaScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Comprado el', style: etiqueta),
+                    Text('Comprado el', style: etiqueta),
                     Text(capitalizar(fechaLarga(c.fechaCompra)),
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                     Text('a las ${hora(c.fechaCompra)}', style: mono(size: 18)),
@@ -266,7 +266,7 @@ class _FichaScreenState extends State<FichaScreen> {
                     if (c.fechaCompraEditadaEn != null)
                       Text(
                         'Fecha de compra corregida el ${fechaHora(c.fechaCompraEditadaEn!)}',
-                        style: const TextStyle(fontSize: 13, color: Color(0xFFB35300)),
+                        style: TextStyle(fontSize: 13, color: CatalogColors.paleta.oscura ? CatalogColors.naranja : const Color(0xFFB35300)),
                       ),
                   ],
                 ),
@@ -324,7 +324,7 @@ class _FichaScreenState extends State<FichaScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.file(archivo, height: 220, fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => const SizedBox(
+            errorBuilder: (_, _, _) => SizedBox(
                 height: 60, child: Center(child: Text('No se encontró la foto', style: etiqueta)))),
       ),
     );
@@ -341,7 +341,7 @@ class _FichaScreenState extends State<FichaScreen> {
           children: [
             Row(
               children: [
-                const Expanded(child: Text('Sticker', style: etiqueta)),
+                Expanded(child: Text('Sticker', style: etiqueta)),
                 if (c.impresiones > 0) Text('Impreso $veces', style: etiqueta),
               ],
             ),

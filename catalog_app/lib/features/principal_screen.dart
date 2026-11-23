@@ -86,7 +86,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
         claveBarra: _claveBarra,
         irA: _irA,
         child: Scaffold(
-          backgroundColor: CatalogColors.niebla,
+          backgroundColor: CatalogColors.fondo,
           body: IndexedStack(index: _actual.index, children: _pantallas),
           floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
           floatingActionButton: BotonEscanear(
@@ -117,7 +117,7 @@ class _Barra extends StatelessWidget {
           alTocar: () => alElegir(p),
         );
     return Material(
-      color: CatalogColors.marino,
+      color: CatalogColors.barra,
       elevation: 10,
       child: SafeArea(
         top: false,
@@ -248,7 +248,7 @@ class _BotonEscanearState extends State<BotonEscanear> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: CatalogColors.naranja,
-              border: Border.all(color: CatalogColors.niebla, width: 6),
+              border: Border.all(color: CatalogColors.fondo, width: 6),
               boxShadow: [
                 BoxShadow(color: CatalogColors.naranja.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 4)),
               ],
