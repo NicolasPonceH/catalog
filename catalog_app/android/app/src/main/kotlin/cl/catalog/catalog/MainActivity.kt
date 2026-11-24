@@ -67,14 +67,20 @@ class MainActivity : FlutterFragmentActivity() {
                         "pedirPermisoNotificaciones" -> pedirPermisoNotificaciones(result)
                         "mostrarNotificacion" -> {
                             val esRespaldo = call.argument<Boolean>("esRespaldo") ?: false
+                            val enCurso = call.argument<Boolean>("enCurso") ?: false
+                            val canalId = if (enCurso) {
+                                RecordatorioReceiver.CANAL_PROGRESO
+                            } else {
+                                RecordatorioReceiver.CANAL_RECORDATORIOS
+                            }
                             RecordatorioReceiver.publicarNotificacion(
                                 context = this,
                                 id = call.argument<Int>("id")
                                     ?: if (esRespaldo) RecordatorioReceiver.ID_RESPALDO else RecordatorioReceiver.ID_RECORDATORIO,
-                                canalId = if (esRespaldo) RecordatorioReceiver.CANAL_RESPALDO else RecordatorioReceiver.CANAL_RECORDATORIOS,
+                                canalId = canalId,
                                 titulo = call.argument<String>("titulo") ?: "CataLog",
                                 cuerpo = call.argument<String>("cuerpo") ?: "",
-                                enCurso = call.argument<Boolean>("enCurso") ?: false,
+                                enCurso = enCurso,
                             )
                             result.success(true)
                         }

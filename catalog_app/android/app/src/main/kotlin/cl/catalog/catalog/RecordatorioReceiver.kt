@@ -1,6 +1,7 @@
 package cl.catalog.catalog
 
 import android.app.AlarmManager
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -41,29 +42,45 @@ class RecordatorioReceiver : BroadcastReceiver() {
     companion object {
         const val PREFS = "catalog_recordatorio"
         const val ACTION_RECORDATORIO = "cl.catalog.RECORDATORIO_DIARIO"
-        const val CANAL_RESPALDO = "catalog_respaldo"
-        const val CANAL_RECORDATORIOS = "catalog_recordatorios"
+        const val CANAL_PROGRESO = "catalog_progreso_v2"
+        const val CANAL_RECORDATORIOS = "catalog_recordatorios_v2"
         const val ID_RESPALDO = 1001
         const val ID_RECORDATORIO = 1002
 
         fun asegurarCanales(context: Context) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val respaldo = NotificationChannel(
-                CANAL_RESPALDO,
-                "Respaldos de CataLog",
+
+            // Limpiar canales antiguos creados previamente con baja importancia
+            try {
+                nm.deleteNotificationChannel("catalog_respaldo")
+                nm.deleteNotificationChannel("catalog_recordatorios")
+            } catch (_: Exception) {}
+
+            val progreso = NotificationChannel(
+                CANAL_PROGRESO,
+                "Operaciones en curso de CataLog",
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "Avisa cuando CataLog guarda un respaldo en el teléfono"
+                description = "Progreso al empaquetar respaldos sin interrumpir"
+                setShowBadge(false)
             }
+
+            // IMPORTANCE_HIGH permite que la notificación aparezca como pop-up flotante (heads-up banner)
             val recordatorios = NotificationChannel(
                 CANAL_RECORDATORIOS,
-                "Recordatorios de CataLog",
-                NotificationManager.IMPORTANCE_DEFAULT,
+                "Alertas y recordatorios de CataLog",
+                NotificationManager.IMPORTANCE_HIGH,
             ).apply {
-                description = "Stickers sin imprimir, lotes abiertos, resumen del día y respaldo externo"
+                description = "Notificaciones emergentes: stickers pendientes, respaldo guardado y recordatorios"
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 250, 200, 250)
+                enableLights(true)
+                setShowBadge(true)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
-            nm.createNotificationChannel(respaldo)
+
+            nm.createNotificationChannel(progreso)
             nm.createNotificationChannel(recordatorios)
         }
 
@@ -90,24 +107,30 @@ class RecordatorioReceiver : BroadcastReceiver() {
             )
 
             val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                android.app.Notification.Builder(context, canalId)
+                Notification.Builder(context, canalId)
             } else {
                 @Suppress("DEPRECATION")
-                android.app.Notification.Builder(context)
+                Notification.Builder(context)
             }
 
             builder
                 .setSmallIcon(R.mipmap.launcher_icon)
                 .setContentTitle(titulo)
                 .setContentText(cuerpo)
-                .setStyle(android.app.Notification.BigTextStyle().bigText(cuerpo))
+                .setStyle(Notification.BigTextStyle().bigText(cuerpo))
                 .setContentIntent(pi)
                 .setAutoCancel(!enCurso)
                 .setOngoing(enCurso)
 
             if (enCurso) {
                 builder.setProgress(0, 0, true)
+                builder.setPriority(Notification.PRIORITY_LOW)
+            } else {
+                // PRIORITY_HIGH y DEFAULT_ALL aseguran la aparición de banner flotante tipo Heads-up en pantalla
+                builder.setPriority(Notification.PRIORITY_HIGH)
+                builder.setDefaults(Notification.DEFAULT_ALL)
             }
+
             nm.notify(id, builder.build())
         }
 
