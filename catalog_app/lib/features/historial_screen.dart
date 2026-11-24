@@ -11,6 +11,9 @@ import '../widgets/compra_tile.dart';
 import '../widgets/consulta.dart';
 import '../widgets/guia.dart';
 
+/// Al subir su valor, Historial activa automáticamente el filtro "Sin imprimir".
+final pedirFiltroSinImprimir = ValueNotifier<int>(0);
+
 /// Todas las compras, agrupadas por día de compra, con búsqueda y filtros.
 class HistorialScreen extends StatefulWidget {
   const HistorialScreen({super.key});
@@ -32,7 +35,22 @@ class _HistorialScreenState extends State<HistorialScreen> {
   final _gPrimera = GlobalKey();
 
   @override
+  void initState() {
+    super.initState();
+    pedirFiltroSinImprimir.addListener(_activarSinImprimir);
+  }
+
+  void _activarSinImprimir() {
+    if (!mounted) return;
+    setState(() {
+      _sinImprimir = true;
+      _periodo = TipoPeriodo.todo;
+    });
+  }
+
+  @override
   void dispose() {
+    pedirFiltroSinImprimir.removeListener(_activarSinImprimir);
     _buscar.dispose();
     super.dispose();
   }

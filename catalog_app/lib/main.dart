@@ -28,15 +28,9 @@ Future<void> main() async {
   await initializeDateFormatting('en');
   final sesiones = await Sesiones.abrir();
   final dispositivo = await AjustesDispositivo.abrir(sesiones.documentos);
-  var sesion = await sesiones.buscar(dispositivo.leer(AjustesDispositivo.sesionActiva)) ?? sesiones.principal;
-  CatalogDb base;
-  try {
-    base = await CatalogDb.abrir(ruta: sesion.rutaBase);
-  } catch (_) {
-    sesion = sesiones.principal;
-    base = await CatalogDb.abrir(ruta: sesion.rutaBase);
-  }
-  if (!sesion.esRevision) await dispositivo.migrarDesde(ComprasRepo(base));
+  final sesion = sesiones.principal;
+  final base = await CatalogDb.abrir(ruta: sesion.rutaBase);
+  await dispositivo.migrarDesde(ComprasRepo(base));
   runApp(CatalogRoot(sesiones: sesiones, dispositivo: dispositivo, sesion: sesion, base: base));
 }
 
@@ -145,7 +139,12 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      final primeraVezEnFondo = _enSegundoPlanDesde == null;
       _enSegundoPlanDesde ??= DateTime.now();
+      if (primeraVezEnFondo && !_sesion.esRevision && !_bienvenida) {
+        unawaited(Notificaciones.avisarAlSalirDeApp(base: _base, dispositivo: widget.dispositivo));
+        unawaited(_sincronizarRecordatorio());
+      }
     } else if (state == AppLifecycleState.resumed) {
       final desde = _enSegundoPlanDesde;
       _enSegundoPlanDesde = null;

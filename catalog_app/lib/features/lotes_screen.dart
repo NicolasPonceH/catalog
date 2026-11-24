@@ -210,6 +210,12 @@ class _LotesScreenState extends State<LotesScreen> {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Card(
                     key: i == 0 ? _gLista : null,
+                    shape: abierto
+                        ? RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: CatalogColors.naranja, width: 1.8),
+                          )
+                        : null,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
                       onTap: () => abrir(context, LoteScreen(loteId: l.lote.id)),
@@ -272,6 +278,22 @@ class _LotesScreenState extends State<LotesScreen> {
                                           ),
                                         ),
                                       ),
+                                      if (abierto)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: CatalogColors.naranja.withValues(alpha: 0.16),
+                                            borderRadius: BorderRadius.circular(99),
+                                          ),
+                                          child: Text(
+                                            tr('⚠ Falta cerrar', '⚠ Needs closing'),
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: CatalogColors.naranja,
+                                            ),
+                                          ),
+                                        ),
                                       if (ganancia != null)
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),

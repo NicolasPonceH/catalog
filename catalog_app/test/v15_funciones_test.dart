@@ -293,7 +293,11 @@ void main() {
     ));
     await avanzar();
 
-    await tester.drag(find.byType(ListView).first, const Offset(0, -1800));
+    await tester.scrollUntilVisible(
+      find.text('Ubicar respaldo'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await avanzar();
     expect(find.text('Ubicar respaldo'), findsOneWidget);
     await tester.tap(find.text('Ubicar respaldo'));

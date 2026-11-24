@@ -16,6 +16,8 @@ import '../widgets/guia.dart';
 import 'ajustes_screen.dart';
 import 'bienvenida.dart';
 import 'compra_form_screen.dart';
+import 'historial_screen.dart';
+import 'lote_screen.dart';
 import 'principal_screen.dart';
 import 'traspaso.dart';
 
@@ -215,6 +217,47 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
                         alTocar: () => crearRespaldoYEnviar(context),
                       ),
               ),
+              Consulta<int>(
+                claves: [_ahora],
+                cargar: repo.contarSinImprimir,
+                builder: (context, sinSticker) {
+                  if (sinSticker == null || sinSticker <= 0) return const SizedBox.shrink();
+                  return _AvisoBordeado(
+                    icono: Icons.print_disabled_outlined,
+                    titulo: sinSticker == 1
+                        ? tr('1 catalítico sin sticker impreso', '1 converter without printed sticker')
+                        : tr('$sinSticker catalíticos sin sticker impreso', '$sinSticker converters without printed sticker'),
+                    subtitulo: tr(
+                      'Toca aquí para verlos e imprimir sus stickers pendientes.',
+                      'Tap here to view them and print their pending stickers.',
+                    ),
+                    alTocar: () {
+                      pedirFiltroSinImprimir.value++;
+                      BarraPrincipal.of(context)?.irA(Pestana.historial);
+                    },
+                  );
+                },
+              ),
+              Consulta<List<LoteConTotal>>(
+                claves: [_ahora],
+                cargar: scope.lotes.listar,
+                builder: (context, lotes) {
+                  final abiertos = lotes?.where((l) => !l.lote.cerrado).toList() ?? const [];
+                  if (abiertos.isEmpty) return const SizedBox.shrink();
+                  final primero = abiertos.first;
+                  return _AvisoBordeado(
+                    icono: Icons.inventory_2,
+                    titulo: abiertos.length == 1
+                        ? tr('Lote abierto: "${primero.lote.nombre}"', 'Open batch: "${primero.lote.nombre}"')
+                        : tr('${abiertos.length} lotes abiertos sin cerrar', '${abiertos.length} open batches not closed'),
+                    subtitulo: tr(
+                      '${contarCataliticos(primero.resumen.cantidad)} · ${clp(primero.resumen.total)} · Toca para seguir escaneando o cerrarlo.',
+                      '${contarCataliticos(primero.resumen.cantidad)} · ${clp(primero.resumen.total)} · Tap to keep scanning or close it.',
+                    ),
+                    alTocar: () => abrir(context, LoteScreen(loteId: primero.lote.id)),
+                  );
+                },
+              ),
             ],
             // Saludo por la hora y el nombre.
             Consulta<String?>(
@@ -268,11 +311,16 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
                     builder: (context, lotes) {
                       final abierto = lotes?.where((l) => !l.lote.cerrado).firstOrNull;
                       return _TarjetaChica(
-                        icono: Icons.inventory_2_outlined,
-                        titulo: abierto == null ? tr('Lotes', 'Batches') : tr('Lote abierto', 'Open batch'),
+                        icono: abierto == null ? Icons.inventory_2_outlined : Icons.inventory_2,
+                        titulo: abierto == null ? tr('Lotes', 'Batches') : tr('⚠ Lote abierto', '⚠ Open batch'),
                         valor: abierto == null ? '${lotes?.length ?? 0}' : clp(abierto.resumen.total),
-                        detalle: abierto?.lote.nombre ?? tr('Ninguno abierto', 'None open'),
-                        alTocar: () => BarraPrincipal.of(context)?.irA(Pestana.lotes),
+                        detalle: abierto == null
+                            ? tr('Ninguno abierto', 'None open')
+                            : '${abierto.lote.nombre} · ${tr('sin cerrar', 'open')}',
+                        destacada: abierto != null,
+                        alTocar: () => abierto != null
+                            ? abrir(context, LoteScreen(loteId: abierto.lote.id))
+                            : BarraPrincipal.of(context)?.irA(Pestana.lotes),
                       );
                     },
                   ),
@@ -450,6 +498,7 @@ class _TarjetaChica extends StatelessWidget {
     required this.valor,
     required this.detalle,
     required this.alTocar,
+    this.destacada = false,
   });
 
   final IconData icono;
@@ -457,10 +506,17 @@ class _TarjetaChica extends StatelessWidget {
   final String valor;
   final String detalle;
   final VoidCallback alTocar;
+  final bool destacada;
 
   @override
   Widget build(BuildContext context) {
     return Card(
+      shape: destacada
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: CatalogColors.naranja, width: 1.8),
+            )
+          : null,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: alTocar,
@@ -473,7 +529,16 @@ class _TarjetaChica extends StatelessWidget {
                 children: [
                   Icon(icono, size: 16, color: CatalogColors.naranja),
                   const SizedBox(width: 6),
-                  Expanded(child: Text(titulo, style: etiqueta, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  Expanded(
+                    child: Text(
+                      titulo,
+                      style: destacada
+                          ? etiqueta.copyWith(color: CatalogColors.naranja, fontWeight: FontWeight.w700)
+                          : etiqueta,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -484,6 +549,74 @@ class _TarjetaChica extends StatelessWidget {
               ),
               Text(detalle, style: etiqueta, maxLines: 1, overflow: TextOverflow.ellipsis),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tarjeta con borde naranja marcado para avisar stickers sin imprimir o lotes abiertos.
+class _AvisoBordeado extends StatelessWidget {
+  const _AvisoBordeado({
+    required this.icono,
+    required this.titulo,
+    required this.subtitulo,
+    required this.alTocar,
+  });
+
+  final IconData icono;
+  final String titulo;
+  final String subtitulo;
+  final VoidCallback alTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Card(
+        color: CatalogColors.naranja.withValues(alpha: 0.10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(13),
+          side: const BorderSide(color: CatalogColors.naranja, width: 1.8),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(13),
+          onTap: alTocar,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 11, 10, 11),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: CatalogColors.naranja,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icono, color: CatalogColors.marino, size: 20),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        titulo,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitulo,
+                        style: etiqueta.copyWith(fontSize: 12.5, height: 1.3),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right, color: CatalogColors.naranja),
+              ],
+            ),
           ),
         ),
       ),

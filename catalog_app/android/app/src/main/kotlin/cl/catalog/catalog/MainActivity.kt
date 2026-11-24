@@ -8,16 +8,25 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import android.provider.Settings
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.net.Inet4Address
+import kotlin.math.max
 
 /**
  * FlutterFragmentActivity: lo necesita el bloqueo con huella (local_auth).
@@ -55,6 +64,7 @@ class MainActivity : FlutterFragmentActivity() {
                                 call.argument<String>("carpeta") ?: "Respaldo CataLog",
                                 call.argument<String>("prefijoBorrar"),
                                 call.argument<Int>("conservar") ?: 3,
+                                call.argument<Int>("expirarDias"),
                             )
                         )
                         "listarRespaldos" -> result.success(
@@ -64,6 +74,15 @@ class MainActivity : FlutterFragmentActivity() {
                         "abrirCarpetaRespaldos" -> result.success(
                             abrirCarpetaRespaldos(call.argument<String>("carpeta") ?: "Respaldo CataLog")
                         )
+                        "optimizarFotos" -> result.success(
+                            optimizarFotos(
+                                call.argument<String>("carpeta")!!,
+                                call.argument<Int>("maxLado") ?: 1024,
+                                call.argument<Int>("calidad") ?: 62,
+                            )
+                        )
+                        "abrirAjustesNotificaciones" -> result.success(abrirAjustesNotificaciones())
+                        "obtenerIpLocal" -> result.success(obtenerIpLocal())
                         "pedirPermisoNotificaciones" -> pedirPermisoNotificaciones(result)
                         "mostrarNotificacion" -> {
                             val esRespaldo = call.argument<Boolean>("esRespaldo") ?: false
@@ -80,6 +99,7 @@ class MainActivity : FlutterFragmentActivity() {
                                 canalId = canalId,
                                 titulo = call.argument<String>("titulo") ?: "CataLog",
                                 cuerpo = call.argument<String>("cuerpo") ?: "",
+                                subtitulo = call.argument<String>("subtitulo") ?: "",
                                 enCurso = enCurso,
                             )
                             result.success(true)
@@ -88,20 +108,34 @@ class MainActivity : FlutterFragmentActivity() {
                             val activo = call.argument<Boolean>("activo") ?: false
                             val hora = call.argument<Int>("hora") ?: 20
                             val minuto = call.argument<Int>("minuto") ?: 0
+                            val intervaloMin = call.argument<Int>("intervaloMinutos") ?: 0
                             val titulo = call.argument<String>("titulo") ?: "CataLog"
                             val cuerpo = call.argument<String>("cuerpo") ?: ""
+                            val tituloPeriodico = call.argument<String>("tituloPeriodico") ?: titulo
+                            val cuerpoPeriodico = call.argument<String>("cuerpoPeriodico") ?: ""
+                            val tieneDiario = activo && cuerpo.isNotBlank()
+                            val tienePeriodico = activo && intervaloMin > 0 && cuerpoPeriodico.isNotBlank()
                             getSharedPreferences(RecordatorioReceiver.PREFS, Context.MODE_PRIVATE)
                                 .edit()
-                                .putBoolean("activo", activo && cuerpo.isNotBlank())
+                                .putBoolean("activo", tieneDiario)
                                 .putInt("hora", hora)
                                 .putInt("minuto", minuto)
                                 .putString("titulo", titulo)
                                 .putString("cuerpo", cuerpo)
+                                .putBoolean("periodico_activo", tienePeriodico)
+                                .putInt("intervalo_min", intervaloMin)
+                                .putString("titulo_periodico", tituloPeriodico)
+                                .putString("cuerpo_periodico", cuerpoPeriodico)
                                 .apply()
-                            if (activo && cuerpo.isNotBlank()) {
+                            if (tieneDiario) {
                                 RecordatorioReceiver.programarAlarma(this, hora, minuto)
                             } else {
                                 RecordatorioReceiver.cancelarAlarma(this)
+                            }
+                            if (tienePeriodico) {
+                                RecordatorioReceiver.programarPeriodica(this, intervaloMin)
+                            } else {
+                                RecordatorioReceiver.cancelarPeriodica(this)
                             }
                             result.success(true)
                         }
@@ -266,15 +300,28 @@ class MainActivity : FlutterFragmentActivity() {
         }
     }
 
-    private fun guardarEnDescargas(nombre: String, bytes: ByteArray, carpeta: String, prefijoBorrar: String?, conservar: Int): String {
+    private fun guardarEnDescargas(
+        nombre: String,
+        bytes: ByteArray,
+        carpeta: String,
+        prefijoBorrar: String?,
+        conservar: Int,
+        expirarDias: Int?,
+    ): String {
+        val limiteSeg = if (expirarDias != null && expirarDias > 0) {
+            (System.currentTimeMillis() / 1000L) - (expirarDias.toLong() * 86400L)
+        } else {
+            null
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val resolver = contentResolver
             val coleccion = MediaStore.Downloads.EXTERNAL_CONTENT_URI
             val relativa = rutaRelativa(carpeta)
             val columnaNombre = MediaStore.MediaColumns.DISPLAY_NAME
             val columnaRuta = MediaStore.MediaColumns.RELATIVE_PATH
+            val columnaFecha = MediaStore.MediaColumns.DATE_MODIFIED
 
-            // Si ya existe uno con el mismo nombre (de esta app), se reemplaza.
+            // Si ya existe uno con el mismo nombre (de esta app), se sobrescribe limpio.
             resolver.delete(coleccion, "$columnaNombre = ? AND $columnaRuta LIKE ?", arrayOf(nombre, "$relativa%"))
 
             val valores = ContentValues().apply {
@@ -290,18 +337,28 @@ class MainActivity : FlutterFragmentActivity() {
             resolver.update(uri, valores, null, null)
 
             if (prefijoBorrar != null) {
-                val viejos = mutableListOf<Long>()
+                val encontrados = mutableListOf<Triple<Long, String, Long>>()
                 resolver.query(
                     coleccion,
-                    arrayOf(MediaStore.MediaColumns._ID),
+                    arrayOf(MediaStore.MediaColumns._ID, columnaNombre, columnaFecha),
                     "$columnaNombre LIKE ? AND $columnaRuta LIKE ?",
                     arrayOf("$prefijoBorrar%", "$relativa%"),
-                    "$columnaNombre DESC",
-                )?.use { c -> while (c.moveToNext()) viejos.add(c.getLong(0)) }
-                for (id in viejos.drop(conservar)) {
-                    try {
-                        resolver.delete(ContentUris.withAppendedId(coleccion, id), null, null)
-                    } catch (_: Exception) {
+                    "$columnaFecha DESC",
+                )?.use { c ->
+                    while (c.moveToNext()) {
+                        encontrados.add(Triple(c.getLong(0), c.getString(1), c.getLong(2)))
+                    }
+                }
+                for ((idx, item) in encontrados.withIndex()) {
+                    val (id, nom, fechaMod) = item
+                    if (nom == nombre && idx == 0) continue
+                    val sobraPorCantidad = idx >= conservar
+                    val expirado = limiteSeg != null && fechaMod < limiteSeg
+                    if (sobraPorCantidad || expirado) {
+                        try {
+                            resolver.delete(ContentUris.withAppendedId(coleccion, id), null, null)
+                        } catch (_: Exception) {
+                        }
                     }
                 }
             }
@@ -311,13 +368,143 @@ class MainActivity : FlutterFragmentActivity() {
             dir.mkdirs()
             File(dir, nombre).writeBytes(bytes)
             if (prefijoBorrar != null) {
-                dir.listFiles { f -> f.name.startsWith(prefijoBorrar) }
-                    ?.sortedByDescending { it.name }
-                    ?.drop(conservar)
-                    ?.forEach { it.delete() }
+                val archivos = dir.listFiles { f -> f.name.startsWith(prefijoBorrar) && f.name.endsWith(".zip") }
+                    ?.sortedByDescending { it.lastModified() }
+                    ?: emptyList()
+                for ((idx, f) in archivos.withIndex()) {
+                    if (f.name == nombre && idx == 0) continue
+                    val sobraPorCantidad = idx >= conservar
+                    val expirado = limiteSeg != null && (f.lastModified() / 1000L) < limiteSeg
+                    if (sobraPorCantidad || expirado) {
+                        f.delete()
+                    }
+                }
             }
         }
         return "Descargas/$carpeta/$nombre"
+    }
+
+    /** Recomprime fotos JPEG antiguas que pesen más del objetivo para ahorrar espacio. */
+    private fun optimizarFotos(rutaCarpeta: String, maxLado: Int, calidad: Int): Map<String, Long> {
+        val dir = File(rutaCarpeta)
+        if (!dir.exists() || !dir.isDirectory) return mapOf("optimizadas" to 0L, "ahorrados" to 0L)
+        var optimizadas = 0L
+        var ahorrados = 0L
+        val umbralBytes = if (calidad <= 65) 95_000L else if (calidad <= 75) 210_000L else 380_000L
+
+        for (archivo in dir.listFiles().orEmpty()) {
+            if (!archivo.isFile) continue
+            val nombre = archivo.name.lowercase()
+            if (!nombre.endsWith(".jpg") && !nombre.endsWith(".jpeg")) continue
+            val pesoOriginal = archivo.length()
+            if (pesoOriginal <= umbralBytes) continue
+            try {
+                val orientacion = try {
+                    ExifInterface(archivo.absolutePath).getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.ORIENTATION_NORMAL,
+                    )
+                } catch (_: Exception) {
+                    ExifInterface.ORIENTATION_NORMAL
+                }
+
+                val optsBounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeFile(archivo.absolutePath, optsBounds)
+                val anchoOrig = optsBounds.outWidth
+                val altoOrig = optsBounds.outHeight
+                if (anchoOrig <= 0 || altoOrig <= 0) continue
+
+                var sample = 1
+                while (max(anchoOrig / sample, altoOrig / sample) > maxLado * 2) {
+                    sample *= 2
+                }
+                val decoded = BitmapFactory.decodeFile(
+                    archivo.absolutePath,
+                    BitmapFactory.Options().apply { inSampleSize = sample },
+                ) ?: continue
+
+                val m = Matrix()
+                when (orientacion) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> m.postRotate(90f)
+                    ExifInterface.ORIENTATION_ROTATE_180 -> m.postRotate(180f)
+                    ExifInterface.ORIENTATION_ROTATE_270 -> m.postRotate(270f)
+                }
+                val mayor = max(decoded.width, decoded.height)
+                if (mayor > maxLado) {
+                    val escala = maxLado.toFloat() / mayor.toFloat()
+                    m.postScale(escala, escala)
+                }
+                val finalBmp = if (!m.isIdentity) {
+                    val nuevo = Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, m, true)
+                    if (nuevo !== decoded) decoded.recycle()
+                    nuevo
+                } else {
+                    decoded
+                }
+
+                val out = ByteArrayOutputStream()
+                finalBmp.compress(Bitmap.CompressFormat.JPEG, calidad.coerceIn(40, 92), out)
+                finalBmp.recycle()
+                val nuevosBytes = out.toByteArray()
+                if (nuevosBytes.isNotEmpty() && nuevosBytes.size + 4096 < pesoOriginal) {
+                    archivo.writeBytes(nuevosBytes)
+                    optimizadas++
+                    ahorrados += (pesoOriginal - nuevosBytes.size)
+                }
+            } catch (_: Exception) {
+            }
+        }
+        return mapOf("optimizadas" to optimizadas, "ahorrados" to ahorrados)
+    }
+
+    /** Abre directamente los ajustes del canal de notificaciones emergentes en Android. */
+    private fun abrirAjustesNotificaciones(): Boolean {
+        RecordatorioReceiver.asegurarCanales(this)
+        val intents = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                add(
+                    Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                        putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                        putExtra(Settings.EXTRA_CHANNEL_ID, RecordatorioReceiver.CANAL_RECORDATORIOS)
+                    }
+                )
+                add(
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                        putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                    }
+                )
+            }
+            add(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+            )
+        }
+        for (i in intents) {
+            try {
+                startActivity(i)
+                return true
+            } catch (_: Exception) {
+            }
+        }
+        return false
+    }
+
+    /** Devuelve la IPv4 local (Wi-Fi o zona portátil) del teléfono, si existe. */
+    private fun obtenerIpLocal(): String? {
+        try {
+            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val red = cm.activeNetwork
+            val props = if (red != null) cm.getLinkProperties(red) else null
+            props?.linkAddresses?.forEach { la ->
+                val addr = la.address
+                if (addr is Inet4Address && !addr.isLoopbackAddress && addr.isSiteLocalAddress) {
+                    return addr.hostAddress
+                }
+            }
+        } catch (_: Exception) {
+        }
+        return null
     }
 
     /** Respaldos (.zip) de la carpeta, el más nuevo primero. */

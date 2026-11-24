@@ -39,6 +39,7 @@ class Sistema {
 
   /// Guarda un archivo en Descargas/[carpeta]. Si se indica [prefijoBorrar],
   /// deja solo los [conservar] más nuevos con ese comienzo de nombre.
+  /// Si se indica [expirarDias], borra los respaldos con más de esos días.
   /// Devuelve dónde quedó.
   static Future<String?> guardarEnDescargas(
     String nombre,
@@ -46,6 +47,7 @@ class Sistema {
     String carpeta = carpetaRespaldos,
     String? prefijoBorrar,
     int conservar = 3,
+    int? expirarDias,
   }) =>
       _canal.invokeMethod<String>('guardarEnDescargas', {
         'nombre': nombre,
@@ -53,7 +55,37 @@ class Sistema {
         'carpeta': carpeta,
         'prefijoBorrar': prefijoBorrar,
         'conservar': conservar,
+        'expirarDias': ?expirarDias,
       });
+
+  /// Recomprime fotos JPEG en [rutaCarpeta] que superen el peso objetivo.
+  static Future<(int optimizadas, int bytesAhorrados)> optimizarFotos(
+    String rutaCarpeta, {
+    int maxLado = 1024,
+    int calidad = 62,
+  }) async {
+    try {
+      final r = await _canal.invokeMapMethod<String, dynamic>('optimizarFotos', {
+        'carpeta': rutaCarpeta,
+        'maxLado': maxLado,
+        'calidad': calidad,
+      });
+      if (r == null) return (0, 0);
+      return ((r['optimizadas'] as num?)?.toInt() ?? 0, (r['ahorrados'] as num?)?.toInt() ?? 0);
+    } catch (_) {
+      return (0, 0);
+    }
+  }
+
+  /// Abre la pantalla de ajustes del canal de notificaciones en Android para
+  /// activar pop-ups / notificaciones flotantes en equipos Xiaomi, Samsung, etc.
+  static Future<bool> abrirAjustesCanalNotificaciones() async {
+    try {
+      return (await _canal.invokeMethod<bool>('abrirAjustesNotificaciones')) ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
 
   /// Respaldos que la app guardó en la carpeta, el más nuevo primero.
   /// (Después de reinstalar la app, Android no deja verlos: se buscan con el selector de archivos.)
@@ -83,10 +115,20 @@ class Sistema {
     }
   }
 
+  /// Devuelve la dirección IPv4 local (Wi-Fi o zona portátil) del celular.
+  static Future<String?> obtenerIpLocal() async {
+    try {
+      return await _canal.invokeMethod<String>('obtenerIpLocal');
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Muestra una notificación local inmediata en el teléfono.
   static Future<void> mostrarNotificacion({
     required String titulo,
     required String cuerpo,
+    String subtitulo = '',
     bool esRespaldo = false,
     bool enCurso = false,
     int? id,
@@ -95,6 +137,7 @@ class Sistema {
       await _canal.invokeMethod<void>('mostrarNotificacion', {
         'titulo': titulo,
         'cuerpo': cuerpo,
+        'subtitulo': subtitulo,
         'esRespaldo': esRespaldo,
         'enCurso': enCurso,
         'id': ?id,
@@ -102,13 +145,16 @@ class Sistema {
     } catch (_) {}
   }
 
-  /// Programa o cancela el recordatorio diario a la hora elegida.
+  /// Programa o cancela el recordatorio diario y los recordatorios periódicos del día.
   static Future<void> programarRecordatorio({
     required bool activo,
     required int hora,
     required int minuto,
     required String titulo,
     required String cuerpo,
+    int intervaloMinutos = 0,
+    String tituloPeriodico = '',
+    String cuerpoPeriodico = '',
   }) async {
     try {
       await _canal.invokeMethod<void>('programarRecordatorio', {
@@ -117,6 +163,9 @@ class Sistema {
         'minuto': minuto,
         'titulo': titulo,
         'cuerpo': cuerpo,
+        'intervaloMinutos': intervaloMinutos,
+        'tituloPeriodico': tituloPeriodico,
+        'cuerpoPeriodico': cuerpoPeriodico,
       });
     } catch (_) {}
   }

@@ -41,13 +41,22 @@ class MarcaTipo extends StatelessWidget {
 }
 
 /// Una compra en una lista: código, precio, fecha de compra, vendedor y autos.
+/// Si es una compra activa sin impresiones de sticker, destaca con borde naranja
+/// y un aviso visible indicando que falta sacar su sticker.
 class CompraTile extends StatelessWidget {
-  const CompraTile({super.key, required this.compra});
+  const CompraTile({
+    super.key,
+    required this.compra,
+    this.mostrarAlertaSinSticker = true,
+  });
 
   final Compra compra;
+  final bool mostrarAlertaSinSticker;
 
   @override
   Widget build(BuildContext context) {
+    final soloLectura = AppScope.of(context).soloLectura;
+    final sinSticker = mostrarAlertaSinSticker && !soloLectura && !compra.anulada && compra.impresiones == 0;
     final color = compra.anulada ? CatalogColors.acero : CatalogColors.texto;
     final detalle = [
       fechaHora(compra.fechaCompra),
@@ -55,14 +64,24 @@ class CompraTile extends StatelessWidget {
       if (compra.autos.isNotEmpty) compra.autos,
     ].join(' · ');
     return Card(
+      shape: sinSticker
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: CatalogColors.naranja, width: 1.8),
+            )
+          : null,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => abrir(context, FichaScreen(id: compra.id)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              MarcaTipo(material: compra.material, anulada: compra.anulada),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: MarcaTipo(material: compra.material, anulada: compra.anulada),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -70,7 +89,14 @@ class CompraTile extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: Text(compra.codigo, style: mono(size: 13, color: color))),
+                        Expanded(
+                          child: Text(
+                            compra.codigo,
+                            style: mono(size: 13, color: color),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         if (compra.anulada)
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
@@ -87,6 +113,34 @@ class CompraTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(detalle, style: etiqueta, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    if (sinSticker) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: CatalogColors.naranja.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: CatalogColors.naranja.withValues(alpha: 0.45)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.print_disabled_outlined, size: 14, color: CatalogColors.naranja),
+                            const SizedBox(width: 5),
+                            Flexible(
+                              child: Text(
+                                tr('No se le ha sacado el sticker', 'Sticker not printed yet'),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: CatalogColors.naranja,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

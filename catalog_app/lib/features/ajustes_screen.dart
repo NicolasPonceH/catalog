@@ -17,6 +17,7 @@ import '../widgets/consulta.dart';
 import '../widgets/guia.dart';
 import 'inicio_screen.dart';
 import 'presentacion_screen.dart';
+import 'revision_supervisor_screen.dart';
 import 'traspaso.dart';
 
 class AjustesScreen extends StatefulWidget {
@@ -34,6 +35,8 @@ class _AjustesScreenState extends State<AjustesScreen> {
 
   ImpresoraGuardada? _impresora;
   bool _buscando = false;
+  bool _optimizandoFotos = false;
+  int _revFotos = 0;
   String _ancho = '58';
   bool _bloqueo = false;
 
@@ -444,11 +447,12 @@ class _AjustesScreenState extends State<AjustesScreen> {
         ? null
         : await Notificaciones.armarResumenRecordatorio(base: scope.base, dispositivo: d);
     await Sistema.mostrarNotificacion(
-      titulo: resumen?.$1 ?? tr('Notificaciones activas · CataLog', 'Notifications active · CataLog'),
+      subtitulo: tr('Alerta emergente · CataLog', 'Pop-up alert · CataLog'),
+      titulo: resumen?.$1 ?? tr('🔔 Notificaciones activas · CataLog', '🔔 Notifications active · CataLog'),
       cuerpo: resumen?.$2 ??
           tr(
-            'Todo al día: CataLog te avisará al guardar respaldos y en el cierre de jornada.',
-            'All caught up: CataLog will notify you when saving backups and at the end of the day.',
+            'Todo al día: CataLog te avisará con pop-up al salir con pendientes, en el día y al guardar respaldos.',
+            'All caught up: CataLog will alert you on exit with pending items, throughout the day, and on backups.',
           ),
     );
     if (!mounted) return;
@@ -461,6 +465,41 @@ class _AjustesScreenState extends State<AjustesScreen> {
               'Enable notification permission for CataLog in Android Settings',
             ),
     );
+  }
+
+  Future<void> _optimizarFotosGuardadas() async {
+    if (_optimizandoFotos) return;
+    setState(() => _optimizandoFotos = true);
+    try {
+      final scope = AppScope.of(context);
+      final d = scope.dispositivo;
+      final (opt, ahorrados) = await scope.fotos.optimizarGuardadas(
+        maxLado: (d?.ladoMaxFoto ?? 1024).round(),
+        calidad: d?.calidadJpegFoto ?? 62,
+      );
+      if (!mounted) return;
+      setState(() => _revFotos++);
+      if (opt == 0) {
+        avisar(
+          context,
+          tr('Todas tus fotos ya están optimizadas y livianas', 'All your photos are already optimized and lightweight'),
+        );
+      } else {
+        final mb = (ahorrados / (1024 * 1024)).toStringAsFixed(1);
+        avisar(
+          context,
+          tr('Optimizadas $opt fotos · ahorraste $mb MB', 'Optimized $opt photos · saved $mb MB'),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _optimizandoFotos = false);
+    }
+  }
+
+  String _formatoPeso(int bytes) {
+    if (bytes <= 0) return '0 KB';
+    if (bytes >= 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(bytes / 1024).ceil()} KB';
   }
 
   @override
@@ -478,9 +517,6 @@ class _AjustesScreenState extends State<AjustesScreen> {
     final temaActual = d?.temaElegido ?? (CatalogColors.paleta.oscura ? 'oscuro' : 'claro');
     final idiomaActual = d?.idiomaElegido ?? Idioma.actual;
     final conBordeTarjeta = CatalogColors.paleta.oscura || CatalogColors.paleta.grosorBorde > 1;
-    final nombreSesion = scope.sesion == null || !scope.sesion!.esRevision
-        ? tr('Mis compras', 'My purchases')
-        : scope.sesion!.nombre;
 
     return Scaffold(
       appBar: AppBar(
@@ -489,7 +525,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
       ),
       body: SafeArea(
         child: ListView(
-          scrollCacheExtent: const ScrollCacheExtent.pixels(4000), // construye toda la pantalla, para la guía
+          scrollCacheExtent: const ScrollCacheExtent.pixels(7000), // construye toda la pantalla, para la guía
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 40),
           children: [
             // ---- Perfil ----
@@ -671,36 +707,132 @@ class _AjustesScreenState extends State<AjustesScreen> {
               ],
             ),
 
+            // ---- Fotos y almacenamiento ----
+            Builder(builder: (context) {
+              final calidadActual = d?.calidadFotoElegida ?? 'ligera';
+              return _Seccion(
+                titulo: tr('Fotos y espacio en el teléfono', 'Photos & storage'),
+                hijos: [
+                  _Fila(
+                    icono: Icons.photo_size_select_small_outlined,
+                    color: const Color(0xFF1D9E75),
+                    titulo: tr('Peso de nuevas fotos', 'New photo size'),
+                    subtitulo: tr(
+                      'Ligera (~80 KB) mantiene la app liviana aunque tengas miles de compras',
+                      'Light (~80 KB) keeps the app fast and compact even with thousands of items',
+                    ),
+                    abajo: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final op in [
+                          ('ligera', tr('Ligera (~80 KB)', 'Light (~80 KB)')),
+                          ('normal', tr('Normal (~220 KB)', 'Standard (~220 KB)')),
+                          ('alta', tr('Alta (~450 KB)', 'High (~450 KB)')),
+                        ])
+                          ChoiceChip(
+                            label: Text(op.$2),
+                            selected: calidadActual == op.$1,
+                            onSelected: (_) => _guardarPreferencia(
+                              AjustesDispositivo.calidadFoto,
+                              op.$1 == 'ligera' ? null : op.$1,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Consulta<(int, int)>(
+                    claves: [_revFotos],
+                    cargar: scope.fotos.estadisticas,
+                    builder: (context, est) {
+                      final cant = est?.$1 ?? 0;
+                      final bytes = est?.$2 ?? 0;
+                      return _Fila(
+                        icono: Icons.compress,
+                        color: const Color(0xFF0F8B8D),
+                        titulo: tr('Optimizar fotos guardadas', 'Optimize saved photos'),
+                        subtitulo: tr(
+                          '$cant ${cant == 1 ? 'foto guardada' : 'fotos guardadas'} · ${_formatoPeso(bytes)} en total',
+                          '$cant saved ${cant == 1 ? 'photo' : 'photos'} · ${_formatoPeso(bytes)} total',
+                        ),
+                        alTocar: _optimizandoFotos ? null : _optimizarFotosGuardadas,
+                        derecha: _optimizandoFotos
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            : Icon(Icons.chevron_right, color: CatalogColors.acero),
+                      );
+                    },
+                  ),
+                ],
+              );
+            }),
+
             // ---- Notificaciones ----
             Builder(builder: (context) {
               final (hr, mn) = d?.horaMinutoRecordatorio ?? (20, 0);
               final textoHora = '${hr.toString().padLeft(2, '0')}:${mn.toString().padLeft(2, '0')}';
+              final intervaloActual = d?.minutosRepeticionRecordatorio ?? 60;
               return _Seccion(
                 key: _gNotificaciones,
-                titulo: tr('Notificaciones (sin internet)', 'Notifications (offline)'),
+                titulo: tr('Notificaciones emergentes (Pop-up)', 'Pop-up notifications'),
                 hijos: [
                   _Fila(
-                    icono: Icons.schedule,
+                    icono: Icons.repeat,
                     color: CatalogColors.naranja,
+                    titulo: tr('Frecuencia de avisos en el día', 'Daytime reminder frequency'),
+                    subtitulo: tr(
+                      'Repite el aviso mientras tengas stickers sin imprimir o un lote abierto',
+                      'Repeats while you have unprinted stickers or an open batch',
+                    ),
+                    abajo: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final op in [
+                          (30, tr('Cada 30 min', 'Every 30m')),
+                          (60, tr('Cada 1 h', 'Every 1h')),
+                          (120, tr('Cada 2 h', 'Every 2h')),
+                          (240, tr('Cada 4 h', 'Every 4h')),
+                          (0, tr('Solo 1 vez', 'Once daily')),
+                        ])
+                          ChoiceChip(
+                            label: Text(op.$2),
+                            selected: intervaloActual == op.$1,
+                            onSelected: (_) async {
+                              await Sistema.pedirPermisoNotificaciones();
+                              await _guardarPreferencia(
+                                AjustesDispositivo.intervaloRecordatorioMin,
+                                op.$1 == 60 ? null : '${op.$1}',
+                              );
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                  _Fila(
+                    icono: Icons.exit_to_app,
+                    color: const Color(0xFFD85A30),
+                    titulo: tr('Avisar apenas salgo de la app', 'Alert right when leaving app'),
+                    subtitulo: tr(
+                      'Pop-up inmediato si saliste dejando un sticker sin sacar o lote abierto',
+                      'Instant pop-up if you exit leaving an unprinted sticker or open batch',
+                    ),
+                    derecha: Switch(
+                      value: d?.notifAlSalir ?? true,
+                      onChanged: (v) async {
+                        if (v) await Sistema.pedirPermisoNotificaciones();
+                        await _guardarPreferencia(AjustesDispositivo.sinNotifAlSalir, v ? null : '1');
+                      },
+                    ),
+                  ),
+                  _Fila(
+                    icono: Icons.schedule,
+                    color: const Color(0xFFBA7517),
                     titulo: tr('Hora del aviso diario', 'Daily reminder time'),
-                    subtitulo: tr('Revisa pendientes aunque la app esté cerrada', 'Checks pending items even when closed'),
+                    subtitulo: tr('Resumen fijo de cierre de jornada', 'Fixed end-of-day check'),
                     alTocar: _elegirHoraRecordatorio,
                     derecha: TextButton(
                       onPressed: _elegirHoraRecordatorio,
                       child: Text(textoHora, style: mono(size: 15, weight: FontWeight.w700, color: CatalogColors.naranja)),
-                    ),
-                  ),
-                  _Fila(
-                    icono: Icons.cloud_done_outlined,
-                    color: const Color(0xFF185FA5),
-                    titulo: tr('Avisar al hacer respaldo', 'Notify while backing up'),
-                    subtitulo: tr('Muestra cuando se está guardando y dónde quedó', 'Shows progress and destination folder'),
-                    derecha: Switch(
-                      value: d?.notifRespaldo ?? true,
-                      onChanged: (v) async {
-                        if (v) await Sistema.pedirPermisoNotificaciones();
-                        await _guardarPreferencia(AjustesDispositivo.sinNotifRespaldo, v ? null : '1');
-                      },
                     ),
                   ),
                   _Fila(
@@ -713,6 +845,45 @@ class _AjustesScreenState extends State<AjustesScreen> {
                       onChanged: (v) async {
                         if (v) await Sistema.pedirPermisoNotificaciones();
                         await _guardarPreferencia(AjustesDispositivo.sinNotifSinImprimir, v ? null : '1');
+                      },
+                    ),
+                  ),
+                  _Fila(
+                    icono: Icons.inventory_2_outlined,
+                    color: const Color(0xFF7F77DD),
+                    titulo: tr('Aviso de lote abierto', 'Open batch reminder'),
+                    subtitulo: tr('Recuerda si dejaste un lote sin terminar', 'Reminds you if a batch was left open'),
+                    derecha: Switch(
+                      value: d?.notifLoteAbierto ?? true,
+                      onChanged: (v) async {
+                        if (v) await Sistema.pedirPermisoNotificaciones();
+                        await _guardarPreferencia(AjustesDispositivo.sinNotifLoteAbierto, v ? null : '1');
+                      },
+                    ),
+                  ),
+                  _Fila(
+                    icono: Icons.qr_code_scanner,
+                    color: const Color(0xFF0F8B8D),
+                    titulo: tr('Aviso al escanear catalítico', 'Converter scanned alert'),
+                    subtitulo: tr('Muestra código y precio al escanear un sticker', 'Shows code and price when scanning a sticker'),
+                    derecha: Switch(
+                      value: d?.notifEscaneo ?? true,
+                      onChanged: (v) async {
+                        if (v) await Sistema.pedirPermisoNotificaciones();
+                        await _guardarPreferencia(AjustesDispositivo.sinNotifEscaneo, v ? null : '1');
+                      },
+                    ),
+                  ),
+                  _Fila(
+                    icono: Icons.cloud_done_outlined,
+                    color: const Color(0xFF185FA5),
+                    titulo: tr('Avisar al hacer respaldo', 'Notify on backup'),
+                    subtitulo: tr('Muestra cuando se guarda un respaldo en el teléfono', 'Notifies when a backup is saved on phone'),
+                    derecha: Switch(
+                      value: d?.notifRespaldo ?? true,
+                      onChanged: (v) async {
+                        if (v) await Sistema.pedirPermisoNotificaciones();
+                        await _guardarPreferencia(AjustesDispositivo.sinNotifRespaldo, v ? null : '1');
                       },
                     ),
                   ),
@@ -743,17 +914,15 @@ class _AjustesScreenState extends State<AjustesScreen> {
                     ),
                   ),
                   _Fila(
-                    icono: Icons.inventory_2_outlined,
-                    color: const Color(0xFF7F77DD),
-                    titulo: tr('Aviso de lote abierto', 'Open batch reminder'),
-                    subtitulo: tr('Recuerda si dejaste un lote sin terminar', 'Reminds you if a batch was left open'),
-                    derecha: Switch(
-                      value: d?.notifLoteAbierto ?? true,
-                      onChanged: (v) async {
-                        if (v) await Sistema.pedirPermisoNotificaciones();
-                        await _guardarPreferencia(AjustesDispositivo.sinNotifLoteAbierto, v ? null : '1');
-                      },
+                    icono: Icons.open_in_browser,
+                    color: const Color(0xFF534AB7),
+                    titulo: tr('Activar Pop-up en pantalla (Android)', 'Enable on-screen Pop-up (Android)'),
+                    subtitulo: tr(
+                      'Abre el ajuste del teléfono para permitir notificaciones flotantes',
+                      'Opens phone settings to allow floating / heads-up banners',
                     ),
+                    alTocar: () => Sistema.abrirAjustesCanalNotificaciones(),
+                    derecha: Icon(Icons.open_in_new, size: 18, color: CatalogColors.acero),
                   ),
                   _Fila(
                     icono: Icons.notifications_active_outlined,
@@ -903,67 +1072,112 @@ class _AjustesScreenState extends State<AjustesScreen> {
               ),
             ),
 
-            // ---- Respaldo y traspaso ----
-            _Seccion(
-              titulo: tr('Respaldo y traspaso', 'Backup & transfer'),
-              hijos: [
-                if (!revision) ...[
-                  Consulta<DateTime?>(
-                    cargar: scope.compras.ultimoRespaldo,
-                    builder: (context, ultimo) => _Fila(
-                      key: _gRespaldo,
-                      icono: Icons.backup_outlined,
-                      color: const Color(0xFF185FA5),
-                      titulo: tr('Crear respaldo', 'Create backup'),
-                      subtitulo: ultimo == null
-                          ? tr('Todavía no has hecho ninguno', 'No backups created yet')
-                          : '${tr('Último', 'Last')}: ${fechaHora(ultimo)}',
-                      alTocar: () => crearRespaldoYEnviar(context),
+            // ---- Supervisor, Wi-Fi y Respaldos ----
+            Builder(builder: (context) {
+              final modoResp = d?.modoRespaldoElegido ?? 'sobrescribir';
+              return _Seccion(
+                titulo: tr('Supervisor, Wi-Fi y Respaldos', 'Supervisor, Wi-Fi & Backups'),
+                hijos: [
+                  _Fila(
+                    icono: Icons.wifi_tethering,
+                    color: CatalogColors.naranja,
+                    titulo: tr('Sincronizar por Wi-Fi', 'Sync over Wi-Fi'),
+                    subtitulo: tr(
+                      'Pasa compras al celular del supervisor y viceversa bajo el mismo Wi-Fi',
+                      'Transfer data between buyer and supervisor on the same Wi-Fi',
+                    ),
+                    alTocar: () => sincronizarPorWifi(context),
+                    derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
+                  ),
+                  _Fila(
+                    icono: Icons.fact_check_outlined,
+                    color: const Color(0xFF0F8B8D),
+                    titulo: tr('Revisión de Supervisor', 'Supervisor Review'),
+                    subtitulo: tr(
+                      'Escáner con cámara para verificar códigos y exportar Excel',
+                      'Camera scanner to verify codes and export Excel',
+                    ),
+                    alTocar: () => abrir(context, const RevisionSupervisorScreen()),
+                    derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
+                  ),
+                  if (!revision) ...[
+                    _Fila(
+                      icono: Icons.auto_delete_outlined,
+                      color: const Color(0xFF534AB7),
+                      titulo: tr('Limpieza de respaldos', 'Backup retention'),
+                      subtitulo: tr(
+                        'Sobrescribe un único archivo o expira los respaldos antiguos solos',
+                        'Overwrite a single file or auto-expire older backups',
+                      ),
+                      abajo: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final op in [
+                            ('sobrescribir', tr('Sobrescribir único', 'Overwrite single')),
+                            ('expirar_7', tr('Expirar 7 días', 'Expire 7 days')),
+                            ('expirar_30', tr('Expirar 30 días', 'Expire 30 days')),
+                          ])
+                            ChoiceChip(
+                              label: Text(op.$2),
+                              selected: modoResp == op.$1,
+                              onSelected: (_) => _guardarPreferencia(
+                                AjustesDispositivo.modoRespaldo,
+                                op.$1 == 'sobrescribir' ? null : op.$1,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Consulta<DateTime?>(
+                      cargar: scope.compras.ultimoRespaldo,
+                      builder: (context, ultimo) => _Fila(
+                        key: _gRespaldo,
+                        icono: Icons.backup_outlined,
+                        color: const Color(0xFF185FA5),
+                        titulo: tr('Crear respaldo', 'Create backup'),
+                        subtitulo: ultimo == null
+                            ? tr('Todavía no has hecho ninguno', 'No backups created yet')
+                            : '${tr('Último', 'Last')}: ${fechaHora(ultimo)}',
+                        alTocar: () => crearRespaldoYEnviar(context),
+                        derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
+                      ),
+                    ),
+                    _Fila(
+                      icono: Icons.send_to_mobile_outlined,
+                      color: const Color(0xFF0F6E56),
+                      titulo: tr('Enviar compras por archivo (.zip)', 'Send purchases as .zip file'),
+                      alTocar: () => enviarAOtroCelular(context),
                       derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
                     ),
-                  ),
+                  ],
                   _Fila(
-                    icono: Icons.send_to_mobile_outlined,
-                    color: const Color(0xFF0F6E56),
-                    titulo: tr('Enviar mis compras a otro celular', 'Send my purchases to another phone'),
-                    alTocar: () => enviarAOtroCelular(context),
+                    icono: Icons.download_outlined,
+                    color: const Color(0xFF534AB7),
+                    titulo: tr('Recibir archivo .zip', 'Receive .zip file'),
+                    alTocar: () => recibirDatos(context),
                     derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
                   ),
-                ],
-                _Fila(
-                  icono: Icons.download_outlined,
-                  color: const Color(0xFF534AB7),
-                  titulo: tr('Recibir datos de otro celular', 'Receive data from another phone'),
-                  alTocar: () => recibirDatos(context),
-                  derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
-                ),
-                _Fila(
-                  icono: Icons.swap_horiz,
-                  color: const Color(0xFF5F5E5A),
-                  titulo: tr('Cambiar de sesión', 'Switch session'),
-                  subtitulo: '${tr('Ahora', 'Current')}: $nombreSesion',
-                  alTocar: () => mostrarSesiones(context),
-                  derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
-                ),
-                if (!revision)
-                  _Fila(
-                    icono: Icons.settings_backup_restore,
-                    color: const Color(0xFFA32D2D),
-                    titulo: tr('Restaurar desde un respaldo', 'Restore from backup'),
-                    alTocar: () => restaurarDesdeArchivo(context),
-                    derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
-                  ),
-              ],
-              nota: autoRespaldo == null
-                  ? tr(
-                      'Copia automática diaria en $autoLugar: todavía no se ha hecho.',
-                      'Daily auto backup in $autoLugar: none created yet.',
-                    )
-                  : tr(
-                      'Copia automática diaria: la última fue el ${fechaHora(autoRespaldo)}, en $autoLugar. Envía un respaldo a tu correo o Drive de vez en cuando por si se pierde el teléfono.',
-                      'Daily auto backup: last saved ${fechaHora(autoRespaldo)} in $autoLugar. Send a copy to your email or Drive periodically in case the phone is lost.',
+                  if (!revision)
+                    _Fila(
+                      icono: Icons.settings_backup_restore,
+                      color: const Color(0xFFA32D2D),
+                      titulo: tr('Restaurar desde un respaldo', 'Restore from backup'),
+                      alTocar: () => restaurarDesdeArchivo(context),
+                      derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
                     ),
-            ),
+                ],
+                nota: autoRespaldo == null
+                    ? tr(
+                        'Copia automática diaria en $autoLugar: todavía no se ha hecho.',
+                        'Daily auto backup in $autoLugar: none created yet.',
+                      )
+                    : tr(
+                        'Copia automática diaria: la última fue el ${fechaHora(autoRespaldo)}, en $autoLugar.',
+                        'Daily auto backup: last saved ${fechaHora(autoRespaldo)} in $autoLugar.',
+                      ),
+              );
+            }),
 
             // ---- Ayuda ----
             _Seccion(

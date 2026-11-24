@@ -8,16 +8,17 @@ import 'package:share_plus/share_plus.dart';
 
 import '../app_scope.dart';
 import '../backup/respaldo.dart';
-import '../data/sesiones.dart';
 import '../domain/formato.dart';
 import '../i18n.dart';
+import '../sync/wifi_sync.dart';
 import '../system/confirmar.dart';
 import '../system/notificaciones.dart';
 import '../system/sistema.dart';
 import '../theme.dart';
+import 'revision_supervisor_screen.dart';
 
-// Respaldo, traspaso a otro celular y sesiones. Se usan desde el Inicio
-// (botón de accesos directos) y desde Ajustes.
+// Respaldo (con sobrescritura o expiración), sincronización Wi-Fi local y
+// acceso al Módulo de Revisión del Supervisor. Se usan desde Inicio y Ajustes.
 
 String _dos(int n) => n.toString().padLeft(2, '0');
 String _sello(DateTime t) => '${t.year}${_dos(t.month)}${_dos(t.day)}-${_dos(t.hour)}${_dos(t.minute)}';
@@ -34,11 +35,11 @@ Future<ShareResult> _compartirZip(File archivo, String texto) => SharePlus.insta
     ));
 
 /// Respaldo completo (compras + fotos). Se guarda en Descargas/Respaldo CataLog
-/// y después se ofrece enviarlo también (correo, Drive, WhatsApp).
+/// respetando si el usuario eligió sobrescribir un único archivo o expirar los antiguos.
 Future<void> crearRespaldoYEnviar(BuildContext context) async {
   final scope = AppScope.of(context);
   if (scope.soloLectura) {
-    avisar(context, tr('Los respaldos se hacen desde tu sesión de compra', 'Backups are created from your purchase session'));
+    avisar(context, tr('Los respaldos se hacen desde tus compras', 'Backups are created from your purchases'));
     return;
   }
   avisar(context, tr('Preparando respaldo…', 'Preparing backup…'));
@@ -46,10 +47,21 @@ Future<void> crearRespaldoYEnviar(BuildContext context) async {
   try {
     final zip = await armarRespaldo(scope.base, scope.fotos.carpetaBase);
     final prefijo = await scope.compras.prefijo();
-    final nombre = 'CataLog-respaldo-$prefijo-${_sello(DateTime.now())}.zip';
+    final disp = scope.dispositivo;
+    final sobrescribir = disp?.sobrescribirRespaldo ?? true;
+    final expirarDias = disp?.diasExpiracionRespaldo;
+    final nombre = sobrescribir
+        ? 'CataLog-respaldo-$prefijo.zip'
+        : 'CataLog-respaldo-$prefijo-${_sello(DateTime.now())}.zip';
     String? lugar;
     try {
-      lugar = await Sistema.guardarEnDescargas(nombre, zip, prefijoBorrar: 'CataLog-respaldo-', conservar: 10);
+      lugar = await Sistema.guardarEnDescargas(
+        nombre,
+        zip,
+        prefijoBorrar: 'CataLog-respaldo-',
+        conservar: sobrescribir ? 1 : 40,
+        expirarDias: expirarDias,
+      );
     } catch (_) {
       lugar = null;
     }
@@ -71,8 +83,12 @@ Future<void> crearRespaldoYEnviar(BuildContext context) async {
         content: Text(
           lugar != null
               ? tr(
-                  'Quedó en $lugar. Para protegerte si se pierde el teléfono, envíalo también a tu correo, Drive o WhatsApp.',
-                  'Saved in $lugar. To protect your data if the phone is lost, send it to your email, Drive, or WhatsApp too.',
+                  sobrescribir
+                      ? 'Actualizado sobre un único archivo en $lugar (sin acumular copias repetidas). Si quieres, envíalo también a tu correo, Drive o WhatsApp.'
+                      : 'Quedó en $lugar (los respaldos antiguos expiran solos). Para protegerte si se pierde el teléfono, envíalo también a tu correo, Drive o WhatsApp.',
+                  sobrescribir
+                      ? 'Updated in place at $lugar (no duplicate clutter). You can also send a copy to your email, Drive, or WhatsApp.'
+                      : 'Saved in $lugar (older backups expire automatically). Send it to your email, Drive, or WhatsApp for extra safety.',
                 )
               : tr(
                   'Puedes enviarlo directamente a tu correo, Drive o WhatsApp.',
@@ -124,35 +140,37 @@ Future<List<int>?> elegirArchivoCatalog(BuildContext context, {required String t
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
               child: Text(titulo, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text(
-                lista.isEmpty
-                    ? tr(
-                        'No hay respaldos en Descargas/$carpetaRespaldos. Búscalo en otra carpeta.',
-                        'No backups in Downloads/$carpetaRespaldos. Browse another folder.',
-                      )
-                    : tr('En Descargas/$carpetaRespaldos:', 'In Downloads/$carpetaRespaldos:'),
-                style: etiqueta,
+            if (lista.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(tr('En Descargas/$carpetaRespaldos:', 'In Downloads/$carpetaRespaldos:'), style: etiqueta),
               ),
-            ),
             for (final a in lista)
               ListTile(
-                leading: Icon(a.esAutomatico ? Icons.schedule : Icons.inventory_2_outlined, color: CatalogColors.texto),
-                title: Text(
-                  a.esAutomatico ? tr('Copia automática', 'Auto backup') : tr('Respaldo', 'Backup'),
-                  style: const TextStyle(fontWeight: FontWeight.w500),
+                leading: Icon(
+                  a.esAutomatico ? Icons.schedule : Icons.folder_zip_outlined,
+                  color: CatalogColors.naranja,
                 ),
-                subtitle: Text('${fechaHora(a.fecha)} · ${_tamano(a.tamano)}\n${a.nombre}', style: etiqueta),
-                isThreeLine: true,
+                title: Text(a.nombre, maxLines: 1, overflow: TextOverflow.ellipsis),
+                subtitle: Text(
+                  '${fechaHora(a.fecha)} · ${_tamano(a.tamano)}'
+                  '${a.esAutomatico ? ' · ${tr('automático', 'auto')}' : ''}',
+                  style: etiqueta,
+                ),
                 onTap: () => Navigator.pop(hoja, a),
               ),
-            const Divider(),
+            if (lista.isNotEmpty) const Divider(),
             ListTile(
               leading: const Icon(Icons.folder_open_outlined),
-              title: Text(tr('Buscar otro archivo', 'Browse another file')),
-              subtitle: Text(tr('WhatsApp, Drive, otra carpeta…', 'WhatsApp, Drive, another folder…')),
-              onTap: () => Navigator.pop(hoja, 'otro'),
+              title: Text(
+                lista.isEmpty
+                    ? tr('Buscar archivo .zip en el teléfono', 'Browse for .zip file on phone')
+                    : tr('Buscar en otra carpeta…', 'Browse in another folder…'),
+              ),
+              subtitle: lista.isEmpty
+                  ? Text(tr('Por ejemplo en Descargas/$carpetaRespaldos', 'For example in Downloads/$carpetaRespaldos'), style: etiqueta)
+                  : null,
+              onTap: () => Navigator.pop(hoja, 'buscar'),
             ),
           ],
         ),
@@ -170,24 +188,25 @@ Future<List<int>?> elegirArchivoCatalog(BuildContext context, {required String t
   }
 }
 
-/// Manda todas las compras a otro celular, que las abre como sesión de revisión.
+/// Sincronización directa en el mismo Wi-Fi (Comprador ⇄ Supervisor).
+Future<void> sincronizarPorWifi(BuildContext context, {bool iniciarEnRecibir = false}) async {
+  final contenido = await mostrarSincronizacionWifi(context, iniciarEnRecibir: iniciarEnRecibir);
+  if (contenido == null || !context.mounted) return;
+  await procesarContenidoRecibido(context, contenido);
+}
+
+/// Comparte un .zip con las compras propias para que el supervisor u otro celular las abra.
 Future<void> enviarAOtroCelular(BuildContext context) async {
   final scope = AppScope.of(context);
-  if (scope.soloLectura) {
-    avisar(
-      context,
-      tr('Vuelve a tu sesión de compra para enviar tus compras', 'Switch to your purchase session to send your purchases'),
-    );
-    return;
-  }
+  if (scope.soloLectura) return;
   final conFotos = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text(tr('Enviar mis compras a otro celular', 'Send my purchases to another phone')),
+      title: Text(tr('Enviar compras por archivo (.zip)', 'Send purchases as .zip file')),
       content: Text(
         tr(
-          'El otro celular las abre en CataLog como sesión de revisión: puede escanear tus stickers y ver cada ficha, sin mezclarlas con sus propias compras.\n\n¿Incluir las fotos? Con fotos el archivo pesa más.',
-          'The other phone opens them in CataLog as a review session: it can scan your stickers and view every record without mixing them with its own purchases.\n\nInclude photos? With photos the file is larger.',
+          'El supervisor las abre en su Módulo de Revisión para escanear los stickers y sacar el Excel.\n\n¿Incluir las fotos? (Con fotos ligeras pesa muy poco).',
+          'The supervisor opens them in the Supervisor Review module to scan stickers and export Excel.\n\nInclude photos?',
         ),
       ),
       actions: [
@@ -207,8 +226,8 @@ Future<void> enviarAOtroCelular(BuildContext context) async {
     await _compartirZip(
       archivo,
       tr(
-        'Compras de CataLog${nombre.isNotEmpty ? ' de $nombre' : ''}. Abre este archivo con CataLog para revisarlas y escanear los stickers.',
-        'CataLog purchases${nombre.isNotEmpty ? ' from $nombre' : ''}. Open this file with CataLog to review them and scan stickers.',
+        'Compras de CataLog${nombre.isNotEmpty ? ' de $nombre' : ''}. Ábrelo con CataLog para revisar y escanear los stickers.',
+        'CataLog purchases${nombre.isNotEmpty ? ' from $nombre' : ''}. Open with CataLog to review and scan stickers.',
       ),
     );
   } catch (e) {
@@ -216,10 +235,8 @@ Future<void> enviarAOtroCelular(BuildContext context) async {
   }
 }
 
-/// Abre un archivo de CataLog recibido (elegido a mano o tocado en WhatsApp)
-/// y pregunta si se revisa aparte o si reemplaza las compras.
+/// Abre un archivo de CataLog recibido (elegido a mano o tocado en WhatsApp).
 Future<void> recibirDatos(BuildContext context, [List<int>? bytes]) async {
-  final scope = AppScope.of(context);
   bytes ??= await elegirArchivoCatalog(context, titulo: tr('Elige el archivo de CataLog', 'Choose CataLog file'));
   if (bytes == null) return;
   ContenidoRespaldo contenido;
@@ -230,6 +247,13 @@ Future<void> recibirDatos(BuildContext context, [List<int>? bytes]) async {
     return;
   }
   if (!context.mounted) return;
+  await procesarContenidoRecibido(context, contenido);
+}
+
+/// Pregunta si los datos recibidos (por Wi-Fi o .zip) se abren en el Módulo de
+/// Revisión del Supervisor o si pueblan/reemplazan las compras de este celular.
+Future<void> procesarContenidoRecibido(BuildContext context, ContenidoRespaldo contenido) async {
+  final scope = AppScope.of(context);
   final quien = contenido.nombre.isNotEmpty
       ? contenido.nombre
       : (contenido.prefijo.isNotEmpty
@@ -245,8 +269,8 @@ Future<void> recibirDatos(BuildContext context, [List<int>? bytes]) async {
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
           child: Text(
             tr(
-              'Archivo de $quien${creado != null ? ' del ${fechaHora(creado)}' : ''}: ${contenido.compras} compras.',
-              'File from $quien${creado != null ? ' (${fechaHora(creado)})' : ''}: ${contenido.compras} purchases.',
+              'Datos de $quien${creado != null ? ' (${fechaHora(creado)})' : ''}: ${contenido.compras} compras.',
+              'Data from $quien${creado != null ? ' (${fechaHora(creado)})' : ''}: ${contenido.compras} purchases.',
             ),
             style: const TextStyle(fontSize: 15, height: 1.4),
           ),
@@ -255,12 +279,12 @@ Future<void> recibirDatos(BuildContext context, [List<int>? bytes]) async {
           onPressed: () => Navigator.pop(context, 'revisar'),
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.fact_check_outlined, color: CatalogColors.texto),
-            title: Text(tr('Abrir para revisar', 'Open for review')),
+            leading: const Icon(Icons.fact_check_outlined, color: CatalogColors.naranja),
+            title: Text(tr('Abrir en Revisión de Supervisor', 'Open in Supervisor Review')),
             subtitle: Text(
               tr(
-                'Se guarda aparte, como sesión de revisión. Tus compras no se tocan.',
-                'Saved separately as a review session. Your own purchases are untouched.',
+                'Escanea los stickers con la cámara y genera el Excel sin mezclar ni cambiar de sesión.',
+                'Scan stickers with the camera and export Excel without mixing or switching sessions.',
               ),
             ),
           ),
@@ -269,12 +293,12 @@ Future<void> recibirDatos(BuildContext context, [List<int>? bytes]) async {
           onPressed: () => Navigator.pop(context, 'restaurar'),
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.settings_backup_restore, color: CatalogColors.rojo),
-            title: Text(tr('Reemplazar mis compras', 'Replace my purchases')),
+            leading: Icon(Icons.sync_alt, color: CatalogColors.rojo),
+            title: Text(tr('Poblar / Reemplazar mis compras', 'Populate / Replace my purchases')),
             subtitle: Text(
               tr(
-                'Úsalo como respaldo: tus compras actuales se reemplazan por estas.',
-                'Use as backup: your current purchases will be replaced by these.',
+                'Carga estas compras como las compras principales de este teléfono (guarda copia previa).',
+                'Loads these purchases as this phone’s main catalog (saves a safety backup first).',
               ),
             ),
           ),
@@ -288,14 +312,18 @@ Future<void> recibirDatos(BuildContext context, [List<int>? bytes]) async {
   );
   if (!context.mounted || eleccion == null) return;
   if (eleccion == 'revisar') {
-    await scope.acciones?.recibirRevision(contenido);
+    final sesiones = scope.sesiones;
+    if (sesiones == null) return;
+    final guardada = await sesiones.guardarRevision(contenido);
+    if (!context.mounted) return;
+    await abrir(context, RevisionSupervisorScreen(revisionInicial: guardada));
   } else {
     await restaurarDesdeContenido(context, contenido);
   }
 }
 
 /// Elige un respaldo (de la carpeta Respaldo CataLog u otro lugar), lo extrae y
-/// con él se vuelven a poblar las compras de la sesión de compra.
+/// con él se vuelven a poblar las compras de este celular.
 Future<void> restaurarDesdeArchivo(BuildContext context) async {
   final bytes = await elegirArchivoCatalog(context, titulo: tr('Elige el respaldo', 'Choose backup'));
   if (bytes == null || !context.mounted) return;
@@ -311,30 +339,23 @@ Future<void> restaurarDesdeArchivo(BuildContext context) async {
 Future<void> restaurarDesdeContenido(BuildContext context, ContenidoRespaldo contenido) async {
   final scope = AppScope.of(context);
   final acciones = scope.acciones;
-  if (acciones == null) return;
-  if (scope.soloLectura) {
-    avisar(
-      context,
-      tr('Vuelve a tu sesión de compra para restaurar un respaldo', 'Switch to your purchase session to restore a backup'),
-    );
-    return;
-  }
+  if (acciones == null || scope.soloLectura) return;
   final actuales = await scope.compras.contarCompras();
   if (!context.mounted) return;
   final creado = contenido.creado;
   final ok = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text(tr('Reemplazar mis compras', 'Replace my purchases')),
+      title: Text(tr('Poblar / Reemplazar mis compras', 'Populate / Replace my purchases')),
       content: Text(
         tr(
-          'El archivo${creado != null ? ' es del ${fechaHora(creado)} y' : ''} tiene ${contenido.compras} compras${contenido.prefijo.isNotEmpty ? ' (prefijo ${contenido.prefijo})' : ''}.\n\nVa a reemplazar las compras de este teléfono ($actuales). Antes se guarda una copia de lo actual dentro del teléfono, por si acaso.',
-          'This file${creado != null ? ' from ${fechaHora(creado)}' : ''} contains ${contenido.compras} purchases${contenido.prefijo.isNotEmpty ? ' (prefix ${contenido.prefijo})' : ''}.\n\nIt will replace the purchases on this phone ($actuales). A safety copy of current data is saved first.',
+          'El archivo${creado != null ? ' es del ${fechaHora(creado)} y' : ''} tiene ${contenido.compras} compras${contenido.prefijo.isNotEmpty ? ' (prefijo ${contenido.prefijo})' : ''}.\n\nVa a actualizar las compras de este teléfono ($actuales actuales). Antes se guarda una copia de seguridad interna por si acaso.',
+          'This file${creado != null ? ' from ${fechaHora(creado)}' : ''} contains ${contenido.compras} purchases${contenido.prefijo.isNotEmpty ? ' (prefix ${contenido.prefijo})' : ''}.\n\nIt will replace the purchases on this phone ($actuales current). A safety copy is saved first.',
         ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Cancelar', 'Cancel'))),
-        TextButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('Reemplazar', 'Replace'))),
+        TextButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('Continuar', 'Continue'))),
       ],
     ),
   );
@@ -356,119 +377,12 @@ Future<void> restaurarDesdeContenido(BuildContext context, ContenidoRespaldo con
   }
   await acciones.reemplazarDatos(
     (ruta) => aplicarRespaldo(contenido, rutaBase: ruta, carpetaBase: scope.fotos.carpetaBase),
-    mensaje: tr('Datos restaurados: ${contenido.compras} compras', 'Data restored: ${contenido.compras} purchases'),
-  );
-}
-
-/// Lista de sesiones: la de compra y las de revisión recibidas.
-Future<void> mostrarSesiones(BuildContext context) async {
-  final scope = AppScope.of(context);
-  final sesiones = scope.sesiones;
-  final acciones = scope.acciones;
-  if (sesiones == null || acciones == null) return;
-  final revisiones = await sesiones.revisiones();
-  if (!context.mounted) return;
-  final actual = scope.sesion?.id ?? idSesionPrincipal;
-
-  Future<void> borrar(Sesion s) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(tr('¿Borrar "${s.nombre}"?', 'Delete "${s.nombre}"?')),
-        content: Text(
-          tr(
-            'Es una copia de los datos del otro celular; allá no se borra nada.',
-            'This is only a local copy from the other phone; nothing is deleted there.',
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Cancelar', 'Cancel'))),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('Borrar', 'Delete'))),
-        ],
-      ),
-    );
-    if (ok != true || !context.mounted) return;
-    if (!await confirmarConHuella(context, tr('Confirma para borrar la revisión', 'Confirm to delete review'))) return;
-    await acciones.eliminarRevision(s);
-  }
-
-  await showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    isScrollControlled: true,
-    builder: (hoja) => SafeArea(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(hoja).size.height * 0.75),
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-              child: Text(tr('Sesiones', 'Sessions'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text(
-                tr(
-                  'La sesión de compra son tus compras. Las de revisión son datos recibidos de otro celular: se escanean y se ven, pero no se mezclan con las tuyas.',
-                  'The purchase session holds your own purchases. Review sessions hold data received from another phone: you can scan and inspect them without mixing them with yours.',
-                ),
-                style: etiqueta,
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.shopping_bag_outlined, color: CatalogColors.texto),
-              title: Text(tr('Mis compras', 'My purchases')),
-              subtitle: Text(tr('Sesión de compra', 'Purchase session')),
-              trailing: actual == idSesionPrincipal ? Icon(Icons.check, color: CatalogColors.verde) : null,
-              onTap: () {
-                Navigator.pop(hoja);
-                if (actual != idSesionPrincipal) acciones.abrirSesion(sesiones.principal);
-              },
-            ),
-            for (final s in revisiones)
-              ListTile(
-                leading: const Icon(Icons.fact_check_outlined, color: CatalogColors.naranja),
-                title: Text(s.nombre),
-                subtitle: Text(
-                  tr(
-                    'Revisión · ${s.compras} compras${s.recibidaEn != null ? ' · recibida el ${fechaHora(s.recibidaEn!)}' : ''}',
-                    'Review · ${s.compras} purchases${s.recibidaEn != null ? ' · received ${fechaHora(s.recibidaEn!)}' : ''}',
-                  ),
-                ),
-                selected: actual == s.id,
-                trailing: IconButton(
-                  tooltip: tr('Borrar revisión', 'Delete review'),
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () {
-                    Navigator.pop(hoja);
-                    borrar(s);
-                  },
-                ),
-                onTap: () {
-                  Navigator.pop(hoja);
-                  if (actual != s.id) acciones.abrirSesion(s);
-                },
-              ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.download_outlined),
-              title: Text(tr('Recibir datos de otro celular', 'Receive data from another phone')),
-              onTap: () {
-                Navigator.pop(hoja);
-                recibirDatos(context);
-              },
-            ),
-          ],
-        ),
-      ),
-    ),
+    mensaje: tr('Datos actualizados: ${contenido.compras} compras', 'Data updated: ${contenido.compras} purchases'),
   );
 }
 
 /// Abre directamente la carpeta exacta de los respaldos en la app de Archivos
-/// del teléfono (`Descargas/Respaldo CataLog`). Si el sistema no tiene visor
-/// directo, muestra la ruta exacta y los archivos guardados ahí.
+/// del teléfono (`Descargas/Respaldo CataLog`).
 Future<void> ubicarRespaldosEnArchivos(BuildContext context) async {
   final abrio = await Sistema.abrirCarpetaRespaldos();
   if (!context.mounted) return;
@@ -510,13 +424,10 @@ Future<void> ubicarRespaldosEnArchivos(BuildContext context) async {
   );
 }
 
-/// Accesos directos: respaldo, traspaso, recibir datos y sesiones.
+/// Accesos directos desde Inicio: Wi-Fi local, Revisión de Supervisor y Respaldos.
 Future<void> mostrarRespaldoYTraspaso(BuildContext context) async {
   final scope = AppScope.of(context);
   final revision = scope.soloLectura;
-  final nombreSesion = scope.sesion == null || !scope.sesion!.esRevision
-      ? tr('Mis compras', 'My purchases')
-      : scope.sesion!.nombre;
   void ir(BuildContext hoja, Future<void> Function(BuildContext) accion) {
     Navigator.pop(hoja);
     accion(context);
@@ -528,65 +439,85 @@ Future<void> mostrarRespaldoYTraspaso(BuildContext context) async {
     isScrollControlled: true,
     builder: (hoja) => SafeArea(
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(hoja).size.height * 0.82),
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(hoja).size.height * 0.84),
         child: ListView(
           shrinkWrap: true,
           children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                tr('Respaldo y traspaso', 'Backup & transfer'),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  tr('Wi-Fi, Supervisor y Respaldos', 'Wi-Fi, Supervisor & Backups'),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
-          ),
-          if (!revision)
             ListTile(
-              leading: Icon(Icons.backup_outlined, color: CatalogColors.texto),
-              title: Text(tr('Crear respaldo', 'Create backup')),
-              subtitle: Text(tr('Se guarda en Descargas/Respaldo CataLog', 'Saved in Downloads/Respaldo CataLog')),
-              onTap: () => ir(hoja, crearRespaldoYEnviar),
+              leading: const Icon(Icons.wifi_tethering, color: CatalogColors.naranja),
+              title: Text(
+                tr('Sincronizar por Wi-Fi', 'Sync over Wi-Fi'),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: Text(
+                tr('Pasa compras de tu celular al del supervisor y viceversa', 'Transfer purchases between buyer & supervisor on the same Wi-Fi'),
+              ),
+              onTap: () => ir(hoja, sincronizarPorWifi),
             ),
-          if (!revision)
             ListTile(
-              leading: Icon(Icons.send_to_mobile_outlined, color: CatalogColors.texto),
-              title: Text(tr('Enviar mis compras a otro celular', 'Send my purchases to another phone')),
-              subtitle: Text(tr('Para que las revise y escanee los stickers', 'So they can review and scan stickers')),
-              onTap: () => ir(hoja, enviarAOtroCelular),
+              leading: const Icon(Icons.fact_check_outlined, color: Color(0xFF0F8B8D)),
+              title: Text(
+                tr('Revisión de Supervisor', 'Supervisor Review'),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: Text(
+                tr('Escáner de códigos para verificar catalíticos y generar Excel', 'Barcode/QR scanner to verify converters and export Excel'),
+              ),
+              onTap: () {
+                Navigator.pop(hoja);
+                abrir(context, const RevisionSupervisorScreen());
+              },
             ),
-          ListTile(
-            leading: Icon(Icons.download_outlined, color: CatalogColors.texto),
-            title: Text(tr('Recibir datos de otro celular', 'Receive data from another phone')),
-            subtitle: Text(tr('Abrir un archivo de CataLog', 'Open a CataLog file')),
-            onTap: () => ir(hoja, recibirDatos),
-          ),
-          ListTile(
-            leading: Icon(Icons.swap_horiz, color: CatalogColors.texto),
-            title: Text(tr('Cambiar de sesión', 'Switch session')),
-            subtitle: Text('${tr('Ahora', 'Current')}: $nombreSesion'),
-            onTap: () => ir(hoja, mostrarSesiones),
-          ),
-          ListTile(
-            leading: Icon(Icons.folder_special_outlined, color: CatalogColors.rojo),
-            title: Text(
-              tr('Ubicar respaldo', 'Locate backup'),
-              style: TextStyle(color: CatalogColors.rojo, fontWeight: FontWeight.w700),
-            ),
-            subtitle: Text(
-              tr('Abrir Descargas/Respaldo CataLog en mis archivos', 'Open Downloads/Respaldo CataLog in my files'),
-            ),
-            onTap: () => ir(hoja, ubicarRespaldosEnArchivos),
-          ),
-          if (!revision)
+            const Divider(),
+            if (!revision)
+              ListTile(
+                leading: Icon(Icons.backup_outlined, color: CatalogColors.texto),
+                title: Text(tr('Crear respaldo', 'Create backup')),
+                subtitle: Text(tr('Se guarda en Descargas/Respaldo CataLog', 'Saved in Downloads/Respaldo CataLog')),
+                onTap: () => ir(hoja, crearRespaldoYEnviar),
+              ),
+            if (!revision)
+              ListTile(
+                leading: Icon(Icons.send_to_mobile_outlined, color: CatalogColors.texto),
+                title: Text(tr('Enviar compras por archivo (.zip)', 'Send purchases as .zip file')),
+                subtitle: Text(tr('Por WhatsApp, correo o cable', 'Via WhatsApp, email, or cable')),
+                onTap: () => ir(hoja, enviarAOtroCelular),
+              ),
             ListTile(
-              leading: Icon(Icons.settings_backup_restore, color: CatalogColors.rojo),
-              title: Text(tr('Restaurar desde un respaldo', 'Restore from backup')),
-              subtitle: Text(tr('Elige un .zip y la app recupera tus compras', 'Pick a .zip to recover your purchases')),
-              onTap: () => ir(hoja, restaurarDesdeArchivo),
+              leading: Icon(Icons.download_outlined, color: CatalogColors.texto),
+              title: Text(tr('Recibir archivo .zip', 'Receive .zip file')),
+              subtitle: Text(tr('Abrir un archivo de CataLog en revisión o poblar datos', 'Open a CataLog file in review or populate data')),
+              onTap: () => ir(hoja, recibirDatos),
             ),
-          const SizedBox(height: 8),
+            ListTile(
+              leading: Icon(Icons.folder_special_outlined, color: CatalogColors.rojo),
+              title: Text(
+                tr('Ubicar respaldo', 'Locate backup'),
+                style: TextStyle(color: CatalogColors.rojo, fontWeight: FontWeight.w700),
+              ),
+              subtitle: Text(
+                tr('Abrir Descargas/Respaldo CataLog en mis archivos', 'Open Downloads/Respaldo CataLog in my files'),
+              ),
+              onTap: () => ir(hoja, ubicarRespaldosEnArchivos),
+            ),
+            if (!revision)
+              ListTile(
+                leading: Icon(Icons.settings_backup_restore, color: CatalogColors.rojo),
+                title: Text(tr('Restaurar desde un respaldo', 'Restore from backup')),
+                subtitle: Text(tr('Elige un .zip y la app recupera tus compras', 'Pick a .zip to recover your purchases')),
+                onTap: () => ir(hoja, restaurarDesdeArchivo),
+              ),
+            const SizedBox(height: 8),
           ],
         ),
       ),

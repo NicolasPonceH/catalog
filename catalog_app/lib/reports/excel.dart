@@ -358,6 +358,130 @@ List<int> excelDeLote(Lote lote, List<ItemLote> items, {String comprador = '', D
   return excel.encode()!;
 }
 
+// ---------- Revisión de Supervisor ----------
+
+/// Un ítem evaluado en la pantalla de Revisión de Supervisor.
+class FilaRevisionExcel {
+  const FilaRevisionExcel({
+    required this.codigo,
+    this.compra,
+    this.escaneadoEn,
+  });
+
+  final String codigo;
+  final Compra? compra;
+  final DateTime? escaneadoEn;
+
+  bool get verificado => escaneadoEn != null;
+}
+
+/// Excel generado desde el Módulo de Revisión del Supervisor: muestra los
+/// catalíticos escaneados/verificados, los faltantes y el monto total cuadrado.
+List<int> excelDeRevisionSupervisor(
+  List<FilaRevisionExcel> filas, {
+  String comprador = '',
+  String prefijo = '',
+  DateTime? generado,
+}) {
+  final excel = _nuevo('Revisión');
+  final h = excel['Revisión'];
+
+  final verificadasActivas = filas.where((f) => f.verificado && f.compra != null && !f.compra!.anulada).toList();
+  final totalVerificadas = filas.where((f) => f.verificado).length;
+  final pendientesActivas = filas.where((f) => !f.verificado && f.compra != null && !f.compra!.anulada).toList();
+  final montoVerificado = verificadasActivas.fold<int>(0, (s, f) => s + f.compra!.precio);
+  final montoPendiente = pendientesActivas.fold<int>(0, (s, f) => s + f.compra!.precio);
+  final montoCatalogo = montoVerificado + montoPendiente;
+
+  var fila = _cabecera(h, 'Revisión de Supervisor', [
+    if (comprador.isNotEmpty || prefijo.isNotEmpty)
+      'Comprador: ${comprador.isNotEmpty ? comprador : prefijo}'
+          '${comprador.isNotEmpty && prefijo.isNotEmpty ? ' (prefijo $prefijo)' : ''}',
+    'Verificados con cámara: $totalVerificadas · Pendientes por escanear: ${pendientesActivas.length}',
+    'Generado el ${fechaHora(generado ?? DateTime.now())}',
+  ], columnas: 10);
+
+  fila = _tarjetas(h, fila, [
+    ('VERIFICADOS', _i(totalVerificadas), _F.entero),
+    ('MONTO VERIFICADO', _i(montoVerificado), _F.dinero),
+    ('PENDIENTES', _i(pendientesActivas.length), _F.entero),
+    ('TOTAL CATÁLOGO', _i(montoCatalogo), _F.dinero),
+  ]);
+
+  const columnas = [
+    'Estado revisión',
+    'Código',
+    'Escaneado el',
+    'Fecha compra',
+    'Vendedor',
+    'Tipo',
+    'Código fábrica',
+    'Autos',
+    'Precio',
+    'Ubicación',
+  ];
+  _escribir(h, fila, [for (final c in columnas) _t(c)], [for (final _ in columnas) _encabezado()]);
+  h.setRowHeight(fila, 30);
+  fila++;
+
+  var k = 0;
+  for (final item in filas) {
+    final c = item.compra;
+    final franja = k.isOdd;
+    final anulada = c?.anulada ?? false;
+    final estado = anulada
+        ? 'Anulada'
+        : (item.verificado
+            ? (c != null ? 'Verificado ✓' : 'Leído (sin ficha)')
+            : 'Pendiente');
+    _escribir(h, fila, [
+      _t(estado),
+      _t(item.codigo),
+      _t(item.escaneadoEn != null ? fechaHora(item.escaneadoEn!) : '—'),
+      c != null ? _d(c.fechaCompra) : _t('—'),
+      _t(c?.vendedor ?? '—'),
+      _t(c?.tipo ?? '—'),
+      _t(c?.codigoFabrica ?? ''),
+      _t(c?.autos ?? ''),
+      _i(c?.precio ?? 0),
+      c != null ? _mapa(c) : null,
+    ], [
+      _celda(_F.texto, franja: franja, anulada: anulada),
+      _celda(_F.texto, franja: franja, anulada: anulada),
+      _celda(_F.texto, franja: franja, anulada: anulada),
+      _celda(c != null ? _F.fecha : _F.texto, franja: franja, anulada: anulada),
+      _celda(_F.texto, franja: franja, anulada: anulada),
+      _celda(_F.texto, franja: franja, anulada: anulada),
+      _celda(_F.texto, franja: franja, anulada: anulada),
+      _celda(_F.texto, franja: franja, anulada: anulada),
+      _celda(_F.dinero, franja: franja, anulada: anulada),
+      _celda(_F.enlace, franja: franja),
+    ]);
+    fila++;
+    k++;
+  }
+
+  _escribir(
+    h,
+    fila,
+    [_t('TOTAL VERIFICADO ($totalVerificadas)'), null, null, null, null, null, null, null, _i(montoVerificado), null],
+    [
+      _total(_F.texto),
+      _total(_F.texto),
+      _total(_F.texto),
+      _total(_F.texto),
+      _total(_F.texto),
+      _total(_F.texto),
+      _total(_F.texto),
+      _total(_F.texto),
+      _total(_F.dinero),
+      _total(_F.texto),
+    ],
+  );
+  _anchos(h, [18, 19, 18, 14, 22, 20, 16, 22, 13, 12]);
+  return excel.encode()!;
+}
+
 /// Guarda el archivo en la carpeta temporal y abre el menú para compartirlo
 /// (WhatsApp, correo, Drive…).
 Future<void> compartirExcel(List<int> bytes, String nombreArchivo, {String? texto}) async {

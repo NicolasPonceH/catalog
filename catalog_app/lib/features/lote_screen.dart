@@ -8,6 +8,7 @@ import '../domain/formato.dart';
 import '../i18n.dart';
 import '../reports/excel.dart';
 import '../system/confirmar.dart';
+import '../system/notificaciones.dart';
 import '../theme.dart';
 import '../widgets/compra_tile.dart';
 import '../widgets/consulta.dart';
@@ -146,6 +147,11 @@ class _LoteScreenState extends State<LoteScreen> {
     if (resultado == ResultadoEscaneo.agregado) {
       if (vibrar) HapticFeedback.mediumImpact();
       if (d?.sonar ?? true) SystemSound.play(SystemSoundType.click);
+      Notificaciones.avisarCataliticoEscaneado(
+        d,
+        codigo: codigo,
+        detalle: '${compra!.tipo} · ${clp(compra.precio)} · ${compra.vendedor}',
+      );
     } else if (!bien && vibrar) {
       HapticFeedback.heavyImpact();
     }

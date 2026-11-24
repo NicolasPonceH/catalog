@@ -3,7 +3,9 @@ import 'package:material_ui/material_ui.dart';
 
 import '../app_scope.dart';
 import '../domain/codigo.dart';
+import '../domain/formato.dart';
 import '../i18n.dart';
+import '../system/notificaciones.dart';
 import '../theme.dart';
 import '../widgets/escaner_vista.dart';
 import '../widgets/guia.dart';
@@ -66,6 +68,11 @@ class _EscanearScreenState extends State<EscanearScreen> {
     final d = AppScope.of(context).dispositivo;
     if (d?.vibrar ?? true) HapticFeedback.mediumImpact();
     if (d?.sonar ?? true) SystemSound.play(SystemSoundType.click);
+    Notificaciones.avisarCataliticoEscaneado(
+      d,
+      codigo: compra.codigo,
+      detalle: '${compra.tipo} · ${clp(compra.precio)} · ${compra.vendedor}',
+    );
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => FichaScreen(id: compra.id)),
     );

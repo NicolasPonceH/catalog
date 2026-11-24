@@ -32,15 +32,30 @@ class AjustesDispositivo extends ChangeNotifier {
   /// 'es' (español) o 'en' (inglés).
   static const idioma = 'idioma';
 
-  // ---- Notificaciones locales (100 % sin internet) ----
+  // ---- Fotos y almacenamiento ----
+  /// 'ligera' (~80 KB, por defecto), 'normal' (~220 KB) o 'alta' (~450 KB).
+  static const calidadFoto = 'calidad_foto';
+
+  // ---- Modo de guardado de respaldos ----
+  /// 'sobrescribir' (un único archivo siempre al día, por defecto),
+  /// 'expirar_7' (borra los de más de 7 días) o 'expirar_30' (más de 30 días).
+  static const modoRespaldo = 'modo_respaldo';
+
+  // ---- Notificaciones locales ----
   static const sinNotifRespaldo = 'sin_notif_respaldo';
   static const sinNotifSinImprimir = 'sin_notif_sin_imprimir';
   static const sinNotifRecordarRespaldo = 'sin_notif_recordar_respaldo';
   static const sinNotifResumenDia = 'sin_notif_resumen_dia';
   static const sinNotifLoteAbierto = 'sin_notif_lote_abierto';
+  static const sinNotifAlSalir = 'sin_notif_al_salir';
+  static const sinNotifEscaneo = 'sin_notif_escaneo';
 
   /// Hora del recordatorio diario en formato 'HH:MM' (por defecto '20:00').
   static const horaRecordatorio = 'hora_recordatorio';
+
+  /// Cada cuántos minutos repetir avisos pendientes en el día:
+  /// '30', '60' (por defecto), '120', '240' o '0' (solo a la hora fija).
+  static const intervaloRecordatorioMin = 'intervalo_recordatorio_min';
 
   String get temaElegido => leer(tema) ?? 'claro';
   String get idiomaElegido => leer(idioma) == 'en' ? 'en' : 'es';
@@ -48,11 +63,49 @@ class AjustesDispositivo extends ChangeNotifier {
   bool get vibrar => !activado(sinVibrar);
   bool get sonar => !activado(sinSonido);
 
+  String get calidadFotoElegida {
+    final v = leer(calidadFoto);
+    return (v == 'normal' || v == 'alta') ? v! : 'ligera';
+  }
+
+  double get ladoMaxFoto => switch (calidadFotoElegida) {
+        'alta' => 1800,
+        'normal' => 1360,
+        _ => 1024,
+      };
+
+  int get calidadJpegFoto => switch (calidadFotoElegida) {
+        'alta' => 82,
+        'normal' => 72,
+        _ => 62,
+      };
+
+  String get modoRespaldoElegido {
+    final v = leer(modoRespaldo);
+    return (v == 'expirar_7' || v == 'expirar_30') ? v! : 'sobrescribir';
+  }
+
+  int? get diasExpiracionRespaldo => switch (modoRespaldoElegido) {
+        'expirar_7' => 7,
+        'expirar_30' => 30,
+        _ => null,
+      };
+
+  bool get sobrescribirRespaldo => modoRespaldoElegido == 'sobrescribir';
+
   bool get notifRespaldo => !activado(sinNotifRespaldo);
   bool get notifSinImprimir => !activado(sinNotifSinImprimir);
   bool get notifRecordarRespaldo => !activado(sinNotifRecordarRespaldo);
   bool get notifResumenDia => !activado(sinNotifResumenDia);
   bool get notifLoteAbierto => !activado(sinNotifLoteAbierto);
+  bool get notifAlSalir => !activado(sinNotifAlSalir);
+  bool get notifEscaneo => !activado(sinNotifEscaneo);
+
+  int get minutosRepeticionRecordatorio {
+    final v = int.tryParse(leer(intervaloRecordatorioMin) ?? '');
+    if (v != null && const {0, 30, 60, 120, 240}.contains(v)) return v;
+    return 60;
+  }
 
   (int, int) get horaMinutoRecordatorio {
     final partes = (leer(horaRecordatorio) ?? '20:00').split(':');

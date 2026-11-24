@@ -312,4 +312,15 @@ class ComprasRepo {
     );
     return filas.map((f) => f['v']! as String).toList();
   }
+
+  /// Sugerencias priorizando las más frecuentes y luego las más recientes.
+  Future<List<String>> sugerenciasFrecuentes(String columna) async {
+    const permitidas = {'vendedor', 'lugar', 'autos', 'codigo_fabrica'};
+    if (!permitidas.contains(columna)) throw ArgumentError(columna);
+    final filas = await _db.rawQuery(
+      'SELECT $columna AS v, COUNT(*) AS usos, MAX(fecha_compra) AS m FROM compras '
+      "WHERE estado = 'activa' AND $columna <> '' GROUP BY $columna ORDER BY usos DESC, m DESC LIMIT 200",
+    );
+    return filas.map((f) => f['v']! as String).toList();
+  }
 }

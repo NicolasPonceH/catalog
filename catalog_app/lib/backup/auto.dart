@@ -18,10 +18,12 @@ bool tocaRespaldoAutomatico(DateTime? ultimo, DateTime ahora) =>
 
 String _dos(int n) => n.toString().padLeft(2, '0');
 
-String nombreAutoRespaldo(String prefijo, DateTime f) =>
-    '$inicioNombreAutoRespaldo$prefijo-${f.year}${_dos(f.month)}${_dos(f.day)}.zip';
+String nombreAutoRespaldo(String prefijo, DateTime f, {bool sobrescribir = false}) => sobrescribir
+    ? '$inicioNombreAutoRespaldo$prefijo.zip'
+    : '$inicioNombreAutoRespaldo$prefijo-${f.year}${_dos(f.month)}${_dos(f.day)}.zip';
 
-/// Guarda una copia diaria en Descargas/CataLog (se conservan las 3 últimas).
+/// Guarda una copia diaria en Descargas/Respaldo CataLog (sobrescribiendo un
+/// único archivo o expirando los antiguos según la preferencia del usuario).
 /// Solo para la sesión de compra. No hace nada si ya se hizo hoy o si no hay compras.
 Future<void> respaldoAutomatico({
   required CatalogDb base,
@@ -35,11 +37,14 @@ Future<void> respaldoAutomatico({
   if (await repo.contarCompras() == 0) return;
   await Notificaciones.avisarRespaldoEnCurso(dispositivo, automatico: true);
   final zip = await armarRespaldo(base, carpeta, ahora: cuando);
+  final unico = dispositivo.sobrescribirRespaldo;
+  final pref = await repo.prefijo();
   final lugar = await Sistema.guardarEnDescargas(
-    nombreAutoRespaldo(await repo.prefijo(), cuando),
+    nombreAutoRespaldo(pref, cuando, sobrescribir: unico),
     zip,
     prefijoBorrar: inicioNombreAutoRespaldo,
-    conservar: 3,
+    conservar: unico ? 1 : 30,
+    expirarDias: dispositivo.diasExpiracionRespaldo,
   );
   await dispositivo.guardar(AjustesDispositivo.ultimoAutoRespaldo, cuando.toIso8601String());
   if (lugar != null) await dispositivo.guardar(AjustesDispositivo.lugarAutoRespaldo, lugar);

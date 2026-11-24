@@ -17,11 +17,14 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
     <!-- Bloqueo con huella. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
-    <!-- Notificaciones locales (sin internet): respaldos y recordatorios diarios. -->
+    <!-- Notificaciones locales: respaldos, alertas al salir y recordatorios periódicos. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    <!-- La app no usa internet: se quita el permiso que agrega la librería de impresión. -->
-    <uses-permission android:name="android.permission.INTERNET" tools:node="remove"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- Red Wi-Fi local exclusivamente para sincronizar compras entre celulares (comprador ⇄ supervisor), sin nube externa. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
     <application
         android:label="CataLog"
         android:name="${applicationName}"
@@ -71,6 +74,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="cl.catalog.RECORDATORIO_DIARIO"/>
+                <action android:name="cl.catalog.RECORDATORIO_PERIODICO"/>
             </intent-filter>
         </receiver>
         <!-- Don't delete the meta-data below.

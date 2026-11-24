@@ -209,9 +209,9 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
     final repo = AppScope.of(context).compras;
     List<String> v, l, a, cf;
     try {
-      v = await repo.sugerencias('vendedor');
+      v = await repo.sugerenciasFrecuentes('vendedor');
       l = await repo.sugerencias('lugar');
-      a = await repo.sugerencias('autos');
+      a = await repo.sugerenciasFrecuentes('autos');
       cf = await repo.sugerencias('codigo_fabrica');
     } catch (_) {
       return; // sin sugerencias no pasa nada
@@ -301,13 +301,17 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
   }
 
   Future<void> _tomarFoto() async {
-    final fotos = AppScope.of(context).fotos;
+    final scope = AppScope.of(context);
+    final fotos = scope.fotos;
+    final disp = scope.dispositivo;
+    final maxLado = disp?.ladoMaxFoto ?? 1024;
+    final calidad = disp?.calidadJpegFoto ?? 62;
     try {
       final x = await ImagePicker().pickImage(
         source: ImageSource.camera,
-        maxWidth: 1600,
-        maxHeight: 1600,
-        imageQuality: 75,
+        maxWidth: maxLado,
+        maxHeight: maxLado,
+        imageQuality: calidad,
       );
       if (x == null) return;
       final relativa = await fotos.guardar(x.path);
@@ -435,6 +439,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                   opciones: _vendedores,
                   icono: Icons.person_outline,
                   mayusculas: TextCapitalization.words,
+                  mostrarChipsRapidos: true,
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? tr('Escribe a quién se lo compraste', 'Enter the seller name') : null,
                 ),
@@ -493,6 +498,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                   ayuda: 'Toyota Yaris 2008-2013',
                   opciones: _autosUsados,
                   icono: Icons.directions_car_outlined,
+                  mostrarChipsRapidos: true,
                 ),
                 const SizedBox(height: 16),
                 KeyedSubtree(key: _gFoto, child: _seccionFoto()),
