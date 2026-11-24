@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../app_scope.dart';
+import '../i18n.dart';
 import 'bloqueo.dart';
 
 /// Antes de borrar o anular algo, pide la huella, el rostro o el PIN del teléfono.
@@ -9,6 +10,11 @@ import 'bloqueo.dart';
 Future<bool> confirmarConHuella(BuildContext context, String motivo) async {
   if (!await Bloqueo.disponible()) return true;
   final ok = await Bloqueo.desbloquear(motivo);
-  if (!ok && context.mounted) avisar(context, 'No se confirmó con huella o PIN: no se borró nada');
+  if (!ok && context.mounted) {
+    avisar(
+      context,
+      tr('No se confirmó con huella o PIN: no se borró nada', 'Fingerprint or PIN not confirmed: nothing was deleted'),
+    );
+  }
   return ok;
 }

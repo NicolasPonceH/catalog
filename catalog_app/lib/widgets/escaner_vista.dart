@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../i18n.dart';
+
 /// Cámara que lee el QR o el código de barras del sticker.
 /// No repite el mismo código si se queda frente a la cámara.
 class EscanerVista extends StatefulWidget {
@@ -56,8 +58,11 @@ class _EscanerVistaState extends State<EscanerVista> {
                   padding: const EdgeInsets.all(20),
                   child: Text(
                     error.errorCode == MobileScannerErrorCode.permissionDenied
-                        ? 'CataLog no tiene permiso para usar la cámara. Actívalo en Ajustes de Android > Apps > CataLog > Permisos.'
-                        : 'No se pudo abrir la cámara.',
+                        ? tr(
+                            'CataLog no tiene permiso para usar la cámara. Actívalo en Ajustes de Android > Apps > CataLog > Permisos.',
+                            'CataLog does not have camera permission. Enable it in Android Settings > Apps > CataLog > Permissions.',
+                          )
+                        : tr('No se pudo abrir la cámara.', 'Could not open camera.'),
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
                   ),
@@ -80,7 +85,7 @@ class _EscanerVistaState extends State<EscanerVista> {
               right: 8,
               top: 8,
               child: IconButton.filledTonal(
-                tooltip: 'Linterna',
+                tooltip: tr('Linterna', 'Flashlight'),
                 icon: Icon(_linterna ? Icons.flashlight_off : Icons.flashlight_on),
                 onPressed: () {
                   _control.toggleTorch();
@@ -101,7 +106,7 @@ Future<String?> pedirCodigoManual(BuildContext context) {
   return showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Escribir código'),
+      title: Text(tr('Escribir código', 'Enter code')),
       content: TextField(
         controller: control,
         autofocus: true,
@@ -110,8 +115,8 @@ Future<String?> pedirCodigoManual(BuildContext context) {
         onSubmitted: (v) => Navigator.pop(context, v),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-        TextButton(onPressed: () => Navigator.pop(context, control.text), child: const Text('Buscar')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Cancelar', 'Cancel'))),
+        TextButton(onPressed: () => Navigator.pop(context, control.text), child: Text(tr('Buscar', 'Search'))),
       ],
     ),
   ).whenComplete(control.dispose);

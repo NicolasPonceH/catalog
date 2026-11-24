@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../app_scope.dart';
 import '../data/dispositivo.dart';
+import '../i18n.dart';
 import '../theme.dart';
 
 /// Un paso de la guía: qué parte de la pantalla se ilumina y qué se explica.
@@ -256,7 +257,7 @@ class _Tarjeta extends StatelessWidget {
                   width: 32,
                   height: 32,
                   child: IconButton(
-                    tooltip: 'Salir de la guía',
+                    tooltip: tr('Salir de la guía', 'Exit guide'),
                     padding: EdgeInsets.zero,
                     iconSize: 20,
                     color: CatalogColors.acero,
@@ -272,7 +273,7 @@ class _Tarjeta extends StatelessWidget {
                 _Puntos(actual: numero - 1, total: total),
                 const Spacer(),
                 if (alAtras != null)
-                  TextButton(onPressed: alAtras, child: const Text('Atrás')),
+                  TextButton(onPressed: alAtras, child: Text(tr('Atrás', 'Back'))),
                 const SizedBox(width: 4),
                 FilledButton(
                   style: FilledButton.styleFrom(
@@ -280,7 +281,7 @@ class _Tarjeta extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                   ),
                   onPressed: alSiguiente,
-                  child: Text(ultimo ? 'Listo' : 'Siguiente'),
+                  child: Text(ultimo ? tr('Listo', 'Done') : tr('Siguiente', 'Next')),
                 ),
               ],
             ),
@@ -301,7 +302,7 @@ class _Puntos extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (total > 8) {
-      return Text('${actual + 1} de $total', style: etiqueta);
+      return Text(tr('${actual + 1} de $total', '${actual + 1} of $total'), style: etiqueta);
     }
     return Row(
       children: [
@@ -467,7 +468,7 @@ class _BotonAyudaState extends State<BotonAyuda> with SingleTickerProviderStateM
             ),
           ),
         IconButton(
-          tooltip: 'Ayuda: guía de esta pantalla',
+          tooltip: tr('Ayuda: guía de esta pantalla', 'Help: guide for this screen'),
           icon: const Icon(Icons.help_outline),
           onPressed: _tocar,
         ),

@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../app_scope.dart';
+import '../i18n.dart';
 import '../theme.dart';
 import 'escanear_screen.dart';
 import 'historial_screen.dart';
@@ -125,19 +126,19 @@ class _Barra extends StatelessWidget {
           height: 64,
           child: Row(
             children: [
-              item(Pestana.inicio, Icons.home_outlined, Icons.home, 'Inicio'),
-              item(Pestana.historial, Icons.history, Icons.history, 'Historial'),
-              const Expanded(
+              item(Pestana.inicio, Icons.home_outlined, Icons.home, tr('Inicio', 'Home')),
+              item(Pestana.historial, Icons.history, Icons.history, tr('Historial', 'History')),
+              Expanded(
                 child: Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
-                    padding: EdgeInsets.only(bottom: 9),
-                    child: Text('Escanear', style: TextStyle(color: Colors.white70, fontSize: 11.5)),
+                    padding: const EdgeInsets.only(bottom: 9),
+                    child: Text(tr('Escanear', 'Scan'), style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
                   ),
                 ),
               ),
-              item(Pestana.lotes, Icons.inventory_2_outlined, Icons.inventory_2, 'Lotes'),
-              item(Pestana.reportes, Icons.bar_chart_outlined, Icons.bar_chart, 'Reportes'),
+              item(Pestana.lotes, Icons.inventory_2_outlined, Icons.inventory_2, tr('Lotes', 'Batches')),
+              item(Pestana.reportes, Icons.bar_chart_outlined, Icons.bar_chart, tr('Reportes', 'Reports')),
             ],
           ),
         ),
@@ -230,7 +231,7 @@ class _BotonEscanearState extends State<BotonEscanear> {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: 'Escanear sticker',
+      message: tr('Escanear sticker', 'Scan sticker'),
       child: GestureDetector(
         onTapDown: (_) => setState(() => _apretado = true),
         onTapCancel: () => setState(() => _apretado = false),

@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../app_scope.dart';
 import '../domain/codigo.dart';
+import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/animaciones.dart';
 import '../widgets/catalog_logo.dart';
@@ -39,46 +40,62 @@ class _Pagina {
   final Color color;
 }
 
-const _paginas = [
-  _Pagina(
-    Ilustracion.bienvenida,
-    'Bienvenido a CataLog',
-    'Lleva el control de cada catalítico que compras: a quién, cuándo, dónde y cuánto pagaste.',
-    Color(0xFF1B4470),
-  ),
-  _Pagina(
-    Ilustracion.registro,
-    'Anota cada compra',
-    'La fecha y la hora se llenan solas. Agrega el vendedor, el precio, el tipo y una foto. '
-        'El GPS funciona aunque no haya señal.',
-    Color(0xFF1D4F6E),
-  ),
-  _Pagina(
-    Ilustracion.sticker,
-    'Imprime su sticker',
-    'Cada catalítico recibe un código único con QR y código de barras. '
-        'Imprímelo en tu impresora Bluetooth y pégalo en la pieza.',
-    Color(0xFF2A3F6E),
-  ),
-  _Pagina(
-    Ilustracion.escaneo,
-    'Escanea y arma lotes',
-    'Apunta la cámara al sticker y ves toda su ficha. En un lote, cada lectura suma lo que pagaste.',
-    Color(0xFF173F63),
-  ),
-  _Pagina(
-    Ilustracion.reportes,
-    'Reportes en Excel',
-    'Mira cuánto gastaste por día, semana o mes, por tipo y por vendedor, y mándalo por WhatsApp.',
-    Color(0xFF214A5E),
-  ),
-  _Pagina(
-    Ilustracion.seguridad,
-    'Tus datos, seguros',
-    'Todo queda en tu teléfono, sin internet. Respaldo diario en Descargas y tu huella para borrar o anular.',
-    Color(0xFF26406A),
-  ),
-];
+List<_Pagina> get _paginas => [
+      _Pagina(
+        Ilustracion.bienvenida,
+        tr('Bienvenido a CataLog', 'Welcome to CataLog'),
+        tr(
+          'Lleva el control de cada catalítico que compras: a quién, cuándo, dónde y cuánto pagaste.',
+          'Keep track of every catalytic converter you buy: from whom, when, where, and how much you paid.',
+        ),
+        const Color(0xFF1B4470),
+      ),
+      _Pagina(
+        Ilustracion.registro,
+        tr('Anota cada compra', 'Log each purchase'),
+        tr(
+          'La fecha y la hora se llenan solas. Agrega el vendedor, el precio, el tipo y una foto. El GPS funciona aunque no haya señal.',
+          'Date and time fill in automatically. Add seller, price, type, and a photo. GPS works even offline.',
+        ),
+        const Color(0xFF1D4F6E),
+      ),
+      _Pagina(
+        Ilustracion.sticker,
+        tr('Imprime su sticker', 'Print its sticker'),
+        tr(
+          'Cada catalítico recibe un código único con QR y código de barras. Imprímelo en tu impresora Bluetooth y pégalo en la pieza.',
+          'Each converter gets a unique code with QR and barcode. Print it on your Bluetooth printer and stick it on the unit.',
+        ),
+        const Color(0xFF2A3F6E),
+      ),
+      _Pagina(
+        Ilustracion.escaneo,
+        tr('Escanea y arma lotes', 'Scan & build batches'),
+        tr(
+          'Apunta la cámara al sticker y ves toda su ficha. En un lote, cada lectura suma lo que pagaste.',
+          'Point the camera at the sticker to view its full record. In a batch, each scan adds up what you paid.',
+        ),
+        const Color(0xFF173F63),
+      ),
+      _Pagina(
+        Ilustracion.reportes,
+        tr('Reportes en Excel', 'Excel reports'),
+        tr(
+          'Mira cuánto gastaste por día, semana o mes, por tipo y por vendedor, y mándalo por WhatsApp.',
+          'See how much you spent by day, week, or month, by type and by seller, and share it via WhatsApp.',
+        ),
+        const Color(0xFF214A5E),
+      ),
+      _Pagina(
+        Ilustracion.seguridad,
+        tr('Tus datos, seguros', 'Your data, safe'),
+        tr(
+          'Todo queda en tu teléfono, sin internet. Respaldo diario en Descargas y tu huella para borrar o anular.',
+          'Everything stays on your phone, offline. Daily backup in Downloads and your fingerprint to delete or void.',
+        ),
+        const Color(0xFF26406A),
+      ),
+    ];
 
 /// Presentación en carrusel de la primera vez. La última página pide el nombre
 /// y el prefijo de los códigos (en la sesión de compra).
@@ -190,7 +207,7 @@ class _PresentacionScreenState extends State<PresentacionScreen> {
                       child: TextButton(
                         style: TextButton.styleFrom(foregroundColor: Colors.white70),
                         onPressed: _enUltima ? null : () => _terminar(saltar: true),
-                        child: const Text('Saltar'),
+                        child: Text(tr('Saltar', 'Skip')),
                       ),
                     ),
                   ],
@@ -219,7 +236,7 @@ class _PresentacionScreenState extends State<PresentacionScreen> {
                         key: ValueKey(_enUltima),
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(_enUltima ? 'Empezar' : 'Siguiente'),
+                          Text(_enUltima ? tr('Empezar', 'Start') : tr('Siguiente', 'Next')),
                           const SizedBox(width: 8),
                           Icon(_enUltima ? Icons.check : Icons.arrow_forward, size: 20),
                         ],
@@ -370,29 +387,35 @@ class _PresentacionScreenState extends State<PresentacionScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                const Text(
-                  'Antes de empezar',
+                Text(
+                  tr('Antes de empezar', 'Before starting'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: CatalogColors.niebla, fontSize: 26, fontWeight: FontWeight.w700),
+                  style: const TextStyle(color: CatalogColors.niebla, fontSize: 26, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Así CataLog te saluda por tu nombre y tus códigos no se repiten con los del otro comprador.',
+                  tr(
+                    'Así CataLog te saluda por tu nombre y tus códigos no se repiten con los del otro comprador.',
+                    'This way CataLog greets you by name and your codes never collide with another buyer’s.',
+                  ),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 15, height: 1.4),
                 ),
                 const SizedBox(height: 24),
                 // Etiquetas arriba de cada campo (sobre el fondo azul se leen mejor que flotando en el borde).
-                const Text('Tu nombre', style: etiquetaCampo),
+                Text(tr('Tu nombre', 'Your name'), style: etiquetaCampo),
                 const SizedBox(height: 6),
                 TextField(
                   controller: _nombre,
                   textCapitalization: TextCapitalization.words,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(hintText: 'Ej: Juan Pérez', prefixIcon: Icon(Icons.person_outline)),
+                  decoration: InputDecoration(
+                    hintText: tr('Ej: Juan Pérez', 'E.g. John Smith'),
+                    prefixIcon: const Icon(Icons.person_outline),
+                  ),
                 ),
                 const SizedBox(height: 14),
-                const Text('Prefijo de los códigos (2 a 5 letras)', style: etiquetaCampo),
+                Text(tr('Prefijo de los códigos (2 a 5 letras)', 'Code prefix (2 to 5 letters)'), style: etiquetaCampo),
                 const SizedBox(height: 6),
                 TextField(
                   controller: _prefijo,
@@ -420,9 +443,9 @@ class _PresentacionScreenState extends State<PresentacionScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Así se verán tus códigos',
-                              style: TextStyle(color: Colors.white60, fontSize: 12.5),
+                            Text(
+                              tr('Así se verán tus códigos', 'How your codes will look'),
+                              style: const TextStyle(color: Colors.white60, fontSize: 12.5),
                             ),
                             const SizedBox(height: 2),
                             AnimatedSwitcher(
@@ -453,10 +476,10 @@ class _PresentacionScreenState extends State<PresentacionScreen> {
                         children: [
                           const Icon(Icons.help_outline, color: CatalogColors.naranja, size: 28),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Mostrarme una guía rápida al entrar',
-                              style: TextStyle(color: CatalogColors.niebla, fontSize: 15),
+                              tr('Mostrarme una guía rápida al entrar', 'Show me a quick guide when entering'),
+                              style: const TextStyle(color: CatalogColors.niebla, fontSize: 15),
                             ),
                           ),
                           Switch(

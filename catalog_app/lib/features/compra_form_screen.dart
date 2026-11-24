@@ -10,6 +10,7 @@ import '../data/ubicacion.dart';
 import '../domain/codigo.dart';
 import '../domain/formato.dart';
 import '../domain/tipos.dart';
+import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/campo_autocompletar.dart';
 import '../widgets/guia.dart';
@@ -75,51 +76,74 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
       PasoGuia(
         clave: _gFecha,
         icono: Icons.event,
-        titulo: 'Fecha y hora de compra',
-        texto: 'Es el dato más importante y se llena solo. Si anotas la compra más tarde, tócala y pon '
-            'la fecha y hora reales: el código usa esta fecha.',
+        titulo: tr('Fecha y hora de compra', 'Purchase date & time'),
+        texto: tr(
+          'Es el dato más importante y se llena solo. Si anotas la compra más tarde, tócala y pon la fecha y hora reales: el código usa esta fecha.',
+          'The most important field — filled in automatically. If you log the purchase later, tap it to enter the actual date and time: the code uses this date.',
+        ),
       ),
       PasoGuia(
         clave: _gVendedor,
         icono: Icons.person_outline,
-        titulo: 'Vendedor',
-        texto: 'A quién se lo compraste. Al escribir, CataLog te sugiere los vendedores que ya usaste.',
+        titulo: tr('Vendedor', 'Seller'),
+        texto: tr(
+          'A quién se lo compraste. Al escribir, CataLog te sugiere los vendedores que ya usaste.',
+          'Who you bought it from. As you type, CataLog suggests sellers you have used before.',
+        ),
       ),
       PasoGuia(
         clave: _gLugar,
         icono: Icons.place_outlined,
-        titulo: 'Lugar y GPS',
-        texto: 'Escribe el lugar; el GPS se guarda solo, aunque no haya señal. Si salió mal, toca "Actualizar".',
+        titulo: tr('Lugar y GPS', 'Place & GPS'),
+        texto: tr(
+          'Escribe el lugar; el GPS se guarda solo, aunque no haya señal. Si salió mal, toca "Actualizar".',
+          'Enter the location; GPS coordinates are saved automatically, even offline. Tap "Update" to refresh.',
+        ),
       ),
       PasoGuia(
         clave: _gPrecio,
         icono: Icons.payments_outlined,
-        titulo: 'Precio pagado',
-        texto: 'En pesos, sin decimales. No sale en el sticker: solo lo ves tú en la app.',
+        titulo: tr('Precio pagado', 'Price paid'),
+        texto: tr(
+          'En pesos, sin decimales. No sale en el sticker: solo lo ves tú en la app.',
+          'In pesos, no decimals. Never printed on the sticker: only visible to you in the app.',
+        ),
       ),
       PasoGuia(
         clave: _gTipo,
         icono: Icons.category_outlined,
-        titulo: 'Tipo de catalítico',
-        texto: 'Elige el motor y el material. Si eliges DPF, el motor queda en diésel.',
+        titulo: tr('Tipo de catalítico', 'Converter type'),
+        texto: tr(
+          'Elige el motor y el material. Si eliges DPF, el motor queda en diésel.',
+          'Choose engine and material. Selecting DPF automatically sets the engine to diesel.',
+        ),
       ),
       PasoGuia(
         clave: _gFabrica,
         icono: Icons.tag,
-        titulo: 'Código de fábrica y autos',
-        texto: 'El código grabado en la pieza y de qué autos es. Sirven para buscarlo después en el historial.',
+        titulo: tr('Código de fábrica y autos', 'Factory code & vehicles'),
+        texto: tr(
+          'El código grabado en la pieza y de qué autos es. Sirven para buscarlo después en el historial.',
+          'The code stamped on the shell and compatible vehicles. Useful for searching in history later.',
+        ),
       ),
       PasoGuia(
         clave: _gFoto,
         icono: Icons.photo_camera_outlined,
-        titulo: 'Foto',
-        texto: 'Una foto del catalítico queda guardada en su ficha, como respaldo.',
+        titulo: tr('Foto', 'Photo'),
+        texto: tr(
+          'Una foto del catalítico queda guardada en su ficha, como respaldo.',
+          'A photo of the converter stays attached to its record as proof.',
+        ),
       ),
       PasoGuia(
         clave: _gGuardar,
         icono: Icons.check_circle_outline,
-        titulo: 'Guardar',
-        texto: 'Al guardar se crea el código único y se abre la ficha, lista para imprimir el sticker.',
+        titulo: tr('Guardar', 'Save'),
+        texto: tr(
+          'Al guardar se crea el código único y se abre la ficha, lista para imprimir el sticker.',
+          'Saving generates the unique code and opens the record, ready to print its sticker.',
+        ),
       ),
     ]);
   }
@@ -223,13 +247,13 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
       initialDate: _fecha.isAfter(ahora) ? ahora : _fecha,
       firstDate: DateTime(2015),
       lastDate: ahora,
-      helpText: 'Fecha de compra',
+      helpText: tr('Fecha de compra', 'Purchase date'),
     );
     if (dia == null || !mounted) return;
     final h = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_fecha),
-      helpText: 'Hora de compra',
+      helpText: tr('Hora de compra', 'Purchase time'),
     );
     if (!mounted) return;
     setState(() {
@@ -258,7 +282,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
         _sucio = true;
       });
     } catch (e) {
-      if (mounted) avisar(context, 'No se pudo usar la cámara: $e');
+      if (mounted) avisar(context, '${tr('No se pudo usar la cámara', 'Could not use camera')}: $e');
     }
   }
 
@@ -275,14 +299,16 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
 
   Future<void> _guardar() async {
     final errFecha = validarFechaCompra(_fecha, DateTime.now());
-    final errTipo = (_motor == null || _material == null) ? 'Elige el motor y el material' : null;
+    final errTipo = (_motor == null || _material == null)
+        ? tr('Elige el motor y el material', 'Choose engine and material')
+        : null;
     final formOk = _form.currentState!.validate();
     setState(() {
       _errorFecha = errFecha;
       _errorTipo = errTipo;
     });
     if (!formOk || errFecha != null || errTipo != null) {
-      avisar(context, 'Revisa los campos marcados en rojo');
+      avisar(context, tr('Revisa los campos marcados en rojo', 'Check the fields highlighted in red'));
       return;
     }
 
@@ -322,7 +348,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _guardando = false);
-      avisar(context, e is DatosInvalidos ? e.mensaje : 'No se pudo guardar: $e');
+      avisar(context, e is DatosInvalidos ? e.mensaje : '${tr('No se pudo guardar', 'Could not save')}: $e');
     }
   }
 
@@ -330,11 +356,11 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
     final salir = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('¿Salir sin guardar?'),
-        content: const Text('Se perderá lo que escribiste en esta compra.'),
+        title: Text(tr('¿Salir sin guardar?', 'Leave without saving?')),
+        content: Text(tr('Se perderá lo que escribiste en esta compra.', 'Changes to this purchase will be lost.')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Seguir editando')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Salir')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Seguir editando', 'Keep editing'))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('Salir', 'Leave'))),
         ],
       ),
     );
@@ -353,7 +379,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_editando ? 'Corregir compra' : 'Nueva compra'),
+          title: Text(_editando ? tr('Corregir compra', 'Edit purchase') : tr('Nueva compra', 'New purchase')),
           actions: [BotonAyuda(alTocar: _mostrarGuia)],
         ),
         body: SafeArea(
@@ -368,12 +394,12 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                 CampoAutocompletar(
                   key: _gVendedor,
                   controller: _vendedor,
-                  etiqueta: 'Vendedor',
+                  etiqueta: tr('Vendedor', 'Seller'),
                   opciones: _vendedores,
                   icono: Icons.person_outline,
                   mayusculas: TextCapitalization.words,
                   validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Escribe a quién se lo compraste' : null,
+                      (v == null || v.trim().isEmpty) ? tr('Escribe a quién se lo compraste', 'Enter the seller name') : null,
                 ),
                 const SizedBox(height: 12),
                 Column(
@@ -382,8 +408,8 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                   children: [
                     CampoAutocompletar(
                       controller: _lugar,
-                      etiqueta: 'Lugar de compra',
-                      ayuda: 'Feria Agro, taller, domicilio…',
+                      etiqueta: tr('Lugar de compra', 'Purchase location'),
+                      ayuda: tr('Feria Agro, taller, domicilio…', 'Market, shop, address…'),
                       opciones: _lugares,
                       icono: Icons.place_outlined,
                     ),
@@ -397,12 +423,12 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [ClpInputFormatter()],
                   style: mono(size: 18),
-                  decoration: const InputDecoration(
-                    labelText: 'Precio pagado',
+                  decoration: InputDecoration(
+                    labelText: tr('Precio pagado', 'Price paid'),
                     prefixText: r'$ ',
-                    prefixIcon: Icon(Icons.payments_outlined),
+                    prefixIcon: const Icon(Icons.payments_outlined),
                   ),
-                  validator: (v) => parseClp(v ?? '') == null ? 'Escribe el precio' : null,
+                  validator: (v) => parseClp(v ?? '') == null ? tr('Escribe el precio', 'Enter the price') : null,
                 ),
                 const SizedBox(height: 18),
                 KeyedSubtree(key: _gTipo, child: _tipo()),
@@ -412,16 +438,16 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                   controller: _codigoFabrica,
                   textCapitalization: TextCapitalization.characters,
                   style: mono(size: 16),
-                  decoration: const InputDecoration(
-                    labelText: 'Código grabado de fábrica',
+                  decoration: InputDecoration(
+                    labelText: tr('Código grabado de fábrica', 'Factory stamped code'),
                     hintText: '0D140',
-                    prefixIcon: Icon(Icons.tag),
+                    prefixIcon: const Icon(Icons.tag),
                   ),
                 ),
                 const SizedBox(height: 12),
                 CampoAutocompletar(
                   controller: _autos,
-                  etiqueta: 'De qué autos es',
+                  etiqueta: tr('De qué autos es', 'Compatible vehicles'),
                   ayuda: 'Toyota Yaris 2008-2013',
                   opciones: _autosUsados,
                   icono: Icons.directions_car_outlined,
@@ -433,7 +459,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                   controller: _notas,
                   maxLines: 3,
                   minLines: 2,
-                  decoration: const InputDecoration(labelText: 'Notas (opcional)'),
+                  decoration: InputDecoration(labelText: tr('Notas (opcional)', 'Notes (optional)')),
                 ),
                 const SizedBox(height: 24),
                 FilledButton.icon(
@@ -443,7 +469,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                       ? const SizedBox(
                           width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.check),
-                  label: Text(_editando ? 'Guardar cambios' : 'Guardar compra'),
+                  label: Text(_editando ? tr('Guardar cambios', 'Save changes') : tr('Guardar compra', 'Save purchase')),
                 ),
               ],
             ),
@@ -476,7 +502,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Fecha y hora de compra', style: etiqueta),
+                    Text(tr('Fecha y hora de compra', 'Purchase date & time'), style: etiqueta),
                     Text(fechaCompraCorta(_fecha, ahora),
                         style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700)),
                     Text(capitalizar(fechaLarga(_fecha)), style: etiqueta),
@@ -489,7 +515,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                   ],
                 ),
               ),
-              Text('Cambiar',
+              Text(tr('Cambiar', 'Change'),
                   style: TextStyle(color: CatalogColors.texto, fontWeight: FontWeight.w500)),
             ],
           ),
@@ -514,33 +540,34 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
 
     if (_buscandoGps) {
       return Padding(
-        padding: EdgeInsets.only(top: 8, left: 4),
+        padding: const EdgeInsets.only(top: 8, left: 4),
         child: Row(
           children: [
-            SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-            SizedBox(width: 8),
-            Text('Buscando ubicación GPS…', style: etiqueta),
+            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+            const SizedBox(width: 8),
+            Text(tr('Buscando ubicación GPS…', 'Getting GPS location…'), style: etiqueta),
           ],
         ),
       );
     }
     if (_lat != null) {
       final prec = _precision == null ? '' : ' (±${_precision!.round()} m)';
-      return fila(Icons.check_circle, CatalogColors.verde, 'Ubicación GPS guardada$prec',
-          accion: 'Actualizar');
+      return fila(Icons.check_circle, CatalogColors.verde,
+          '${tr('Ubicación GPS guardada', 'GPS location saved')}$prec',
+          accion: tr('Actualizar', 'Update'));
     }
     if (_errorGps != null) {
-      return fila(Icons.warning_amber, CatalogColors.rojo, _errorGps!, accion: 'Reintentar');
+      return fila(Icons.warning_amber, CatalogColors.rojo, _errorGps!, accion: tr('Reintentar', 'Retry'));
     }
-    return fila(Icons.location_off_outlined, CatalogColors.acero, 'Sin ubicación GPS',
-        accion: 'Tomar GPS');
+    return fila(Icons.location_off_outlined, CatalogColors.acero, tr('Sin ubicación GPS', 'No GPS location'),
+        accion: tr('Tomar GPS', 'Get GPS'));
   }
 
   Widget _tipo() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Motor', style: etiqueta),
+        Text(tr('Motor', 'Engine'), style: etiqueta),
         const SizedBox(height: 6),
         SizedBox(
           width: double.infinity,
@@ -560,7 +587,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        Text('Material', style: etiqueta),
+        Text(tr('Material', 'Material'), style: etiqueta),
         const SizedBox(height: 6),
         SizedBox(
           width: double.infinity,
@@ -591,7 +618,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
       return OutlinedButton.icon(
         onPressed: _tomarFoto,
         icon: const Icon(Icons.photo_camera_outlined),
-        label: const Text('Tomar foto del catalítico'),
+        label: Text(tr('Tomar foto del catalítico', 'Take photo of converter')),
       );
     }
     final archivo = AppScope.of(context).fotos.archivo(foto);
@@ -607,13 +634,13 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
             TextButton.icon(
               onPressed: _tomarFoto,
               icon: const Icon(Icons.photo_camera_outlined),
-              label: const Text('Cambiar foto'),
+              label: Text(tr('Cambiar foto', 'Change photo')),
             ),
             const Spacer(),
             TextButton.icon(
               onPressed: _quitarFoto,
               icon: const Icon(Icons.delete_outline),
-              label: const Text('Quitar'),
+              label: Text(tr('Quitar', 'Remove')),
             ),
           ],
         ),

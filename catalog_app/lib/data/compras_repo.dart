@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../domain/codigo.dart';
 import '../domain/periodos.dart';
+import '../i18n.dart';
 import 'base.dart';
 import 'compra.dart';
 
@@ -9,8 +10,8 @@ import 'compra.dart';
 String? validarDatosCompra(DatosCompra d, DateTime ahora) {
   final fecha = validarFechaCompra(d.fechaCompra, ahora);
   if (fecha != null) return fecha;
-  if (d.vendedor.trim().isEmpty) return 'Falta el nombre del vendedor';
-  if (d.precio < 0) return 'El precio no puede ser negativo';
+  if (d.vendedor.trim().isEmpty) return tr('Falta el nombre del vendedor', 'Seller name is required');
+  if (d.precio < 0) return tr('El precio no puede ser negativo', 'Price cannot be negative');
   return null;
 }
 
@@ -66,17 +67,23 @@ class ComprasRepo {
     final n = filas.first['n']! as int;
     if (n == 0) return null;
     final ahora = _reloj();
-    final compras = n == 1 ? '1 compra' : '$n compras';
+    final compras = n == 1 ? tr('1 compra', '1 purchase') : tr('$n compras', '$n purchases');
     if (ultimo == null) {
       final primera = deMs(filas.first['primera']);
       if (ahora.difference(primera) >= const Duration(days: 1) || n >= 10) {
-        return 'Todavía no has hecho un respaldo: $compras están solo en este teléfono.';
+        return tr(
+          'Todavía no has hecho un respaldo: $compras están solo en este teléfono.',
+          'You haven’t backed up yet: $compras live only on this phone.',
+        );
       }
       return null;
     }
     final dias = ahora.difference(ultimo).inDays;
     if (dias >= 7 || n >= 20) {
-      return 'Hace $dias días que no respaldas y hay $compras sin respaldar.';
+      return tr(
+        'Hace $dias días que no respaldas y hay $compras sin respaldar.',
+        'It’s been $dias days since your last backup and $compras are not backed up.',
+      );
     }
     return null;
   }

@@ -2,6 +2,8 @@
 //
 // La fecha del código es siempre la FECHA DE COMPRA, no la del registro.
 
+import '../i18n.dart';
+
 String _dos(int n) => n.toString().padLeft(2, '0');
 
 /// Clave del día de compra, por ejemplo 261121 para el 21/11/2026.
@@ -22,7 +24,7 @@ String formatearCodigo(String prefijo, DateTime fechaCompra, int numeroDelDia) =
 String? validarPrefijo(String prefijo) {
   final p = normalizarPrefijo(prefijo);
   if (!RegExp(r'^[A-Z]{2,5}$').hasMatch(p)) {
-    return 'Usa de 2 a 5 letras, sin espacios ni números';
+    return tr('Usa de 2 a 5 letras, sin espacios ni números', 'Use 2 to 5 letters, no spaces or numbers');
   }
   return null;
 }
@@ -49,12 +51,12 @@ const _toleranciaFutura = Duration(minutes: 5);
 /// La fecha de compra es obligatoria y no puede ser futura.
 /// Devuelve un mensaje de error o null si la fecha sirve.
 String? validarFechaCompra(DateTime? fechaCompra, DateTime ahora) {
-  if (fechaCompra == null) return 'La fecha de compra es obligatoria';
+  if (fechaCompra == null) return tr('La fecha de compra es obligatoria', 'Purchase date is required');
   if (fechaCompra.isAfter(ahora.add(_toleranciaFutura))) {
-    return 'La fecha de compra no puede ser futura';
+    return tr('La fecha de compra no puede ser futura', 'Purchase date cannot be in the future');
   }
   if (fechaCompra.isBefore(DateTime(2000))) {
-    return 'Revisa la fecha de compra';
+    return tr('Revisa la fecha de compra', 'Check the purchase date');
   }
   return null;
 }

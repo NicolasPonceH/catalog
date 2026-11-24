@@ -1,6 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../i18n.dart';
+
 /// Separa miles con punto: 1250000 -> "1.250.000".
 String miles(int n) {
   final negativo = n < 0;
@@ -37,12 +39,13 @@ String fechaHora(DateTime f) => '${fechaCorta(f)} · ${hora(f)}';
 String capitalizar(String s) =>
     s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
-/// "viernes 21 de noviembre de 2026"
-String fechaLarga(DateTime f) =>
-    DateFormat("EEEE d 'de' MMMM 'de' y", 'es').format(f);
+/// "viernes 21 de noviembre de 2026" / "Saturday, November 21, 2026"
+String fechaLarga(DateTime f) => Idioma.en
+    ? DateFormat('EEEE, MMMM d, y', 'en').format(f)
+    : DateFormat("EEEE d 'de' MMMM 'de' y", 'es').format(f);
 
-/// "Noviembre 2026"
-String nombreMes(DateTime f) => capitalizar(DateFormat('MMMM y', 'es').format(f));
+/// "Noviembre 2026" / "November 2026"
+String nombreMes(DateTime f) => capitalizar(DateFormat('MMMM y', Idioma.localeTag).format(f));
 
 /// Días de calendario entre dos fechas, sin problemas con el horario de verano.
 int diasEntre(DateTime desde, DateTime hasta) =>
@@ -53,19 +56,19 @@ int diasEntre(DateTime desde, DateTime hasta) =>
 /// Encabezado de un día en el historial: "Hoy", "Ayer" o "Jue 20 nov 2026".
 String encabezadoDia(DateTime dia, DateTime hoy) {
   final d = diasEntre(dia, hoy);
-  if (d == 0) return 'Hoy';
-  if (d == 1) return 'Ayer';
-  return capitalizar(DateFormat('EEE d MMM y', 'es').format(dia));
+  if (d == 0) return tr('Hoy', 'Today');
+  if (d == 1) return tr('Ayer', 'Yesterday');
+  return capitalizar(DateFormat(Idioma.en ? 'EEE, MMM d, y' : 'EEE d MMM y', Idioma.localeTag).format(dia));
 }
 
 /// Fecha de compra para mostrar arriba del formulario: "Hoy · 10:42".
 String fechaCompraCorta(DateTime f, DateTime ahora) {
   final d = diasEntre(f, ahora);
   final dia = d == 0
-      ? 'Hoy'
+      ? tr('Hoy', 'Today')
       : d == 1
-          ? 'Ayer'
-          : capitalizar(DateFormat('EEE d MMM y', 'es').format(f));
+          ? tr('Ayer', 'Yesterday')
+          : capitalizar(DateFormat(Idioma.en ? 'EEE, MMM d, y' : 'EEE d MMM y', Idioma.localeTag).format(f));
   return '$dia · ${hora(f)}';
 }
 

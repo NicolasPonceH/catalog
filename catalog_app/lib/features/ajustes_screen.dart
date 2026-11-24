@@ -4,6 +4,7 @@ import '../app_scope.dart';
 import '../data/dispositivo.dart';
 import '../domain/codigo.dart';
 import '../domain/formato.dart';
+import '../i18n.dart';
 import '../printing/etiqueta.dart';
 import '../printing/impresora.dart';
 import '../printing/imprimir.dart';
@@ -38,6 +39,8 @@ class _AjustesScreenState extends State<AjustesScreen> {
 
   // Partes que ilumina la guía.
   final _gNombre = GlobalKey();
+  final _gApariencia = GlobalKey();
+  final _gIdioma = GlobalKey();
   final _gImpresora = GlobalKey();
   final _gPapel = GlobalKey();
   final _gPrueba = GlobalKey();
@@ -51,45 +54,83 @@ class _AjustesScreenState extends State<AjustesScreen> {
       PasoGuia(
         clave: _gNombre,
         icono: Icons.badge_outlined,
-        titulo: 'Tu nombre y prefijo',
-        texto: 'El nombre sale en el saludo y en los Excel. El prefijo inicia tus códigos: usa uno '
-            'distinto en cada teléfono para que nunca se repitan.',
+        titulo: tr('Tu nombre y prefijo', 'Your name & prefix'),
+        texto: tr(
+          'El nombre sale en el saludo y en los Excel. El prefijo inicia tus códigos: usa uno distinto en cada teléfono para que nunca se repitan.',
+          'Your name appears in greetings and Excel reports. The prefix starts every code: use a distinct one per phone so codes never collide.',
+        ),
+      ),
+      PasoGuia(
+        clave: _gApariencia,
+        icono: Icons.palette_outlined,
+        titulo: tr('Apariencia y lectura', 'Appearance & readability'),
+        texto: tr(
+          'Cambia entre modo claro, oscuro o automático, activa el alto contraste y ajusta el tamaño de letra al instante.',
+          'Switch between light, dark, or auto mode, enable high contrast, and adjust text size on the fly.',
+        ),
+      ),
+      PasoGuia(
+        clave: _gIdioma,
+        icono: Icons.translate,
+        titulo: tr('Idioma y escaneo', 'Language & scanning'),
+        texto: tr(
+          'Elige entre Español e Inglés y activa o apaga la vibración y el sonido al escanear.',
+          'Choose between Spanish and English and toggle vibration or sound when scanning.',
+        ),
       ),
       PasoGuia(
         clave: _gImpresora,
         icono: Icons.print_outlined,
-        titulo: 'Tu impresora',
-        texto: 'Enciéndela, toca Buscar y elígela. CataLog detecta solo si es clásica, BLE o de las mini de AliExpress.',
+        titulo: tr('Tu impresora', 'Your printer'),
+        texto: tr(
+          'Enciéndela, toca Buscar y elígela. CataLog detecta solo si es clásica, BLE o de las mini de AliExpress.',
+          'Turn it on, tap Search, and select it. CataLog automatically detects classic Bluetooth, BLE, or mini printers.',
+        ),
       ),
       PasoGuia(
         clave: _gPapel,
         icono: Icons.straighten,
-        titulo: 'Ancho del papel',
-        texto: 'El de tu rollo: 58 mm (el más común) u 80 mm.',
+        titulo: tr('Ancho del papel', 'Paper width'),
+        texto: tr(
+          'El de tu rollo: 58 mm (el más común) u 80 mm.',
+          'Match your thermal roll: 58 mm (most common) or 80 mm.',
+        ),
       ),
       PasoGuia(
         clave: _gPrueba,
         icono: Icons.receipt_long_outlined,
-        titulo: 'Sticker de prueba',
-        texto: 'Imprime uno de prueba para confirmar que la impresora funciona.',
+        titulo: tr('Sticker de prueba', 'Test sticker'),
+        texto: tr(
+          'Imprime uno de prueba para confirmar que la impresora funciona.',
+          'Print a sample sticker to verify the printer connection.',
+        ),
       ),
       PasoGuia(
         clave: _gSeguridad,
         icono: Icons.fingerprint,
-        titulo: 'Huella al abrir',
-        texto: 'Si lo activas, CataLog pide tu huella o PIN al abrirla y después de 2 minutos fuera de la app.',
+        titulo: tr('Huella al abrir', 'Fingerprint lock'),
+        texto: tr(
+          'Si lo activas, CataLog pide tu huella o PIN al abrirla y después de 2 minutos fuera de la app.',
+          'When enabled, CataLog requires your fingerprint or PIN on launch and after 2 minutes in the background.',
+        ),
       ),
       PasoGuia(
         clave: _gRespaldo,
         icono: Icons.backup_outlined,
-        titulo: 'Respaldo',
-        texto: 'Guarda todas tus compras y fotos en Descargas/Respaldo CataLog. Mándalo a tu correo de vez en cuando.',
+        titulo: tr('Respaldo', 'Backup'),
+        texto: tr(
+          'Guarda todas tus compras y fotos en Descargas/Respaldo CataLog. Mándalo a tu correo de vez en cuando.',
+          'Saves all your purchases and photos in Downloads/Respaldo CataLog. Email a copy from time to time.',
+        ),
       ),
       PasoGuia(
         clave: _gPresentacion,
         icono: Icons.slideshow_outlined,
-        titulo: 'Ver la presentación',
-        texto: 'Vuelve a ver la presentación de CataLog cuando quieras.',
+        titulo: tr('Ver la presentación', 'View walkthrough'),
+        texto: tr(
+          'Vuelve a ver la presentación de CataLog cuando quieras.',
+          'Replay the CataLog intro walkthrough anytime.',
+        ),
       ),
     ]);
   }
@@ -130,13 +171,12 @@ class _AjustesScreenState extends State<AjustesScreen> {
   }
 
   Future<void> _guardar() async {
-    // El formulario está en la hoja de perfil, que ya lo validó al cerrarse.
     final form = _form.currentState;
     if (form != null && !form.validate()) return;
     final repo = AppScope.of(context).compras;
     await repo.guardarAjuste('prefijo', normalizarPrefijo(_prefijo.text));
     await repo.guardarAjuste('nombre', _nombre.text.trim());
-    if (mounted) avisar(context, 'Ajustes guardados');
+    if (mounted) avisar(context, tr('Ajustes guardados', 'Settings saved'));
   }
 
   // ---------- Impresora ----------
@@ -161,28 +201,32 @@ class _AjustesScreenState extends State<AjustesScreen> {
         child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
           child: lista.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(20),
+              ? Padding(
+                  padding: const EdgeInsets.all(20),
                   child: Text(
-                    'No se encontró ningún equipo. Enciende la impresora y acércala al teléfono. '
-                    'Si es una impresora "clásica", emparéjala primero en Ajustes de Android > '
-                    'Bluetooth (el PIN suele ser 0000 o 1234).',
-                    style: TextStyle(fontSize: 15, height: 1.4),
+                    tr(
+                      'No se encontró ningún equipo. Enciende la impresora y acércala al teléfono. Si es una impresora "clásica", emparéjala primero en Ajustes de Android > Bluetooth (el PIN suele ser 0000 o 1234).',
+                      'No devices found. Turn on the printer and bring it close to the phone. For classic Bluetooth printers, pair it first in Android Settings > Bluetooth (PIN is usually 0000 or 1234).',
+                    ),
+                    style: const TextStyle(fontSize: 15, height: 1.4),
                   ),
                 )
               : ListView(
                   shrinkWrap: true,
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
-                      child: Text('Elige la impresora', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                      child: Text(
+                        tr('Elige la impresora', 'Choose printer'),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                      ),
                     ),
                     for (final b in lista)
                       ListTile(
                         leading: Icon(b.pareceImpresora ? Icons.print_outlined : Icons.bluetooth),
-                        title: Text(b.nombre.isEmpty ? 'Sin nombre' : b.nombre),
+                        title: Text(b.nombre.isEmpty ? tr('Sin nombre', 'Unnamed') : b.nombre),
                         subtitle: Text(
-                          '${b.conexion == Conexion.clasica ? 'Bluetooth clásico (emparejada)' : 'Bluetooth BLE'}'
+                          '${b.conexion == Conexion.clasica ? tr('Bluetooth clásico (emparejada)', 'Classic Bluetooth (paired)') : 'Bluetooth BLE'}'
                           ' · ${b.id}',
                           style: etiqueta,
                         ),
@@ -200,7 +244,13 @@ class _AjustesScreenState extends State<AjustesScreen> {
       await _dispositivo?.guardar(AjustesDispositivo.impresora, imp.aTexto());
       if (!mounted) return;
       setState(() => _impresora = imp);
-      avisar(context, '${imp.nombre} lista (${imp.descripcion}). Imprime una prueba.');
+      avisar(
+        context,
+        tr(
+          '${imp.nombre} lista (${imp.descripcion}). Imprime una prueba.',
+          '${imp.nombre} ready (${imp.descripcion}). Print a test sticker.',
+        ),
+      );
     } on ErrorImpresora catch (e) {
       if (mounted) avisar(context, e.mensaje);
     } finally {
@@ -217,7 +267,11 @@ class _AjustesScreenState extends State<AjustesScreen> {
     final prefijo = normalizarPrefijo(_prefijo.text.isEmpty ? prefijoPorDefecto : _prefijo.text);
     await imprimirSticker(
       context,
-      DatosEtiqueta(codigo: '$prefijo-000000-0000', fechaCompra: DateTime.now(), tipo: 'Sticker de prueba'),
+      DatosEtiqueta(
+        codigo: '$prefijo-000000-0000',
+        fechaCompra: DateTime.now(),
+        tipo: tr('Sticker de prueba', 'Test sticker'),
+      ),
     );
   }
 
@@ -226,16 +280,31 @@ class _AjustesScreenState extends State<AjustesScreen> {
   Future<void> _cambiarBloqueo(bool activar) async {
     if (activar && !await Bloqueo.disponible()) {
       if (mounted) {
-        avisar(context, 'Primero configura un bloqueo de pantalla (huella, PIN o patrón) en el teléfono.');
+        avisar(
+          context,
+          tr(
+            'Primero configura un bloqueo de pantalla (huella, PIN o patrón) en el teléfono.',
+            'First set up a screen lock (fingerprint, PIN, or pattern) on your phone.',
+          ),
+        );
       }
       return;
     }
-    final ok = await Bloqueo.desbloquear(activar ? 'Confirma para activar el bloqueo' : 'Confirma para quitar el bloqueo');
+    final ok = await Bloqueo.desbloquear(
+      activar
+          ? tr('Confirma para activar el bloqueo', 'Confirm to enable lock')
+          : tr('Confirma para quitar el bloqueo', 'Confirm to disable lock'),
+    );
     if (!ok) return;
     await _dispositivo?.guardar(AjustesDispositivo.bloqueo, activar ? '1' : '0');
     if (!mounted) return;
     setState(() => _bloqueo = activar);
-    avisar(context, activar ? 'CataLog pedirá huella o PIN al abrirse' : 'Bloqueo desactivado');
+    avisar(
+      context,
+      activar
+          ? tr('CataLog pedirá huella o PIN al abrirse', 'CataLog will ask for fingerprint or PIN on launch')
+          : tr('Bloqueo desactivado', 'Lock disabled'),
+    );
   }
 
   @override
@@ -261,16 +330,16 @@ class _AjustesScreenState extends State<AjustesScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('Tu perfil', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Text(tr('Tu perfil', 'Your profile'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
               const SizedBox(height: 14),
               TextFormField(
                 controller: _nombre,
                 autofocus: true,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Quién usa este teléfono',
-                  hintText: 'Tu nombre',
-                  prefixIcon: Icon(Icons.person_outline),
+                decoration: InputDecoration(
+                  labelText: tr('Quién usa este teléfono', 'Who uses this phone'),
+                  hintText: tr('Tu nombre', 'Your name'),
+                  prefixIcon: const Icon(Icons.person_outline),
                 ),
               ),
               const SizedBox(height: 14),
@@ -279,18 +348,19 @@ class _AjustesScreenState extends State<AjustesScreen> {
                 textCapitalization: TextCapitalization.characters,
                 style: mono(size: 18),
                 maxLength: 5,
-                decoration: const InputDecoration(
-                  labelText: 'Prefijo de los códigos',
-                  prefixIcon: Icon(Icons.badge_outlined),
+                decoration: InputDecoration(
+                  labelText: tr('Prefijo de los códigos', 'Code prefix'),
+                  prefixIcon: const Icon(Icons.badge_outlined),
                   counterText: '',
                 ),
                 validator: (v) => validarPrefijo(v ?? ''),
               ),
               const SizedBox(height: 8),
               Text(
-                'Los códigos nuevos empiezan con este prefijo, por ejemplo CTL-261121-0001. Usa uno '
-                'distinto en cada teléfono (por ejemplo CTL y CTT) para que nunca se repitan. Los '
-                'códigos que ya existen no cambian.',
+                tr(
+                  'Los códigos nuevos empiezan con este prefijo, por ejemplo CTL-261121-0001. Usa uno distinto en cada teléfono (por ejemplo CTL y CTT) para que nunca se repitan. Los códigos que ya existen no cambian.',
+                  'New codes start with this prefix, e.g. CTL-261121-0001. Use a distinct prefix per phone (such as CTL and CTT) so they never collide. Existing codes do not change.',
+                ),
                 style: TextStyle(fontSize: 13.5, height: 1.4, color: CatalogColors.acero),
               ),
               const SizedBox(height: 16),
@@ -298,7 +368,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
                 onPressed: () {
                   if (_form.currentState?.validate() ?? false) Navigator.pop(hoja, true);
                 },
-                child: const Text('Guardar'),
+                child: Text(tr('Guardar', 'Save')),
               ),
             ],
           ),
@@ -311,7 +381,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
     }
   }
 
-  // ---------- Apariencia y escaneo ----------
+  // ---------- Apariencia, idioma y escaneo ----------
 
   Future<void> _guardarPreferencia(String clave, String? valor) async {
     await _dispositivo?.guardar(clave, valor);
@@ -320,7 +390,9 @@ class _AjustesScreenState extends State<AjustesScreen> {
 
   Future<void> _destacarAyuda() async {
     await _guardarPreferencia(AjustesDispositivo.ayudaUsada, null);
-    if (mounted) avisar(context, 'El botón de ayuda vuelve a destacarse');
+    if (mounted) {
+      avisar(context, tr('El botón de ayuda vuelve a destacarse', 'Help button highlighted again'));
+    }
   }
 
   @override
@@ -335,10 +407,16 @@ class _AjustesScreenState extends State<AjustesScreen> {
         ? ''
         : nombre.split(RegExp(r'\s+')).take(2).map((p) => p.characters.first.toUpperCase()).join();
     final letra = d?.escalaLetra ?? 1.0;
+    final temaActual = d?.temaElegido ?? (CatalogColors.paleta.oscura ? 'oscuro' : 'claro');
+    final idiomaActual = d?.idiomaElegido ?? Idioma.actual;
+    final conBordeTarjeta = CatalogColors.paleta.oscura || CatalogColors.paleta.grosorBorde > 1;
+    final nombreSesion = scope.sesion == null || !scope.sesion!.esRevision
+        ? tr('Mis compras', 'My purchases')
+        : scope.sesion!.nombre;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ajustes'),
+        title: Text(tr('Ajustes', 'Settings')),
         actions: [BotonAyuda(alTocar: _mostrarGuia)],
       ),
       body: SafeArea(
@@ -347,54 +425,69 @@ class _AjustesScreenState extends State<AjustesScreen> {
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 40),
           children: [
             // ---- Perfil ----
-            Material(
+            Container(
               key: _gNombre,
-              color: CatalogColors.marino,
-              borderRadius: BorderRadius.circular(18),
-              child: InkWell(
+              decoration: BoxDecoration(
+                color: CatalogColors.marino,
                 borderRadius: BorderRadius.circular(18),
-                onTap: revision ? null : _editarPerfil,
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(color: CatalogColors.naranja, shape: BoxShape.circle),
-                        child: iniciales.isEmpty
-                            ? const Icon(Icons.person, color: CatalogColors.marino, size: 28)
-                            : Text(iniciales,
-                                style: const TextStyle(
-                                    color: CatalogColors.marino, fontSize: 19, fontWeight: FontWeight.w700)),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              nombre.isEmpty ? 'Tu nombre' : nombre,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: CatalogColors.niebla, fontSize: 17, fontWeight: FontWeight.w700),
+                border: conBordeTarjeta
+                    ? Border.all(color: CatalogColors.borde, width: CatalogColors.paleta.grosorBorde)
+                    : null,
+              ),
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: revision ? null : _editarPerfil,
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFFFFA25C), CatalogColors.naranja],
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              revision
-                                  ? 'Sesión de revisión: ${scope.sesion?.nombre ?? ''}'
-                                  : 'Prefijo ${normalizarPrefijo(_prefijo.text)} · Mis compras',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Color(0xBFFFFFFF), fontSize: 13),
-                            ),
-                          ],
+                          ),
+                          child: iniciales.isEmpty
+                              ? const Icon(Icons.person, color: CatalogColors.marino, size: 28)
+                              : Text(iniciales,
+                                  style: const TextStyle(
+                                      color: CatalogColors.marino, fontSize: 19, fontWeight: FontWeight.w700)),
                         ),
-                      ),
-                      if (!revision) const Icon(Icons.edit_outlined, color: CatalogColors.niebla, size: 20),
-                    ],
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                nombre.isEmpty ? tr('Tu nombre', 'Your name') : nombre,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: CatalogColors.niebla, fontSize: 17, fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                revision
+                                    ? '${tr('Sesión de revisión', 'Review session')}: ${scope.sesion?.nombre ?? ''}'
+                                    : '${tr('Prefijo', 'Prefix')} ${normalizarPrefijo(_prefijo.text)} · ${tr('Mis compras', 'My purchases')}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Color(0xBFFFFFFF), fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (!revision) const Icon(Icons.edit_outlined, color: CatalogColors.niebla, size: 20),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -402,21 +495,22 @@ class _AjustesScreenState extends State<AjustesScreen> {
 
             // ---- Apariencia ----
             _Seccion(
-              titulo: 'Apariencia',
+              key: _gApariencia,
+              titulo: tr('Apariencia', 'Appearance'),
               hijos: [
                 _Fila(
                   icono: Icons.palette_outlined,
                   color: const Color(0xFF7F77DD),
-                  titulo: 'Tema',
+                  titulo: tr('Tema', 'Theme'),
                   abajo: SizedBox(
                     width: double.infinity,
                     child: SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'claro', label: Text('Claro')),
-                        ButtonSegment(value: 'oscuro', label: Text('Oscuro')),
-                        ButtonSegment(value: 'auto', label: Text('Auto')),
+                      segments: [
+                        ButtonSegment(value: 'claro', label: Text(tr('Claro', 'Light'))),
+                        ButtonSegment(value: 'oscuro', label: Text(tr('Oscuro', 'Dark'))),
+                        ButtonSegment(value: 'auto', label: Text(tr('Auto', 'Auto'))),
                       ],
-                      selected: {d?.temaElegido ?? 'claro'},
+                      selected: {temaActual},
                       showSelectedIcon: false,
                       onSelectionChanged: (s) => _guardarPreferencia(AjustesDispositivo.tema, s.first),
                     ),
@@ -425,8 +519,8 @@ class _AjustesScreenState extends State<AjustesScreen> {
                 _Fila(
                   icono: Icons.contrast,
                   color: const Color(0xFF444441),
-                  titulo: 'Alto contraste',
-                  subtitulo: 'Textos y bordes más marcados',
+                  titulo: tr('Alto contraste', 'High contrast'),
+                  subtitulo: tr('Textos y bordes más marcados', 'Sharper text and stronger borders'),
                   derecha: Switch(
                     value: d?.activado(AjustesDispositivo.contraste) ?? false,
                     onChanged: (v) => _guardarPreferencia(AjustesDispositivo.contraste, v ? '1' : null),
@@ -435,14 +529,14 @@ class _AjustesScreenState extends State<AjustesScreen> {
                 _Fila(
                   icono: Icons.text_fields,
                   color: const Color(0xFFD4537E),
-                  titulo: 'Tamaño de letra',
+                  titulo: tr('Tamaño de letra', 'Text size'),
                   abajo: SizedBox(
                     width: double.infinity,
                     child: SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: '1.0', label: Text('Normal')),
-                        ButtonSegment(value: '1.15', label: Text('Grande')),
-                        ButtonSegment(value: '1.3', label: Text('Enorme')),
+                      segments: [
+                        ButtonSegment(value: '1.0', label: Text(tr('Normal', 'Normal'))),
+                        ButtonSegment(value: '1.15', label: Text(tr('Grande', 'Large'))),
+                        ButtonSegment(value: '1.3', label: Text(tr('Enorme', 'Huge'))),
                       ],
                       selected: {letra >= 1.3 ? '1.3' : (letra >= 1.15 ? '1.15' : '1.0')},
                       showSelectedIcon: false,
@@ -454,8 +548,8 @@ class _AjustesScreenState extends State<AjustesScreen> {
                 _Fila(
                   icono: Icons.auto_awesome_outlined,
                   color: CatalogColors.naranja,
-                  titulo: 'Animaciones',
-                  subtitulo: 'Bienvenida, presentación y guía',
+                  titulo: tr('Animaciones', 'Animations'),
+                  subtitulo: tr('Bienvenida, presentación y guía', 'Welcome screen, intro, and guide'),
                   derecha: Switch(
                     value: !(d?.activado(AjustesDispositivo.sinAnimaciones) ?? false),
                     onChanged: (v) => _guardarPreferencia(AjustesDispositivo.sinAnimaciones, v ? null : '1'),
@@ -464,14 +558,34 @@ class _AjustesScreenState extends State<AjustesScreen> {
               ],
             ),
 
-            // ---- Escaneo ----
+            // ---- Idioma y sonido ----
             _Seccion(
-              titulo: 'Al escanear',
+              key: _gIdioma,
+              titulo: tr('Idioma y sonido', 'Language & sound'),
               hijos: [
+                _Fila(
+                  icono: Icons.translate,
+                  color: const Color(0xFF1D9E75),
+                  titulo: tr('Idioma', 'Language'),
+                  subtitulo: tr('Cambia los textos y fechas al instante', 'Switches labels and dates right away'),
+                  abajo: SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'es', label: Text('Español')),
+                        ButtonSegment(value: 'en', label: Text('English')),
+                      ],
+                      selected: {idiomaActual},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (s) =>
+                          _guardarPreferencia(AjustesDispositivo.idioma, s.first == 'es' ? null : s.first),
+                    ),
+                  ),
+                ),
                 _Fila(
                   icono: Icons.vibration,
                   color: const Color(0xFFD85A30),
-                  titulo: 'Vibrar',
+                  titulo: tr('Vibrar al escanear', 'Vibrate on scan'),
                   derecha: Switch(
                     value: d?.vibrar ?? true,
                     onChanged: (v) => _guardarPreferencia(AjustesDispositivo.sinVibrar, v ? null : '1'),
@@ -480,7 +594,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
                 _Fila(
                   icono: Icons.volume_up_outlined,
                   color: const Color(0xFF378ADD),
-                  titulo: 'Sonido',
+                  titulo: tr('Sonido al escanear', 'Sound on scan'),
                   derecha: Switch(
                     value: d?.sonar ?? true,
                     onChanged: (v) => _guardarPreferencia(AjustesDispositivo.sinSonido, v ? null : '1'),
@@ -491,28 +605,28 @@ class _AjustesScreenState extends State<AjustesScreen> {
 
             // ---- Impresora ----
             _Seccion(
-              titulo: 'Impresora de stickers',
+              titulo: tr('Impresora de stickers', 'Sticker printer'),
               hijos: [
                 _Fila(
                   key: _gImpresora,
                   icono: Icons.print_outlined,
                   color: CatalogColors.marino,
                   titulo: _impresora == null
-                      ? 'Ninguna elegida'
-                      : (_impresora!.nombre.isNotEmpty ? _impresora!.nombre : 'Impresora'),
-                  subtitulo: _impresora?.descripcion ?? 'Enciéndela y toca Buscar',
+                      ? tr('Ninguna elegida', 'None selected')
+                      : (_impresora!.nombre.isNotEmpty ? _impresora!.nombre : tr('Impresora', 'Printer')),
+                  subtitulo: _impresora?.descripcion ?? tr('Enciéndela y toca Buscar', 'Turn it on and tap Search'),
                   derecha: _buscando
                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
                       : TextButton(
                           onPressed: _elegirImpresora,
-                          child: Text(_impresora == null ? 'Buscar' : 'Cambiar'),
+                          child: Text(_impresora == null ? tr('Buscar', 'Search') : tr('Cambiar', 'Change')),
                         ),
                 ),
                 _Fila(
                   key: _gPapel,
                   icono: Icons.straighten,
-                  color: const Color(0xFF1D9E75),
-                  titulo: 'Ancho del papel',
+                  color: const Color(0xFF0F8B8D),
+                  titulo: tr('Ancho del papel', 'Paper width'),
                   abajo: SizedBox(
                     width: double.infinity,
                     child: SegmentedButton<String>(
@@ -530,26 +644,27 @@ class _AjustesScreenState extends State<AjustesScreen> {
                   key: _gPrueba,
                   icono: Icons.receipt_long_outlined,
                   color: const Color(0xFFBA7517),
-                  titulo: 'Imprimir sticker de prueba',
+                  titulo: tr('Imprimir sticker de prueba', 'Print test sticker'),
                   alTocar: _buscando ? null : (_impresora == null ? _elegirImpresora : _imprimirPrueba),
                   derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
                 ),
               ],
-              nota: 'Funciona con impresoras térmicas Bluetooth clásicas, BLE y las mini impresoras de '
-                  'AliExpress (las de apps como iPrint o Fun Print). CataLog detecta el tipo solo. Las '
-                  'clásicas se emparejan primero en Ajustes de Android > Bluetooth (PIN 0000 o 1234).',
+              nota: tr(
+                'Funciona con impresoras térmicas Bluetooth clásicas, BLE y las mini impresoras de AliExpress (las de apps como iPrint o Fun Print). CataLog detecta el tipo solo. Las clásicas se emparejan primero en Ajustes de Android > Bluetooth (PIN 0000 o 1234).',
+                'Works with classic Bluetooth thermal printers, BLE printers, and mini AliExpress printers (such as iPrint or Fun Print models). CataLog detects the protocol automatically. Pair classic Bluetooth printers first in Android Settings > Bluetooth (PIN 0000 or 1234).',
+              ),
             ),
 
             // ---- Seguridad ----
             _Seccion(
-              titulo: 'Seguridad',
+              titulo: tr('Seguridad', 'Security'),
               hijos: [
                 _Fila(
                   key: _gSeguridad,
                   icono: Icons.fingerprint,
                   color: const Color(0xFF3B6D11),
-                  titulo: 'Pedir huella o PIN al abrir',
-                  subtitulo: 'Usa el bloqueo del teléfono',
+                  titulo: tr('Pedir huella o PIN al abrir', 'Require fingerprint or PIN on launch'),
+                  subtitulo: tr('Usa el bloqueo del teléfono', 'Uses your phone screen lock'),
                   derecha: Switch(value: _bloqueo, onChanged: _cambiarBloqueo),
                 ),
               ],
@@ -557,7 +672,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
 
             // ---- Respaldo y traspaso ----
             _Seccion(
-              titulo: 'Respaldo y traspaso',
+              titulo: tr('Respaldo y traspaso', 'Backup & transfer'),
               hijos: [
                 if (!revision) ...[
                   Consulta<DateTime?>(
@@ -566,8 +681,10 @@ class _AjustesScreenState extends State<AjustesScreen> {
                       key: _gRespaldo,
                       icono: Icons.backup_outlined,
                       color: const Color(0xFF185FA5),
-                      titulo: 'Crear respaldo',
-                      subtitulo: ultimo == null ? 'Todavía no has hecho ninguno' : 'Último: ${fechaHora(ultimo)}',
+                      titulo: tr('Crear respaldo', 'Create backup'),
+                      subtitulo: ultimo == null
+                          ? tr('Todavía no has hecho ninguno', 'No backups created yet')
+                          : '${tr('Último', 'Last')}: ${fechaHora(ultimo)}',
                       alTocar: () => crearRespaldoYEnviar(context),
                       derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
                     ),
@@ -575,7 +692,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
                   _Fila(
                     icono: Icons.send_to_mobile_outlined,
                     color: const Color(0xFF0F6E56),
-                    titulo: 'Enviar mis compras a otro celular',
+                    titulo: tr('Enviar mis compras a otro celular', 'Send my purchases to another phone'),
                     alTocar: () => enviarAOtroCelular(context),
                     derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
                   ),
@@ -583,15 +700,15 @@ class _AjustesScreenState extends State<AjustesScreen> {
                 _Fila(
                   icono: Icons.download_outlined,
                   color: const Color(0xFF534AB7),
-                  titulo: 'Recibir datos de otro celular',
+                  titulo: tr('Recibir datos de otro celular', 'Receive data from another phone'),
                   alTocar: () => recibirDatos(context),
                   derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
                 ),
                 _Fila(
                   icono: Icons.swap_horiz,
                   color: const Color(0xFF5F5E5A),
-                  titulo: 'Cambiar de sesión',
-                  subtitulo: 'Ahora: ${scope.sesion?.nombre ?? 'Mis compras'}',
+                  titulo: tr('Cambiar de sesión', 'Switch session'),
+                  subtitulo: '${tr('Ahora', 'Current')}: $nombreSesion',
                   alTocar: () => mostrarSesiones(context),
                   derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
                 ),
@@ -599,34 +716,39 @@ class _AjustesScreenState extends State<AjustesScreen> {
                   _Fila(
                     icono: Icons.settings_backup_restore,
                     color: const Color(0xFFA32D2D),
-                    titulo: 'Restaurar desde un respaldo',
+                    titulo: tr('Restaurar desde un respaldo', 'Restore from backup'),
                     alTocar: () => restaurarDesdeArchivo(context),
                     derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
                   ),
               ],
               nota: autoRespaldo == null
-                  ? 'Copia automática diaria en $autoLugar: todavía no se ha hecho.'
-                  : 'Copia automática diaria: la última fue el ${fechaHora(autoRespaldo)}, en $autoLugar. '
-                      'Envía un respaldo a tu correo o Drive de vez en cuando por si se pierde el teléfono.',
+                  ? tr(
+                      'Copia automática diaria en $autoLugar: todavía no se ha hecho.',
+                      'Daily auto backup in $autoLugar: none created yet.',
+                    )
+                  : tr(
+                      'Copia automática diaria: la última fue el ${fechaHora(autoRespaldo)}, en $autoLugar. Envía un respaldo a tu correo o Drive de vez en cuando por si se pierde el teléfono.',
+                      'Daily auto backup: last saved ${fechaHora(autoRespaldo)} in $autoLugar. Send a copy to your email or Drive periodically in case the phone is lost.',
+                    ),
             ),
 
             // ---- Ayuda ----
             _Seccion(
-              titulo: 'Ayuda',
+              titulo: tr('Ayuda', 'Help'),
               hijos: [
                 _Fila(
                   key: _gPresentacion,
                   icono: Icons.slideshow_outlined,
                   color: CatalogColors.naranja,
-                  titulo: 'Ver la presentación de nuevo',
+                  titulo: tr('Ver la presentación de nuevo', 'Replay intro walkthrough'),
                   alTocar: _verPresentacion,
                   derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
                 ),
                 _Fila(
                   icono: Icons.help_outline,
                   color: const Color(0xFF378ADD),
-                  titulo: 'Volver a destacar el botón de ayuda',
-                  subtitulo: 'El signo de pregunta de cada pantalla',
+                  titulo: tr('Volver a destacar el botón de ayuda', 'Highlight help button again'),
+                  subtitulo: tr('El signo de pregunta de cada pantalla', 'The question mark icon on each screen'),
                   alTocar: _destacarAyuda,
                   derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
                 ),
@@ -634,8 +756,18 @@ class _AjustesScreenState extends State<AjustesScreen> {
             ),
 
             const SizedBox(height: 26),
-            Center(child: Text('CataLog · versión $versionApp · Hecho en Arica', style: etiqueta)),
-            Center(child: Text('Los datos se guardan solo en este teléfono.', style: etiqueta)),
+            Center(
+              child: Text(
+                tr('CataLog · versión $versionApp · Hecho en Arica', 'CataLog · version $versionApp · Made in Arica'),
+                style: etiqueta,
+              ),
+            ),
+            Center(
+              child: Text(
+                tr('Los datos se guardan solo en este teléfono.', 'All data stays strictly on this phone.'),
+                style: etiqueta,
+              ),
+            ),
           ],
         ),
       ),
@@ -645,7 +777,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
 
 /// Grupo de ajustes: título, tarjeta con filas separadas por líneas y una nota.
 class _Seccion extends StatelessWidget {
-  const _Seccion({required this.titulo, required this.hijos, this.nota});
+  const _Seccion({super.key, required this.titulo, required this.hijos, this.nota});
 
   final String titulo;
   final List<Widget> hijos;

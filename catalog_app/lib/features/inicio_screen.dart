@@ -7,6 +7,7 @@ import '../data/compras_repo.dart';
 import '../data/lotes_repo.dart';
 import '../domain/formato.dart';
 import '../domain/periodos.dart';
+import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/catalog_logo.dart';
 import '../widgets/compra_tile.dart';
@@ -68,60 +69,87 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
       PasoGuia(
         clave: _gMes,
         icono: Icons.insights_outlined,
-        titulo: revision ? 'Lo recibido este mes' : 'Lo gastado este mes',
-        texto: 'Suma lo pagado por los catalíticos comprados este mes, con el promedio por pieza. Las barras '
-            'son los últimos meses (el naranjo es este) y abajo ves cuánto cambió respecto al mes pasado.',
+        titulo: revision
+            ? tr('Lo recibido este mes', 'Received this month')
+            : tr('Lo gastado este mes', 'Spent this month'),
+        texto: tr(
+          'Suma lo pagado por los catalíticos comprados este mes, con el promedio por pieza. Las barras son los últimos meses (el naranjo es este) y abajo ves cuánto cambió respecto al mes pasado.',
+          'Adds up what you paid for converters bought this month, with the average per unit. The bars show recent months (orange is this month) and below you see the change vs. last month.',
+        ),
       ),
       PasoGuia(
         clave: _gHoy,
         icono: Icons.today_outlined,
-        titulo: 'Hoy y lotes',
-        texto: 'Lo comprado hoy y el lote que tengas abierto. Tócalos para ir al historial o a los lotes.',
+        titulo: tr('Hoy y lotes', 'Today & batches'),
+        texto: tr(
+          'Lo comprado hoy y el lote que tengas abierto. Tócalos para ir al historial o a los lotes.',
+          'What you bought today and your currently open batch. Tap them to jump to history or batches.',
+        ),
       ),
       PasoGuia(
         clave: _gNueva,
         icono: Icons.add_circle_outline,
-        titulo: 'Registra una compra',
-        texto: 'Anota vendedor, precio, tipo y foto. La fecha, la hora y el GPS se llenan solos.',
+        titulo: tr('Registra una compra', 'Record a purchase'),
+        texto: tr(
+          'Anota vendedor, precio, tipo y foto. La fecha, la hora y el GPS se llenan solos.',
+          'Enter seller, price, type, and photo. Date, time, and GPS fill in automatically.',
+        ),
       ),
       if (barra != null) ...[
         PasoGuia(
           clave: barra.claveEscanear,
           icono: Icons.qr_code_scanner,
-          titulo: 'Escanea un sticker',
-          texto: 'El botón naranja de abajo abre la cámara: apunta al QR o al código de barras y se abre la ficha.',
+          titulo: tr('Escanea un sticker', 'Scan a sticker'),
+          texto: tr(
+            'El botón naranja de abajo abre la cámara: apunta al QR o al código de barras y se abre la ficha.',
+            'The orange button below opens the camera: point at the QR code or barcode to open its record.',
+          ),
         ),
         PasoGuia(
           clave: barra.claveBarra,
           icono: Icons.apps,
-          titulo: 'Historial, lotes y reportes',
-          texto: 'Cambia de pestaña aquí abajo: busca compras pasadas, escanea muchos stickers en un lote o '
-              'saca el Excel del mes.',
+          titulo: tr('Historial, lotes y reportes', 'History, batches & reports'),
+          texto: tr(
+            'Cambia de pestaña aquí abajo: busca compras pasadas, escanea muchos stickers en un lote o saca el Excel del mes.',
+            'Switch tabs down here: search past purchases, scan multiple stickers in a batch, or export the monthly Excel.',
+          ),
         ),
       ],
       PasoGuia(
         clave: _gUltimas,
         icono: Icons.receipt_long_outlined,
-        titulo: 'Tus últimas compras',
-        texto: 'Toca cualquiera para ver su ficha completa y reimprimir el sticker.',
+        titulo: tr('Tus últimas compras', 'Your recent purchases'),
+        texto: tr(
+          'Toca cualquiera para ver su ficha completa y reimprimir el sticker.',
+          'Tap any item to view its full record and reprint the sticker.',
+        ),
       ),
       PasoGuia(
         clave: _gTraspaso,
         icono: Icons.swap_horiz,
-        titulo: 'Respaldo y traspaso',
-        texto: 'Crea un respaldo, manda tus compras a otro celular o cambia de sesión.',
+        titulo: tr('Respaldo y traspaso', 'Backup & transfer'),
+        texto: tr(
+          'Crea un respaldo, manda tus compras a otro celular o cambia de sesión.',
+          'Create a backup, send your purchases to another phone, or switch sessions.',
+        ),
       ),
       PasoGuia(
         clave: _gAjustes,
         icono: Icons.settings_outlined,
-        titulo: 'Ajustes',
-        texto: 'Tu nombre, el prefijo de los códigos, la impresora y el bloqueo con huella.',
+        titulo: tr('Ajustes', 'Settings'),
+        texto: tr(
+          'Tu nombre, el prefijo de los códigos, el idioma, el tema, la impresora y el bloqueo con huella.',
+          'Your name, code prefix, language, theme, printer, and fingerprint lock.',
+        ),
       ),
       PasoGuia(
         clave: _gAyuda,
         icono: Icons.help_outline,
-        titulo: 'Ayuda en cada pantalla',
-        texto: 'Cuando tengas una duda, toca este botón: te muestra una guía como esta de la pantalla en la que estás.',
+        titulo: tr('Ayuda en cada pantalla', 'Help on every screen'),
+        texto: tr(
+          'Cuando tengas una duda, toca este botón: te muestra una guía como esta de la pantalla en la que estás.',
+          'Whenever you have a question, tap this button: it shows a step-by-step guide for the current screen.',
+        ),
       ),
     ]);
   }
@@ -152,13 +180,13 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
           BotonAyuda(key: _gAyuda, alTocar: _mostrarGuia),
           IconButton(
             key: _gTraspaso,
-            tooltip: 'Respaldo y traspaso',
+            tooltip: tr('Respaldo y traspaso', 'Backup & transfer'),
             icon: const Icon(Icons.swap_horiz),
             onPressed: () => mostrarRespaldoYTraspaso(context),
           ),
           IconButton(
             key: _gAjustes,
-            tooltip: 'Ajustes',
+            tooltip: tr('Ajustes', 'Settings'),
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => abrir(context, const AjustesScreen()),
           ),
@@ -169,7 +197,7 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
           scrollCacheExtent: const ScrollCacheExtent.pixels(4000), // construye todo el Inicio, para la guía
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
-            if (revision) _AvisoRevision(nombre: scope.sesion?.nombre ?? 'Revisión'),
+            if (revision) _AvisoRevision(nombre: scope.sesion?.nombre ?? tr('Revisión', 'Review')),
             if (!revision) ...[
               Consulta<bool>(
                 cargar: () async => (await repo.leerAjuste('prefijo')) != null,
@@ -183,7 +211,7 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
                     ? const SizedBox.shrink()
                     : _Aviso(
                         icono: Icons.backup_outlined,
-                        texto: '$aviso Toca para respaldar.',
+                        texto: '$aviso ${tr('Toca para respaldar.', 'Tap to back up.')}',
                         alTocar: () => crearRespaldoYEnviar(context),
                       ),
               ),
@@ -225,9 +253,9 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
                       r ??= Resumen.vacio;
                       return _TarjetaChica(
                         icono: Icons.today_outlined,
-                        titulo: 'Hoy',
+                        titulo: tr('Hoy', 'Today'),
                         valor: clp(r.total),
-                        detalle: '${r.cantidad} ${r.cantidad == 1 ? 'catalítico' : 'catalíticos'}',
+                        detalle: contarCataliticos(r.cantidad),
                         alTocar: () => BarraPrincipal.of(context)?.irA(Pestana.historial),
                       );
                     },
@@ -241,9 +269,9 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
                       final abierto = lotes?.where((l) => !l.lote.cerrado).firstOrNull;
                       return _TarjetaChica(
                         icono: Icons.inventory_2_outlined,
-                        titulo: abierto == null ? 'Lotes' : 'Lote abierto',
+                        titulo: abierto == null ? tr('Lotes', 'Batches') : tr('Lote abierto', 'Open batch'),
                         valor: abierto == null ? '${lotes?.length ?? 0}' : clp(abierto.resumen.total),
-                        detalle: abierto?.lote.nombre ?? 'Ninguno abierto',
+                        detalle: abierto?.lote.nombre ?? tr('Ninguno abierto', 'None open'),
                         alTocar: () => BarraPrincipal.of(context)?.irA(Pestana.lotes),
                       );
                     },
@@ -257,13 +285,13 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
                 key: _gNueva,
                 onPressed: () => abrir(context, const CompraFormScreen()),
                 icon: const Icon(Icons.add),
-                label: const Text('Nueva compra'),
+                label: Text(tr('Nueva compra', 'New purchase')),
               ),
             // Escanear, Historial, Lotes y Reportes están en la barra de abajo.
             const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.only(left: 2),
-              child: Text('Últimas compras', style: etiqueta.copyWith(fontWeight: FontWeight.w500)),
+              child: Text(tr('Últimas compras', 'Recent purchases'), style: etiqueta.copyWith(fontWeight: FontWeight.w500)),
             ),
             const SizedBox(height: 8),
             Consulta<List<Compra>>(
@@ -273,11 +301,14 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
                 if (lista.isEmpty) {
                   return Card(
                     key: _gUltimas,
-                    child: const Padding(
-                      padding: EdgeInsets.all(16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
                       child: Text(
-                        'Todavía no hay compras. Toca "Nueva compra" para registrar la primera.',
-                        style: TextStyle(fontSize: 15, height: 1.4),
+                        tr(
+                          'Todavía no hay compras. Toca "Nueva compra" para registrar la primera.',
+                          'No purchases yet. Tap "New purchase" to record your first one.',
+                        ),
+                        style: const TextStyle(fontSize: 15, height: 1.4),
                       ),
                     ),
                   );
@@ -326,14 +357,14 @@ class _TarjetaMes extends StatelessWidget {
     final r = lista.isEmpty ? Resumen.vacio : lista.last;
     final anterior = lista.length >= 2 ? lista[lista.length - 2] : null;
     final maximo = lista.fold<int>(1, (m, x) => x.total > m ? x.total : m);
-    final nombreMes = DateFormat('MMMM', 'es').format(ahora);
-    final nombreAnterior = DateFormat('MMMM', 'es').format(DateTime(ahora.year, ahora.month - 1));
+    final nombreMes = DateFormat('MMMM', Idioma.localeTag).format(ahora);
+    final nombreAnterior = DateFormat('MMMM', Idioma.localeTag).format(DateTime(ahora.year, ahora.month - 1));
     String? comparacion;
     if (anterior != null && anterior.total > 0) {
       final pct = ((r.total - anterior.total) / anterior.total * 100).round();
       comparacion = pct == 0
-          ? 'Igual que $nombreAnterior'
-          : '${pct > 0 ? '+' : ''}$pct% que $nombreAnterior';
+          ? tr('Igual que $nombreAnterior', 'Same as $nombreAnterior')
+          : tr('${pct > 0 ? '+' : ''}$pct% que $nombreAnterior', '${pct > 0 ? '+' : ''}$pct% vs $nombreAnterior');
     }
     const tenue = Color(0xB3FFFFFF);
     return Container(
@@ -353,7 +384,7 @@ class _TarjetaMes extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  revision ? 'Recibido en $nombreMes' : 'Gastado en $nombreMes',
+                  revision ? tr('Recibido en $nombreMes', 'Received in $nombreMes') : tr('Gastado en $nombreMes', 'Spent in $nombreMes'),
                   style: const TextStyle(color: tenue, fontSize: 13),
                 ),
                 const SizedBox(height: 2),
@@ -363,8 +394,8 @@ class _TarjetaMes extends StatelessWidget {
                   child: Text(clp(r.total), style: mono(size: 30, color: CatalogColors.naranja)),
                 ),
                 Text(
-                  '${r.cantidad} ${r.cantidad == 1 ? 'catalítico' : 'catalíticos'}'
-                  '${r.cantidad > 0 ? ' · promedio ${clp(r.promedio)}' : ''}',
+                  '${contarCataliticos(r.cantidad)}'
+                  '${r.cantidad > 0 ? ' · ${tr('promedio', 'avg')} ${clp(r.promedio)}' : ''}',
                   style: const TextStyle(color: tenue, fontSize: 12.5),
                 ),
                 if (comparacion != null) ...[
@@ -478,21 +509,25 @@ class _AvisoRevision extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.fact_check_outlined, color: CatalogColors.naranja),
-                  SizedBox(width: 8),
-                  Text('Sesión de revisión',
-                      style: TextStyle(color: CatalogColors.naranja, fontWeight: FontWeight.w700, fontSize: 15)),
+                  const Icon(Icons.fact_check_outlined, color: CatalogColors.naranja),
+                  const SizedBox(width: 8),
+                  Text(
+                    tr('Sesión de revisión', 'Review session'),
+                    style: const TextStyle(color: CatalogColors.naranja, fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
                 ],
               ),
               const SizedBox(height: 6),
               Text(nombre, style: const TextStyle(color: CatalogColors.niebla, fontSize: 17, fontWeight: FontWeight.w500)),
               const SizedBox(height: 4),
-              const Text(
-                'Datos recibidos de otro celular: puedes escanear y ver las fichas, pero no '
-                'modificarlas. No se mezclan con tus compras.',
-                style: TextStyle(color: CatalogColors.niebla, fontSize: 13, height: 1.35),
+              Text(
+                tr(
+                  'Datos recibidos de otro celular: puedes escanear y ver las fichas, pero no modificarlas. No se mezclan con tus compras.',
+                  'Data received from another phone: you can scan and inspect records, without modifying them or mixing them with your own purchases.',
+                ),
+                style: const TextStyle(color: CatalogColors.niebla, fontSize: 13, height: 1.35),
               ),
               const SizedBox(height: 10),
               OutlinedButton.icon(
@@ -506,7 +541,7 @@ class _AvisoRevision extends StatelessWidget {
                   if (principal != null) scope.acciones?.abrirSesion(principal);
                 },
                 icon: const Icon(Icons.shopping_bag_outlined),
-                label: const Text('Volver a mis compras'),
+                label: Text(tr('Volver a mis compras', 'Back to my purchases')),
               ),
             ],
           ),
@@ -567,9 +602,11 @@ class _AvisoPrefijo extends StatelessWidget {
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Configura el prefijo de este teléfono para que sus códigos '
-                    'no se repitan con los del otro comprador.',
-                    style: TextStyle(fontSize: 14, height: 1.35),
+                    tr(
+                      'Configura el prefijo de este teléfono para que sus códigos no se repitan con los del otro comprador.',
+                      'Set up this phone’s prefix so its codes never collide with another buyer’s.',
+                    ),
+                    style: const TextStyle(fontSize: 14, height: 1.35),
                   ),
                 ),
                 Icon(Icons.chevron_right),

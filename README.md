@@ -3,13 +3,14 @@
 </p>
 
 <p align="center">
-  <img alt="Versión 1.3" src="https://img.shields.io/badge/versi%C3%B3n-1.3.0-FF7A1A">
+  <img alt="Versión 1.4" src="https://img.shields.io/badge/versi%C3%B3n-1.4.0-FF7A1A">
   <img alt="Flutter 3.50" src="https://img.shields.io/badge/Flutter-3.50-02569B?logo=flutter&logoColor=white">
   <img alt="Dart 3.14" src="https://img.shields.io/badge/Dart-3.14-0175C2?logo=dart&logoColor=white">
   <img alt="Android 7.0 o más" src="https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local-003B57?logo=sqlite&logoColor=white">
   <img alt="Sin internet" src="https://img.shields.io/badge/funciona-sin%20internet-0E2A47">
-  <img alt="74 pruebas" src="https://img.shields.io/badge/pruebas-74%20OK-2E7D32">
+  <img alt="Español e Inglés" src="https://img.shields.io/badge/idioma-ES%20%2F%20EN-1D9E75">
+  <img alt="79 pruebas" src="https://img.shields.io/badge/pruebas-79%20OK-2E7D32">
 </p>
 
 **CataLog** es una app para Android que lleva el control de las compras de catalíticos de un negocio familiar en Arica, Chile. Cada compra queda registrada con su fecha, vendedor, lugar, precio y tipo. La app le imprime al catalítico un sticker con QR y código de barras, lo lee después con la cámara y arma los reportes en Excel. Funciona sin internet y los datos se guardan solo en el teléfono.
@@ -47,11 +48,12 @@ CataLog anota cada compra en el momento y le asigna un código único. Ese códi
 | **Nada se borra** | Las compras se anulan: salen de los totales, pero quedan en el historial y su número no se vuelve a usar. |
 | **Respaldo y traspaso** | Respaldos `.zip` en `Descargas/Respaldo CataLog` (manuales y uno automático al día). Se restauran desde la misma app, y las compras se pueden mandar a otro celular por WhatsApp. |
 | **Sesiones** | Las compras propias van en la *sesión de compra* y los datos recibidos de otro teléfono en una *sesión de revisión*, de solo lectura, que no se mezcla con las compras propias. |
-| **Seguridad** | Bloqueo opcional con huella o PIN. Además pide la huella antes de anular, borrar o reemplazar datos. |
-| **Bienvenida animada** | Al abrir, el logo se arma solo (cuerpo, tubos y barras que se abren, con una línea de escaneo). Te saluda por tu nombre y muestra lo gastado en el mes con un contador. Con el bloqueo activo, ahí mismo se entra con la huella. |
+| **Seguridad** | Bloqueo opcional con huella o PIN: muestra una lectura animada de la huella (sin revelar montos mientras está bloqueada). Además pide huella antes de anular, borrar o reemplazar datos. |
+| **Apariencia e idioma** | Modo claro, oscuro o automático, alto contraste, tres tamaños de letra, animaciones opcionales e idioma **Español / English** que cambia toda la interfaz y las fechas al instante. |
+| **Bienvenida animada** | Al abrir, el logo se arma solo (cuerpo, tubos y barras que se abren, con una línea de escaneo). Te saluda por tu nombre y muestra lo gastado en el mes con un contador. |
 | **Presentación** | La primera vez muestra un carrusel de seis páginas con ilustraciones animadas, paralaje y un fondo que cambia de tono. La última página pide el nombre y el prefijo, con vista previa del código. |
 | **Guía interactiva** | El botón de ayuda (el círculo con el signo de pregunta) de cada pantalla oscurece todo, ilumina un botón a la vez con un pulso naranja y explica para qué sirve. |
-| **Responsiva** | Se adapta a teléfonos chicos, letra grande, tablets y el teléfono de lado. |
+| **Responsiva** | Barra fija abajo con **Escanear** al centro; se adapta a teléfonos chicos, letra grande, tablets y el teléfono de lado. |
 
 ## Pantallas
 
@@ -72,14 +74,20 @@ CataLog anota cada compra en el momento y le asigna un código único. Ese códi
 
 <sub>Las capturas usan datos de ejemplo (vendedores y autos inventados) y se generan con la propia app en <code>catalog_app/test/capturas_test.dart</code>. La última es una captura real de un Xiaomi 11T Pro.</sub>
 
-### Bienvenida, presentación y guía
+### Bienvenida, bloqueo, temas e idioma
 
 <table>
   <tr>
     <td align="center" width="25%"><img src="docs/pantallas/8-bienvenida.png" alt="Bienvenida animada"><br><sub><b>Bienvenida</b><br>Logo que se arma y saludo</sub></td>
-    <td align="center" width="25%"><img src="docs/pantallas/9-presentacion.png" alt="Presentación"><br><sub><b>Presentación</b><br>Ilustraciones animadas</sub></td>
-    <td align="center" width="25%"><img src="docs/pantallas/9-presentacion-final.png" alt="Última página de la presentación"><br><sub><b>Antes de empezar</b><br>Nombre, prefijo y vista del código</sub></td>
-    <td align="center" width="25%"><img src="docs/pantallas/10-guia.png" alt="Guía interactiva"><br><sub><b>Guía</b><br>Botón de ayuda en cada pantalla</sub></td>
+    <td align="center" width="25%"><img src="docs/pantallas/11-bloqueo.png" alt="Bloqueo con huella"><br><sub><b>Bloqueo</b><br>Análisis de huella sin mostrar montos</sub></td>
+    <td align="center" width="25%"><img src="docs/pantallas/12-inicio-oscuro.png" alt="Modo oscuro"><br><sub><b>Modo oscuro</b><br>Inicio en paleta oscura</sub></td>
+    <td align="center" width="25%"><img src="docs/pantallas/13-ajustes.png" alt="Ajustes con color e idioma"><br><sub><b>Ajustes</b><br>Tema, contraste e idioma ES / EN</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/pantallas/9-presentacion.png" alt="Presentación"><br><sub><b>Presentación</b><br>Ilustraciones animadas</sub></td>
+    <td align="center"><img src="docs/pantallas/9-presentacion-final.png" alt="Última página de la presentación"><br><sub><b>Antes de empezar</b><br>Nombre, prefijo y vista del código</sub></td>
+    <td align="center"><img src="docs/pantallas/10-guia.png" alt="Guía interactiva"><br><sub><b>Guía</b><br>Botón de ayuda en cada pantalla</sub></td>
+    <td align="center"><img src="docs/pantallas/14-inicio-en.png" alt="Interfaz en inglés"><br><sub><b>English</b><br>Cambio de idioma en vivo</sub></td>
   </tr>
 </table>
 
@@ -158,7 +166,7 @@ catalog_app/lib/
 
 ## Pruebas
 
-**74 pruebas automáticas** (`flutter test`). Cubren:
+**79 pruebas automáticas** (`flutter test`). Cubren:
 
 - La fecha de compra: obligatoria, no futura, se usa en el código y queda registro de sus correcciones.
 - El generador de códigos: no repite números y reinicia el contador cada día.
@@ -200,7 +208,8 @@ La llave de firma (`llaves/`, `key.properties`) y los APK compilados (`apk/`) **
 
 | Versión | Fecha | Cambios principales |
 |---|---|---|
-| **1.3** | 23-11-2026 | Bienvenida animada (con huella si hay bloqueo), presentación en carrusel, guía interactiva con botón de ayuda en cada pantalla y arranque nativo en azul marino. |
+| **1.4** | 23-11-2026 | Barra de pestañas fija con Escanear al centro, bloqueo con huella analizada, rediseño completo de Inicio, Ajustes, Historial, Lotes, Reportes y Ficha, modo oscuro, alto contraste, tamaño de letra e idioma Español / English en vivo. |
+| 1.3 | 23-11-2026 | Bienvenida animada (con huella si hay bloqueo), presentación en carrusel, guía interactiva con botón de ayuda en cada pantalla y arranque nativo en azul marino. |
 | 1.2.1 | 23-11-2026 | Probada en el celular real. Arreglo del aviso al quitar un catalítico de un lote. |
 | 1.2 | 23-11-2026 | Logo refinado, sticker nuevo con "Hecho con CataLog", Excel rediseñado, carpeta `Respaldo CataLog` con restauración desde la app, nombre al crear lotes, huella para borrar, diseño responsivo. |
 | 1.1 | 22-11-2026 | Sesiones de compra y revisión, envío a otro celular, respaldo diario, bloqueo con huella o PIN. |

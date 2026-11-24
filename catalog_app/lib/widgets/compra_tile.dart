@@ -5,6 +5,7 @@ import '../data/compra.dart';
 import '../domain/formato.dart';
 import '../domain/tipos.dart';
 import '../features/ficha_screen.dart';
+import '../i18n.dart';
 import '../theme.dart';
 
 /// Cuadrito de color con la inicial del material: C cerámico, M metálico, D DPF.
@@ -73,7 +74,7 @@ class CompraTile extends StatelessWidget {
                         if (compra.anulada)
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
-                            child: Text('ANULADA',
+                            child: Text(tr('ANULADA', 'VOID'),
                                 style: TextStyle(fontSize: 11, color: CatalogColors.rojo, fontWeight: FontWeight.w700)),
                           ),
                         Text(

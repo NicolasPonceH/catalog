@@ -1,3 +1,5 @@
+import '../i18n.dart';
+
 /// Tipo de motor del auto del que sale el catalítico.
 enum Motor { bencinero, diesel }
 
@@ -6,15 +8,15 @@ enum TipoMaterial { ceramico, metalico, dpf }
 
 extension MotorEtiqueta on Motor {
   String get etiqueta => switch (this) {
-        Motor.bencinero => 'Bencinero',
-        Motor.diesel => 'Diésel',
+        Motor.bencinero => tr('Bencinero', 'Gasoline'),
+        Motor.diesel => tr('Diésel', 'Diesel'),
       };
 }
 
 extension TipoMaterialEtiqueta on TipoMaterial {
   String get etiqueta => switch (this) {
-        TipoMaterial.ceramico => 'Cerámico',
-        TipoMaterial.metalico => 'Metálico',
+        TipoMaterial.ceramico => tr('Cerámico', 'Ceramic'),
+        TipoMaterial.metalico => tr('Metálico', 'Metallic'),
         TipoMaterial.dpf => 'DPF',
       };
 }

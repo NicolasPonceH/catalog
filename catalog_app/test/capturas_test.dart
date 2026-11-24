@@ -15,10 +15,12 @@ import 'package:catalog/data/fotos.dart';
 import 'package:catalog/data/lotes_repo.dart';
 import 'package:catalog/domain/tipos.dart';
 import 'package:catalog/features/presentacion_screen.dart';
+import 'package:catalog/i18n.dart';
 import 'package:catalog/main.dart';
 import 'package:catalog/printing/etiqueta.dart';
 import 'package:catalog/printing/raster.dart';
 import 'package:catalog/theme.dart';
+import 'package:catalog/widgets/catalog_logo.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -161,6 +163,7 @@ void main() {
   setUpAll(() async {
     sqfliteFfiInit();
     await initializeDateFormatting('es');
+    await initializeDateFormatting('en');
   });
 
   testWidgets('capturas para el README', skip: !_activo, (tester) async {
@@ -368,6 +371,161 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.runAsync(base.cerrar);
+    debugDisableShadows = true;
+  });
+
+  testWidgets('capturas en inglés', skip: !_activo, (tester) async {
+    tester.view.physicalSize = _fisico;
+    tester.view.devicePixelRatio = _dpr;
+    tester.view.padding = const FakeViewPadding(top: _barraEstado * _dpr);
+    tester.view.viewPadding = const FakeViewPadding(top: _barraEstado * _dpr);
+    addTearDown(tester.view.reset);
+    FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTouch;
+    debugDisableShadows = false;
+    addTearDown(() => Idioma.actual = 'es');
+    late CatalogDb base;
+    await tester.runAsync(() async {
+      _salida.createSync(recursive: true);
+      await _cargarFuentes();
+      base = await CatalogDb.abrir(ruta: inMemoryDatabasePath, fabrica: databaseFactoryFfi);
+      await _poblar(base, DateTime.now());
+    });
+    await tester.pumpWidget(RepaintBoundary(
+      key: _raiz,
+      child: AppScope(base: base, fotos: FotosStore(Directory.systemTemp), child: const CatalogApp(idioma: 'en')),
+    ));
+    await _capturar(tester, '14-inicio-en');
+    await tester.tap(find.byTooltip('Settings'));
+    await _capturar(tester, '15-ajustes-en');
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
+    await tester.runAsync(base.cerrar);
+    debugDisableShadows = true;
+  });
+
+  testWidgets('portada del README con pantallas actualizadas', skip: !_activo, (tester) async {
+    const tamano = Size(1600, 900);
+    tester.view.physicalSize = tamano;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    debugDisableShadows = false;
+
+    late ui.Image imgFicha;
+    late ui.Image imgInicio;
+    late ui.Image imgReportes;
+    await tester.runAsync(() async {
+      await _cargarFuentes();
+      Future<ui.Image> leer(String n) async {
+        final bytes = await File('${_salida.path}/$n.png').readAsBytes();
+        final codec = await ui.instantiateImageCodec(bytes);
+        return (await codec.getNextFrame()).image;
+      }
+
+      imgFicha = await leer('3-ficha');
+      imgInicio = await leer('1-inicio');
+      imgReportes = await leer('5-reportes');
+    });
+
+    Widget marcoTelefono(ui.Image captura, {required double ancho, bool frente = false}) {
+      final alto = ancho * (2340 / 1080);
+      return Container(
+        width: ancho + 18,
+        height: alto + 18,
+        padding: const EdgeInsets.all(9),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0A141F),
+          borderRadius: BorderRadius.circular(34),
+          border: Border.all(color: const Color(0xFF2B4159), width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: frente ? 0.55 : 0.38),
+              blurRadius: frente ? 44 : 28,
+              offset: const Offset(0, 18),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(25),
+          child: RawImage(image: captura, fit: BoxFit.cover),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: RepaintBoundary(
+          key: _raiz,
+          child: Container(
+            width: 1600,
+            height: 900,
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(-0.45, -0.35),
+                radius: 1.35,
+                colors: [Color(0xFF173A5E), Color(0xFF0E2A47), Color(0xFF08192B)],
+              ),
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 96,
+                  top: 205,
+                  width: 710,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const CatalogLogo(altura: 86, oscuro: true),
+                      const SizedBox(height: 54),
+                      const Text(
+                        'Control de compras\nde catalíticos',
+                        style: TextStyle(
+                          fontFamily: fuenteUi,
+                          fontSize: 54,
+                          fontWeight: FontWeight.w700,
+                          height: 1.12,
+                          color: CatalogColors.niebla,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Registra cada compra, imprime un sticker con QR, escanéalo\ny saca reportes en Excel. Funciona sin internet.',
+                        style: TextStyle(
+                          fontFamily: fuenteUi,
+                          fontSize: 21,
+                          height: 1.44,
+                          color: Colors.white.withValues(alpha: 0.78),
+                        ),
+                      ),
+                      const SizedBox(height: 36),
+                      const Text(
+                        'FLUTTER · ANDROID · BLUETOOTH · OFFLINE · ES / EN',
+                        style: TextStyle(
+                          fontFamily: fuenteMono,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 1.0,
+                          color: CatalogColors.naranja,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(left: 855, top: 205, child: marcoTelefono(imgFicha, ancho: 250)),
+                Positioned(left: 1245, top: 205, child: marcoTelefono(imgReportes, ancho: 250)),
+                Positioned(left: 1030, top: 132, child: marcoTelefono(imgInicio, ancho: 292, frente: true)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final ro = tester.renderObject<RenderRepaintBoundary>(find.byKey(_raiz));
+    await tester.runAsync(() async {
+      final img = await ro.toImage(pixelRatio: 1);
+      final png = await img.toByteData(format: ui.ImageByteFormat.png);
+      File('${_salida.path}/portada.png').writeAsBytesSync(png!.buffer.asUint8List());
+    });
     debugDisableShadows = true;
   });
 }

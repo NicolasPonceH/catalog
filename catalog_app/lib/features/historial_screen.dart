@@ -5,6 +5,7 @@ import '../data/compra.dart';
 import '../domain/formato.dart';
 import '../domain/periodos.dart';
 import '../domain/tipos.dart';
+import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/compra_tile.dart';
 import '../widgets/consulta.dart';
@@ -41,26 +42,38 @@ class _HistorialScreenState extends State<HistorialScreen> {
       PasoGuia(
         clave: _gBuscar,
         icono: Icons.search,
-        titulo: 'Buscar',
-        texto: 'Escribe parte del vendedor, el código, el auto, el lugar o el código de fábrica.',
+        titulo: tr('Buscar', 'Search'),
+        texto: tr(
+          'Escribe parte del vendedor, el código, el auto, el lugar o el código de fábrica.',
+          'Type part of the seller, code, vehicle, place, or factory code.',
+        ),
       ),
       PasoGuia(
         clave: _gFiltros,
         icono: Icons.filter_list,
-        titulo: 'Filtros',
-        texto: 'Elige el período (hoy, semana, mes…) y el material. Desliza hacia el lado para ver más.',
+        titulo: tr('Filtros', 'Filters'),
+        texto: tr(
+          'Elige el período (hoy, semana, mes…) y el material con su color. Desliza hacia el lado para ver más.',
+          'Filter by period (today, week, month…) and color-coded material. Swipe horizontally to see all options.',
+        ),
       ),
       PasoGuia(
         clave: _gResumen,
         icono: Icons.functions,
-        titulo: 'Total del filtro',
-        texto: 'Cuántos catalíticos y cuánto pagaste por los que muestra la lista. Las anuladas no suman.',
+        titulo: tr('Total del filtro', 'Filtered total'),
+        texto: tr(
+          'Cuántos catalíticos, cuánto pagaste y el promedio de los que muestra la lista. Las anuladas no suman.',
+          'Converter count, total paid, and average price for the filtered list. Voided items are excluded.',
+        ),
       ),
       PasoGuia(
         clave: _gPrimera,
         icono: Icons.touch_app_outlined,
-        titulo: 'Abrir una compra',
-        texto: 'Las compras van por día de compra, de la más nueva a la más vieja. Toca una para ver su ficha.',
+        titulo: tr('Abrir una compra', 'Open a purchase'),
+        texto: tr(
+          'Las compras van por día de compra, de la más nueva a la más vieja. Toca una para ver su ficha.',
+          'Purchases are grouped by purchase day, newest first. Tap any row to inspect its full record.',
+        ),
       ),
     ]);
   }
@@ -70,7 +83,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
     final repo = AppScope.of(context).compras;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Historial de compras'),
+        title: Text(tr('Historial de compras', 'Purchase history')),
         actions: [BotonAyuda(alTocar: _mostrarGuia)],
       ),
       body: SafeArea(
@@ -83,7 +96,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
                 controller: _buscar,
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: 'Buscar vendedor, código, auto o lugar',
+                  hintText: tr('Buscar vendedor, código, auto o lugar', 'Search seller, code, vehicle, or place'),
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _buscar.text.isEmpty
                       ? null
@@ -107,16 +120,34 @@ class _HistorialScreenState extends State<HistorialScreen> {
                       child: ChoiceChip(
                         label: Text(t.etiqueta),
                         selected: _periodo == t,
+                        showCheckmark: false,
+                        selectedColor: CatalogColors.paleta.oscura ? CatalogColors.naranja : CatalogColors.marino,
+                        labelStyle: TextStyle(
+                          color: _periodo == t
+                              ? (CatalogColors.paleta.oscura ? CatalogColors.marino : CatalogColors.niebla)
+                              : CatalogColors.texto,
+                          fontWeight: _periodo == t ? FontWeight.w700 : FontWeight.w500,
+                        ),
                         onSelected: (_) => setState(() => _periodo = t),
                       ),
                     ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   for (final m in TipoMaterial.values)
                     Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: FilterChip(
+                        avatar: CircleAvatar(
+                          radius: 6,
+                          backgroundColor: _material == m ? Colors.white : MarcaTipo.colorDe(m),
+                        ),
                         label: Text(m.etiqueta),
                         selected: _material == m,
+                        showCheckmark: false,
+                        selectedColor: MarcaTipo.colorDe(m),
+                        labelStyle: TextStyle(
+                          color: _material == m ? Colors.white : CatalogColors.texto,
+                          fontWeight: _material == m ? FontWeight.w700 : FontWeight.w500,
+                        ),
                         onSelected: (s) => setState(() => _material = s ? m : null),
                       ),
                     ),
@@ -153,8 +184,9 @@ class _Lista extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activas = compras.where((c) => !c.anulada);
+    final activas = compras.where((c) => !c.anulada).toList();
     final total = activas.fold<int>(0, (s, c) => s + c.precio);
+    final promedio = activas.isEmpty ? 0 : (total / activas.length).round();
     final hoy = DateTime.now();
 
     // Encabezado por día de compra, seguido de las compras de ese día.
@@ -170,27 +202,79 @@ class _Lista extends StatelessWidget {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       itemCount: items.length + 1,
       itemBuilder: (context, i) {
         if (i == 0) {
+          if (compras.isEmpty) {
+            return Padding(
+              key: claveResumen,
+              padding: const EdgeInsets.only(top: 8),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: CatalogColors.naranjaClara,
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                        child: const Icon(Icons.search_off, color: CatalogColors.naranja),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          tr('No hay compras con estos filtros.', 'No purchases match these filters.'),
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
           return Padding(
             key: claveResumen,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              compras.isEmpty
-                  ? 'No hay compras con estos filtros.'
-                  : '${activas.length} ${activas.length == 1 ? 'catalítico' : 'catalíticos'} · ${clp(total)}',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: CatalogColors.marino,
+                borderRadius: BorderRadius.circular(14),
+                border: CatalogColors.paleta.oscura || CatalogColors.paleta.grosorBorde > 1
+                    ? Border.all(color: CatalogColors.borde, width: CatalogColors.paleta.grosorBorde)
+                    : null,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${contarCataliticos(activas.length)}'
+                      '${activas.isNotEmpty ? ' · ${tr('prom.', 'avg')} ${clp(promedio)}' : ''}',
+                      style: const TextStyle(color: CatalogColors.niebla, fontSize: 13.5, fontWeight: FontWeight.w500),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(clp(total), style: mono(size: 16, color: CatalogColors.naranja)),
+                ],
+              ),
             ),
           );
         }
         final item = items[i - 1];
         if (item is DateTime) {
           return Padding(
-            padding: const EdgeInsets.only(top: 12, bottom: 6),
-            child: Text(encabezadoDia(item, hoy),
-                style: TextStyle(fontSize: 14, color: CatalogColors.acero, fontWeight: FontWeight.w500)),
+            padding: const EdgeInsets.only(top: 12, bottom: 6, left: 2),
+            child: Text(
+              encabezadoDia(item, hoy),
+              style: TextStyle(fontSize: 13.5, color: CatalogColors.acero, fontWeight: FontWeight.w700),
+            ),
           );
         }
         return Padding(

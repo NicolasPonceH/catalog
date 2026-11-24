@@ -5,6 +5,7 @@ import '../app_scope.dart';
 import '../data/compra.dart';
 import '../domain/formato.dart';
 import '../domain/periodos.dart';
+import '../i18n.dart';
 import '../system/bloqueo.dart';
 import '../theme.dart';
 import '../version.dart';
@@ -27,9 +28,9 @@ class Bienvenida extends StatefulWidget {
 /// Saludo según la hora del día.
 String saludoPorHora(DateTime ahora) {
   final h = ahora.hour;
-  if (h >= 6 && h < 12) return 'Buenos días';
-  if (h >= 12 && h < 20) return 'Buenas tardes';
-  return 'Buenas noches';
+  if (h >= 6 && h < 12) return tr('Buenos días', 'Good morning');
+  if (h >= 12 && h < 20) return tr('Buenas tardes', 'Good afternoon');
+  return tr('Buenas noches', 'Good evening');
 }
 
 /// Iniciales para el avatar: primera letra de las dos primeras palabras.
@@ -105,7 +106,7 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
       _pidiendo = true;
       _huella = _Huella.analizando;
     });
-    final ok = await Bloqueo.desbloquear('Entra a CataLog');
+    final ok = await Bloqueo.desbloquear(tr('Entra a CataLog', 'Unlock CataLog'));
     if (!mounted) return;
     setState(() {
       _pidiendo = false;
@@ -241,7 +242,7 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
           0.62,
           0.82,
           Text(
-            'Control de compras de catalíticos',
+            tr('Control de compras de catalíticos', 'Catalytic converter purchase tracker'),
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontSize: 15),
           ),
@@ -254,9 +255,9 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
         const Spacer(),
         Opacity(
           opacity: tramo(i, 0.85, 1) * 0.6,
-          child: const Text(
-            'Versión $versionApp · Hecho en Arica',
-            style: TextStyle(color: Colors.white, fontSize: 12),
+          child: Text(
+            tr('Versión $versionApp · Hecho en Arica', 'Version $versionApp · Made in Arica'),
+            style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
         ),
         const SizedBox(height: 12),
@@ -273,10 +274,13 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
     final bajo = MediaQuery.sizeOf(context).height < 700;
     const verde = Color(0xFF5DCAA5);
     final (texto, colorTexto) = switch (_huella) {
-      _Huella.esperando => ('Listo para leer tu huella', Colors.white70),
-      _Huella.analizando => ('Analizando huella…', CatalogColors.naranja),
-      _Huella.ok => ('Huella reconocida', verde),
-      _Huella.error => ('No se reconoció. Toca para intentar de nuevo', const Color(0xFFFFB4A8)),
+      _Huella.esperando => (tr('Listo para leer tu huella', 'Ready to read your fingerprint'), Colors.white70),
+      _Huella.analizando => (tr('Analizando huella…', 'Analyzing fingerprint…'), CatalogColors.naranja),
+      _Huella.ok => (tr('Huella reconocida', 'Fingerprint recognized'), verde),
+      _Huella.error => (
+          tr('No se reconoció. Toca para intentar de nuevo', 'Not recognized. Tap to try again'),
+          const Color(0xFFFFB4A8),
+        ),
     };
     final encendido = switch (_huella) {
       _Huella.analizando => _latido.value,
@@ -297,7 +301,7 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
           0.35,
           0.75,
           Text(
-            corto.isEmpty ? 'Hola' : 'Hola, $corto',
+            corto.isEmpty ? tr('Hola', 'Hi') : tr('Hola, $corto', 'Hi, $corto'),
             style: const TextStyle(color: CatalogColors.niebla, fontSize: 20, fontWeight: FontWeight.w700),
           ),
           sube: 10,
@@ -377,14 +381,19 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
         Opacity(
           opacity: 0.6,
           child: Text(
-            _huella == _Huella.analizando ? 'Pon tu dedo en el lector del teléfono' : 'Toca la huella para entrar',
+            _huella == _Huella.analizando
+                ? tr('Pon tu dedo en el lector del teléfono', 'Place your finger on the phone sensor')
+                : tr('Toca la huella para entrar', 'Tap fingerprint to unlock'),
             style: const TextStyle(color: Colors.white, fontSize: 13),
           ),
         ),
         const SizedBox(height: 6),
         Opacity(
           opacity: tramo(i, 0.6, 1) * 0.45,
-          child: const Text('Versión $versionApp · Hecho en Arica', style: TextStyle(color: Colors.white, fontSize: 12)),
+          child: Text(
+            tr('Versión $versionApp · Hecho en Arica', 'Version $versionApp · Made in Arica'),
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
         ),
         const SizedBox(height: 12),
       ],
@@ -469,7 +478,7 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
                       style: const TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                     Text(
-                      corto.isEmpty ? 'Bienvenido' : corto,
+                      corto.isEmpty ? tr('Bienvenido', 'Welcome') : corto,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(color: CatalogColors.niebla, fontSize: 22, fontWeight: FontWeight.w700),
@@ -489,7 +498,7 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
                           const SizedBox(width: 5),
                           Flexible(
                             child: Text(
-                              _revision ? 'Sesión de revisión' : 'Mis compras',
+                              _revision ? tr('Sesión de revisión', 'Review session') : tr('Mis compras', 'My purchases'),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(color: CatalogColors.niebla, fontSize: 12),
@@ -510,7 +519,10 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_revision ? 'Recibido este mes' : 'Gastado este mes', style: tenue),
+                    Text(
+                      _revision ? tr('Recibido este mes', 'Received this month') : tr('Gastado este mes', 'Spent this month'),
+                      style: tenue,
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       mes == null ? '—' : clp((mes.total * avance).round()),
@@ -522,7 +534,7 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text('Catalíticos', style: tenue),
+                  Text(tr('Catalíticos', 'Converters'), style: tenue),
                   const SizedBox(height: 2),
                   Text(
                     mes == null ? '—' : '${(mes.cantidad * avance).round()}',
@@ -544,9 +556,9 @@ class _BienvenidaState extends State<Bienvenida> with TickerProviderStateMixin {
           width: double.infinity,
           child: FilledButton(
             onPressed: _entrar,
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [Text('Entrar'), SizedBox(width: 8), Icon(Icons.arrow_forward, size: 20)],
+              children: [Text(tr('Entrar', 'Enter')), const SizedBox(width: 8), const Icon(Icons.arrow_forward, size: 20)],
             ),
           ),
         ),

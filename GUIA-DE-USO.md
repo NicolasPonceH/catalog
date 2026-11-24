@@ -4,7 +4,7 @@ CataLog registra cada catalítico que compras, le imprime un sticker con su cód
 
 ## 1. Instalar
 
-1. Pasa el APK más nuevo (hoy `CataLog-1.3.apk`) al celular, por WhatsApp o con el cable.
+1. Pasa el APK más nuevo (hoy `CataLog-1.4.apk`) al celular, por WhatsApp o con el cable.
 2. Ábrelo y acepta **instalar apps desconocidas** cuando el teléfono lo pida.
 3. Si aparece un aviso de seguridad (Xiaomi o Play Protect), toca **Instalar de todas formas**.
 
@@ -12,7 +12,8 @@ Las versiones nuevas se instalan encima de la anterior **sin borrar las compras*
 
 ## 2. Al abrir CataLog
 
-- **Bienvenida:** el logo se arma solo, te saluda por tu nombre y muestra lo gastado en el mes. Entra sola en un par de segundos, o toca la pantalla para entrar antes. Si activaste el bloqueo, aquí mismo pones tu huella.
+- **Bienvenida y bloqueo:** el logo se arma solo, te saluda por tu nombre y muestra lo gastado en el mes. Entra sola en un par de segundos, o toca la pantalla para entrar antes. Si activaste el bloqueo, ves la pantalla de lectura de huella (sin mostrar montos hasta desbloquear).
+- **Barra de pestañas abajo:** desde cualquier parte puedes ir a **Inicio**, **Historial**, **Lotes** y **Reportes**, con el botón naranja grande de **Escanear** siempre a mano al centro.
 - **La primera vez** aparece una **presentación** de seis páginas: desliza o toca **Siguiente**. En la última escribes tu nombre y el prefijo de los códigos (ves al tiro cómo quedarán). Si dejas marcada la guía rápida, al entrar te muestra el Inicio paso a paso. Para verla de nuevo: **Ajustes > Ayuda > Ver la presentación de nuevo**.
 - **Botón de ayuda** (el círculo con el signo de pregunta, arriba a la derecha de cada pantalla): ilumina cada botón de esa pantalla y explica para qué sirve. Toca **Siguiente** para avanzar o **Salir de la guía** para cerrarla. Hasta que lo uses por primera vez, el botón late con un punto naranja.
 
@@ -20,7 +21,9 @@ Las versiones nuevas se instalan encima de la anterior **sin borrar las compras*
 
 En **Ajustes** (la ruedita, arriba a la derecha):
 
-- **Tu nombre** y el **prefijo** de este teléfono. Usa un prefijo distinto en cada celular, por ejemplo `CTL` para uno y `CTT` para el otro, así los códigos nunca se repiten.
+- **Tu perfil:** toca la tarjeta de arriba para editar **tu nombre** y el **prefijo** de este teléfono (`CTL`, `CTT`, etc.) para que los códigos nunca se repitan.
+- **Apariencia:** elige **tema** (claro, oscuro o automático según el teléfono), activa **alto contraste** para bordes y textos más marcados, ajusta el **tamaño de letra** (normal, grande o enorme) y prende o apaga las **animaciones**.
+- **Idioma y sonido:** cambia toda la app entre **Español** e **Inglés (English)** al instante, y elige si quieres **vibración** y **sonido** al escanear.
 - **Impresora:** enciéndela, toca **Buscar** y elígela de la lista. CataLog detecta solo el tipo de impresora. Después toca **Imprimir sticker de prueba**.
   - Si la impresora es "clásica", primero hay que emparejarla en *Ajustes de Android > Bluetooth* (el PIN suele ser 0000 o 1234).
   - Si un equipo aparece dos veces y uno no imprime, prueba con el otro.
@@ -43,7 +46,7 @@ El precio **no** sale en el sticker: solo se ve al escanearlo con CataLog.
 
 ## 5. Ver un catalítico
 
-En el Inicio, toca **Escanear sticker** y apunta al QR o al código de barras. Se abre su ficha completa: fecha de compra, vendedor, lugar con mapa, precio, tipo y foto.
+Toca el botón naranja **Escanear** al centro de la barra de abajo y apunta al QR o al código de barras. Se abre su ficha completa: código, precio, fecha de compra, vendedor, lugar con mapa, tipo y foto.
 
 Si el sticker está dañado, toca **Escribir el código a mano**.
 

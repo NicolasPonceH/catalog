@@ -29,7 +29,11 @@ class AjustesDispositivo extends ChangeNotifier {
   static const sinVibrar = 'sin_vibrar';
   static const sinSonido = 'sin_sonido';
 
+  /// 'es' (español) o 'en' (inglés).
+  static const idioma = 'idioma';
+
   String get temaElegido => leer(tema) ?? 'claro';
+  String get idiomaElegido => leer(idioma) == 'en' ? 'en' : 'es';
   double get escalaLetra => double.tryParse(leer(letra) ?? '') ?? 1.0;
   bool get vibrar => !activado(sinVibrar);
   bool get sonar => !activado(sinSonido);

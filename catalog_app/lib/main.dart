@@ -16,12 +16,14 @@ import 'features/inicio_screen.dart';
 import 'features/presentacion_screen.dart';
 import 'features/principal_screen.dart';
 import 'features/traspaso.dart';
+import 'i18n.dart';
 import 'system/sistema.dart';
 import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es');
+  await initializeDateFormatting('en');
   final sesiones = await Sesiones.abrir();
   final dispositivo = await AjustesDispositivo.abrir(sesiones.documentos);
   var sesion = await sesiones.buscar(dispositivo.leer(AjustesDispositivo.sesionActiva)) ?? sesiones.principal;
@@ -90,6 +92,7 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
   // ---------- Apariencia ----------
 
   Paleta? _paletaUsada;
+  String? _idiomaUsado;
 
   void _ajustesCambiaron() {
     if (mounted) setState(() {});
@@ -220,7 +223,7 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
       _mensajes = GlobalKey();
       _navegador = GlobalKey();
     });
-    final texto = error == null ? mensaje : 'No se pudo completar: $error';
+    final texto = error == null ? mensaje : '${tr('No se pudo completar', 'Could not complete')}: $error';
     if (texto != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _mensajes.currentState?.showSnackBar(SnackBar(content: Text(texto)));
@@ -231,13 +234,19 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
   @override
   Future<void> abrirSesion(Sesion sesion, {String? mensaje}) => _cambiar(
         () async => sesion,
-        mensaje: mensaje ?? (sesion.esRevision ? 'Sesión de revisión: ${sesion.nombre}' : 'Volviste a tus compras'),
+        mensaje: mensaje ??
+            (sesion.esRevision
+                ? '${tr('Sesión de revisión', 'Review session')}: ${sesion.nombre}'
+                : tr('Volviste a tus compras', 'Back to your purchases')),
       );
 
   @override
   Future<void> recibirRevision(ContenidoRespaldo contenido) => _cambiar(
         () => widget.sesiones.guardarRevision(contenido),
-        mensaje: 'Datos recibidos: ${contenido.compras} compras en una sesión de revisión',
+        mensaje: tr(
+          'Datos recibidos: ${contenido.compras} compras en una sesión de revisión',
+          'Data received: ${contenido.compras} purchases in a review session',
+        ),
       );
 
   @override
@@ -246,7 +255,7 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
       await _cambiar(() async {
         await widget.sesiones.eliminar(sesion);
         return widget.sesiones.principal;
-      }, mensaje: 'Revisión borrada');
+      }, mensaje: tr('Revisión borrada', 'Review deleted'));
     } else {
       await widget.sesiones.eliminar(sesion);
     }
@@ -262,12 +271,17 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
   @override
   Widget build(BuildContext context) {
     final paleta = _paleta();
-    if (_paletaUsada != null && !identical(paleta, _paletaUsada)) {
+    final d = widget.dispositivo;
+    final idioma = d.idiomaElegido;
+    final cambioTema = _paletaUsada != null && !identical(paleta, _paletaUsada);
+    final cambioIdioma = _idiomaUsado != null && _idiomaUsado != idioma;
+    if (cambioTema || cambioIdioma) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _reconstruirTodo());
     }
     _paletaUsada = paleta;
+    _idiomaUsado = idioma;
     CatalogColors.paleta = paleta;
-    final d = widget.dispositivo;
+    Idioma.actual = idioma;
     return AppScope(
       base: _base,
       fotos: FotosStore(_sesion.carpeta),
@@ -284,6 +298,7 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
         bloqueada: _bloqueada,
         alEntrar: _entrar,
         paleta: paleta,
+        idioma: idioma,
         escalaLetra: d.escalaLetra,
         sinAnimaciones: d.activado(AjustesDispositivo.sinAnimaciones),
       ),
@@ -303,6 +318,7 @@ class CatalogApp extends StatelessWidget {
     this.bloqueada = false,
     this.alEntrar,
     this.paleta = Paleta.clara,
+    this.idioma = 'es',
     this.escalaLetra = 1.0,
     this.sinAnimaciones = false,
   });
@@ -312,6 +328,9 @@ class CatalogApp extends StatelessWidget {
 
   /// Colores del tema elegido en Ajustes.
   final Paleta paleta;
+
+  /// Idioma elegido en Ajustes ('es' o 'en').
+  final String idioma;
 
   /// Tamaño de letra elegido en Ajustes (se multiplica por el del teléfono).
   final double escalaLetra;
@@ -326,14 +345,15 @@ class CatalogApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Idioma.actual = idioma;
     return MaterialApp(
       title: 'CataLog',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: mensajes,
       navigatorKey: navegador,
       theme: catalogTheme(paleta),
-      locale: const Locale('es', 'CL'),
-      supportedLocales: const [Locale('es', 'CL'), Locale('es')],
+      locale: idioma == 'en' ? const Locale('en', 'US') : const Locale('es', 'CL'),
+      supportedLocales: const [Locale('es', 'CL'), Locale('es'), Locale('en', 'US'), Locale('en')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       builder: (context, child) {
         // Respeta el tamaño de letra del teléfono (más el elegido en Ajustes), con
