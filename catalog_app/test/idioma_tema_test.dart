@@ -126,7 +126,7 @@ void main() {
     await tester.tap(find.text('History'));
     await _avanzar(tester, ms: 400);
     expect(find.text('Purchase history'), findsOneWidget);
-    expect(find.text('Ceramic'), findsOneWidget);
+    expect(find.text('Unprinted (1)'), findsOneWidget);
 
     await tester.tap(find.text('Batches'));
     await _avanzar(tester, ms: 400);

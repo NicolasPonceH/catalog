@@ -9,6 +9,8 @@ import '../printing/etiqueta.dart';
 import '../printing/impresora.dart';
 import '../printing/imprimir.dart';
 import '../system/bloqueo.dart';
+import '../system/notificaciones.dart';
+import '../system/sistema.dart';
 import '../theme.dart';
 import '../version.dart';
 import '../widgets/consulta.dart';
@@ -41,10 +43,12 @@ class _AjustesScreenState extends State<AjustesScreen> {
   final _gNombre = GlobalKey();
   final _gApariencia = GlobalKey();
   final _gIdioma = GlobalKey();
+  final _gNotificaciones = GlobalKey();
   final _gImpresora = GlobalKey();
   final _gPapel = GlobalKey();
   final _gPrueba = GlobalKey();
   final _gSeguridad = GlobalKey();
+  final _gUbicarRespaldo = GlobalKey();
   final _gRespaldo = GlobalKey();
   final _gPresentacion = GlobalKey();
 
@@ -76,6 +80,15 @@ class _AjustesScreenState extends State<AjustesScreen> {
         texto: tr(
           'Elige entre Español e Inglés y activa o apaga la vibración y el sonido al escanear.',
           'Choose between Spanish and English and toggle vibration or sound when scanning.',
+        ),
+      ),
+      PasoGuia(
+        clave: _gNotificaciones,
+        icono: Icons.notifications_active_outlined,
+        titulo: tr('Notificaciones locales', 'Local notifications'),
+        texto: tr(
+          'Funcionan sin internet: avisan cuando se guarda un respaldo y te recuerdan a la hora elegida los stickers pendientes, lotes abiertos, resumen del día y respaldo externo.',
+          'Work 100% offline: notify you when backups save and remind you at your chosen time about unprinted stickers, open batches, daily totals, and external backups.',
         ),
       ),
       PasoGuia(
@@ -112,6 +125,15 @@ class _AjustesScreenState extends State<AjustesScreen> {
         texto: tr(
           'Si lo activas, CataLog pide tu huella o PIN al abrirla y después de 2 minutos fuera de la app.',
           'When enabled, CataLog requires your fingerprint or PIN on launch and after 2 minutes in the background.',
+        ),
+      ),
+      PasoGuia(
+        clave: _gUbicarRespaldo,
+        icono: Icons.folder_special,
+        titulo: tr('Ubicar respaldo', 'Locate backup'),
+        texto: tr(
+          'Te lleva directo en la app de Archivos del teléfono a Descargas/Respaldo CataLog, donde están guardados tus respaldos .zip.',
+          'Opens your phone’s Files app directly inside Downloads/Respaldo CataLog, right where your .zip backups live.',
         ),
       ),
       PasoGuia(
@@ -395,6 +417,52 @@ class _AjustesScreenState extends State<AjustesScreen> {
     }
   }
 
+  Future<void> _elegirHoraRecordatorio() async {
+    final d = _dispositivo;
+    final (h, m) = d?.horaMinutoRecordatorio ?? (20, 0);
+    final elegida = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: h, minute: m),
+      helpText: tr('Hora del aviso diario', 'Daily reminder time'),
+    );
+    if (elegida == null) return;
+    final hh = elegida.hour.toString().padLeft(2, '0');
+    final mm = elegida.minute.toString().padLeft(2, '0');
+    await Sistema.pedirPermisoNotificaciones();
+    await _guardarPreferencia(AjustesDispositivo.horaRecordatorio, '$hh:$mm');
+    if (mounted) {
+      avisar(context, tr('Aviso diario programado a las $hh:$mm', 'Daily reminder scheduled at $hh:$mm'));
+    }
+  }
+
+  Future<void> _probarNotificacion() async {
+    final scope = AppScope.of(context);
+    final concedido = await Sistema.pedirPermisoNotificaciones();
+    if (!mounted) return;
+    final d = scope.dispositivo;
+    final resumen = d == null
+        ? null
+        : await Notificaciones.armarResumenRecordatorio(base: scope.base, dispositivo: d);
+    await Sistema.mostrarNotificacion(
+      titulo: resumen?.$1 ?? tr('Notificaciones activas · CataLog', 'Notifications active · CataLog'),
+      cuerpo: resumen?.$2 ??
+          tr(
+            'Todo al día: CataLog te avisará al guardar respaldos y en el cierre de jornada.',
+            'All caught up: CataLog will notify you when saving backups and at the end of the day.',
+          ),
+    );
+    if (!mounted) return;
+    avisar(
+      context,
+      concedido
+          ? tr('Notificación enviada al teléfono', 'Notification sent to your phone')
+          : tr(
+              'Activa el permiso de notificaciones de CataLog en Ajustes de Android',
+              'Enable notification permission for CataLog in Android Settings',
+            ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scope = AppScope.of(context);
@@ -603,6 +671,101 @@ class _AjustesScreenState extends State<AjustesScreen> {
               ],
             ),
 
+            // ---- Notificaciones ----
+            Builder(builder: (context) {
+              final (hr, mn) = d?.horaMinutoRecordatorio ?? (20, 0);
+              final textoHora = '${hr.toString().padLeft(2, '0')}:${mn.toString().padLeft(2, '0')}';
+              return _Seccion(
+                key: _gNotificaciones,
+                titulo: tr('Notificaciones (sin internet)', 'Notifications (offline)'),
+                hijos: [
+                  _Fila(
+                    icono: Icons.schedule,
+                    color: CatalogColors.naranja,
+                    titulo: tr('Hora del aviso diario', 'Daily reminder time'),
+                    subtitulo: tr('Revisa pendientes aunque la app esté cerrada', 'Checks pending items even when closed'),
+                    alTocar: _elegirHoraRecordatorio,
+                    derecha: TextButton(
+                      onPressed: _elegirHoraRecordatorio,
+                      child: Text(textoHora, style: mono(size: 15, weight: FontWeight.w700, color: CatalogColors.naranja)),
+                    ),
+                  ),
+                  _Fila(
+                    icono: Icons.cloud_done_outlined,
+                    color: const Color(0xFF185FA5),
+                    titulo: tr('Avisar al hacer respaldo', 'Notify while backing up'),
+                    subtitulo: tr('Muestra cuando se está guardando y dónde quedó', 'Shows progress and destination folder'),
+                    derecha: Switch(
+                      value: d?.notifRespaldo ?? true,
+                      onChanged: (v) async {
+                        if (v) await Sistema.pedirPermisoNotificaciones();
+                        await _guardarPreferencia(AjustesDispositivo.sinNotifRespaldo, v ? null : '1');
+                      },
+                    ),
+                  ),
+                  _Fila(
+                    icono: Icons.print_disabled_outlined,
+                    color: const Color(0xFFD85A30),
+                    titulo: tr('Stickers pendientes de imprimir', 'Unprinted stickers'),
+                    subtitulo: tr('Avisa si quedaron compras con 0 impresiones', 'Reminds you if purchases have 0 prints'),
+                    derecha: Switch(
+                      value: d?.notifSinImprimir ?? true,
+                      onChanged: (v) async {
+                        if (v) await Sistema.pedirPermisoNotificaciones();
+                        await _guardarPreferencia(AjustesDispositivo.sinNotifSinImprimir, v ? null : '1');
+                      },
+                    ),
+                  ),
+                  _Fila(
+                    icono: Icons.warning_amber_rounded,
+                    color: const Color(0xFFBA7517),
+                    titulo: tr('Recordatorio de respaldo externo', 'External backup reminder'),
+                    subtitulo: tr('Cuando llevas varios días o compras sin enviar copia', 'When days or purchases accumulate'),
+                    derecha: Switch(
+                      value: d?.notifRecordarRespaldo ?? true,
+                      onChanged: (v) async {
+                        if (v) await Sistema.pedirPermisoNotificaciones();
+                        await _guardarPreferencia(AjustesDispositivo.sinNotifRecordarRespaldo, v ? null : '1');
+                      },
+                    ),
+                  ),
+                  _Fila(
+                    icono: Icons.today_outlined,
+                    color: const Color(0xFF1D9E75),
+                    titulo: tr('Resumen al cerrar el día', 'End-of-day summary'),
+                    subtitulo: tr('Total comprado hoy si registraste compras', 'Today’s total when purchases were logged'),
+                    derecha: Switch(
+                      value: d?.notifResumenDia ?? true,
+                      onChanged: (v) async {
+                        if (v) await Sistema.pedirPermisoNotificaciones();
+                        await _guardarPreferencia(AjustesDispositivo.sinNotifResumenDia, v ? null : '1');
+                      },
+                    ),
+                  ),
+                  _Fila(
+                    icono: Icons.inventory_2_outlined,
+                    color: const Color(0xFF7F77DD),
+                    titulo: tr('Aviso de lote abierto', 'Open batch reminder'),
+                    subtitulo: tr('Recuerda si dejaste un lote sin terminar', 'Reminds you if a batch was left open'),
+                    derecha: Switch(
+                      value: d?.notifLoteAbierto ?? true,
+                      onChanged: (v) async {
+                        if (v) await Sistema.pedirPermisoNotificaciones();
+                        await _guardarPreferencia(AjustesDispositivo.sinNotifLoteAbierto, v ? null : '1');
+                      },
+                    ),
+                  ),
+                  _Fila(
+                    icono: Icons.notifications_active_outlined,
+                    color: const Color(0xFF0F8B8D),
+                    titulo: tr('Probar notificación ahora', 'Send test notification'),
+                    alTocar: _probarNotificacion,
+                    derecha: Icon(Icons.chevron_right, color: CatalogColors.acero),
+                  ),
+                ],
+              );
+            }),
+
             // ---- Impresora ----
             _Seccion(
               titulo: tr('Impresora de stickers', 'Sticker printer'),
@@ -668,6 +831,76 @@ class _AjustesScreenState extends State<AjustesScreen> {
                   derecha: Switch(value: _bloqueo, onChanged: _cambiarBloqueo),
                 ),
               ],
+            ),
+
+            // ---- Ubicar respaldo (opción roja importante de advertencia) ----
+            Padding(
+              padding: const EdgeInsets.only(top: 22),
+              child: Container(
+                key: _gUbicarRespaldo,
+                decoration: BoxDecoration(
+                  color: CatalogColors.rojo.withValues(alpha: CatalogColors.paleta.oscura ? 0.16 : 0.09),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: CatalogColors.rojo, width: 1.8),
+                ),
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => ubicarRespaldosEnArchivos(context),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFB3261E),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.folder_special, color: Colors.white, size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.warning_amber_rounded, size: 16, color: CatalogColors.rojo),
+                                    const SizedBox(width: 5),
+                                    Expanded(
+                                      child: Text(
+                                        tr('Ubicar respaldo', 'Locate backup'),
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: CatalogColors.rojo,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  tr(
+                                    'Importante: abre tus archivos exactamente en Descargas/$carpetaRespaldos donde se guardan tus respaldos.',
+                                    'Important: opens your files directly inside Downloads/$carpetaRespaldos where your backups live.',
+                                  ),
+                                  style: TextStyle(fontSize: 13, height: 1.35, color: CatalogColors.texto),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(Icons.open_in_new, color: CatalogColors.rojo, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
 
             // ---- Respaldo y traspaso ----

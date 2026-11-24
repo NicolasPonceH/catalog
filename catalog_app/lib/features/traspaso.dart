@@ -12,6 +12,7 @@ import '../data/sesiones.dart';
 import '../domain/formato.dart';
 import '../i18n.dart';
 import '../system/confirmar.dart';
+import '../system/notificaciones.dart';
 import '../system/sistema.dart';
 import '../theme.dart';
 
@@ -41,6 +42,7 @@ Future<void> crearRespaldoYEnviar(BuildContext context) async {
     return;
   }
   avisar(context, tr('Preparando respaldo…', 'Preparing backup…'));
+  await Notificaciones.avisarRespaldoEnCurso(scope.dispositivo);
   try {
     final zip = await armarRespaldo(scope.base, scope.fotos.carpetaBase);
     final prefijo = await scope.compras.prefijo();
@@ -51,7 +53,10 @@ Future<void> crearRespaldoYEnviar(BuildContext context) async {
     } catch (_) {
       lugar = null;
     }
-    if (lugar != null) await scope.compras.registrarRespaldo();
+    if (lugar != null) {
+      await scope.compras.registrarRespaldo();
+      await Notificaciones.avisarRespaldoListo(scope.dispositivo, lugar: lugar);
+    }
     if (!context.mounted) return;
     final enviar = await showDialog<bool>(
       context: context,
@@ -461,6 +466,50 @@ Future<void> mostrarSesiones(BuildContext context) async {
   );
 }
 
+/// Abre directamente la carpeta exacta de los respaldos en la app de Archivos
+/// del teléfono (`Descargas/Respaldo CataLog`). Si el sistema no tiene visor
+/// directo, muestra la ruta exacta y los archivos guardados ahí.
+Future<void> ubicarRespaldosEnArchivos(BuildContext context) async {
+  final abrio = await Sistema.abrirCarpetaRespaldos();
+  if (!context.mounted) return;
+  if (abrio) {
+    avisar(
+      context,
+      tr(
+        'Abriendo Descargas/$carpetaRespaldos en tus archivos…',
+        'Opening Downloads/$carpetaRespaldos in your files…',
+      ),
+    );
+    return;
+  }
+  var lista = <ArchivoRespaldo>[];
+  try {
+    lista = await Sistema.listarRespaldos();
+  } catch (_) {}
+  if (!context.mounted) return;
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      icon: Icon(Icons.folder_special, color: CatalogColors.rojo, size: 36),
+      title: Text(tr('Ubicación de tus respaldos', 'Backup folder location')),
+      content: Text(
+        lista.isEmpty
+            ? tr(
+                'Tus respaldos se guardan en:\nAlmacenamiento interno > Descargas > $carpetaRespaldos\n\nTodavía no hay archivos .zip creados ahí.',
+                'Your backups are saved in:\nInternal storage > Downloads > $carpetaRespaldos\n\nNo .zip backups have been saved there yet.',
+              )
+            : tr(
+                'Tus respaldos (${lista.length}) están en:\nAlmacenamiento interno > Descargas > $carpetaRespaldos\n\nMás reciente: ${lista.first.nombre}',
+                'Your backups (${lista.length}) live in:\nInternal storage > Downloads > $carpetaRespaldos\n\nLatest: ${lista.first.nombre}',
+              ),
+      ),
+      actions: [
+        FilledButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Entendido', 'Got it'))),
+      ],
+    ),
+  );
+}
+
 /// Accesos directos: respaldo, traspaso, recibir datos y sesiones.
 Future<void> mostrarRespaldoYTraspaso(BuildContext context) async {
   final scope = AppScope.of(context);
@@ -476,10 +525,13 @@ Future<void> mostrarRespaldoYTraspaso(BuildContext context) async {
   await showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
+    isScrollControlled: true,
     builder: (hoja) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(hoja).size.height * 0.82),
+        child: ListView(
+          shrinkWrap: true,
+          children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
             child: Align(
@@ -516,6 +568,17 @@ Future<void> mostrarRespaldoYTraspaso(BuildContext context) async {
             subtitle: Text('${tr('Ahora', 'Current')}: $nombreSesion'),
             onTap: () => ir(hoja, mostrarSesiones),
           ),
+          ListTile(
+            leading: Icon(Icons.folder_special_outlined, color: CatalogColors.rojo),
+            title: Text(
+              tr('Ubicar respaldo', 'Locate backup'),
+              style: TextStyle(color: CatalogColors.rojo, fontWeight: FontWeight.w700),
+            ),
+            subtitle: Text(
+              tr('Abrir Descargas/Respaldo CataLog en mis archivos', 'Open Downloads/Respaldo CataLog in my files'),
+            ),
+            onTap: () => ir(hoja, ubicarRespaldosEnArchivos),
+          ),
           if (!revision)
             ListTile(
               leading: Icon(Icons.settings_backup_restore, color: CatalogColors.rojo),
@@ -524,7 +587,8 @@ Future<void> mostrarRespaldoYTraspaso(BuildContext context) async {
               onTap: () => ir(hoja, restaurarDesdeArchivo),
             ),
           const SizedBox(height: 8),
-        ],
+          ],
+        ),
       ),
     ),
   );

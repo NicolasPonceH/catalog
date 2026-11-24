@@ -226,6 +226,9 @@ class ComprasRepo {
       donde.add('material = ?');
       args.add(f.material!.name);
     }
+    if (f.soloSinImprimir) {
+      donde.add("estado = 'activa' AND impresiones = 0");
+    }
     final texto = f.texto.trim().replaceAll(RegExp('[%_]'), '');
     if (texto.isNotEmpty) {
       final like = '%$texto%';
@@ -255,9 +258,53 @@ class ComprasRepo {
     return filas.map(Compra.deFila).toList();
   }
 
+  /// Cantidad de compras activas que todavía tienen 0 impresiones de sticker.
+  Future<int> contarSinImprimir() async =>
+      Sqflite.firstIntValue(
+        await _db.rawQuery("SELECT COUNT(*) FROM compras WHERE estado = 'activa' AND impresiones = 0"),
+      ) ??
+      0;
+
+  /// Precios pagados antes por el mismo código grabado de fábrica (solo compras activas).
+  Future<ReferenciaPrecio?> referenciaCodigoFabrica(String codigoFabrica, {int? excluirId}) async {
+    final limpio = codigoFabrica.trim().toUpperCase();
+    if (limpio.length < 2) return null;
+    final filas = await _db.query(
+      'compras',
+      columns: ['precio', 'fecha_compra', 'autos'],
+      where: "estado = 'activa' AND codigo_fabrica = ?${excluirId != null ? ' AND id != ?' : ''}",
+      whereArgs: [limpio, ?excluirId],
+      orderBy: 'fecha_compra DESC, id DESC',
+    );
+    if (filas.isEmpty) return null;
+    var suma = 0;
+    var min = filas.first['precio']! as int;
+    var max = min;
+    var autos = '';
+    for (final f in filas) {
+      final p = f['precio']! as int;
+      suma += p;
+      if (p < min) min = p;
+      if (p > max) max = p;
+      if (autos.isEmpty && (f['autos'] as String? ?? '').trim().isNotEmpty) {
+        autos = (f['autos']! as String).trim();
+      }
+    }
+    return ReferenciaPrecio(
+      codigoFabrica: limpio,
+      cantidad: filas.length,
+      ultimoPrecio: filas.first['precio']! as int,
+      ultimaFecha: deMs(filas.first['fecha_compra']),
+      promedio: (suma / filas.length).round(),
+      minimo: min,
+      maximo: max,
+      ultimoAutos: autos,
+    );
+  }
+
   /// Sugerencias para autocompletar, las usadas más recientemente primero.
   Future<List<String>> sugerencias(String columna) async {
-    const permitidas = {'vendedor', 'lugar', 'autos'};
+    const permitidas = {'vendedor', 'lugar', 'autos', 'codigo_fabrica'};
     if (!permitidas.contains(columna)) throw ArgumentError(columna);
     final filas = await _db.rawQuery(
       'SELECT $columna AS v, MAX(fecha_compra) AS m FROM compras '

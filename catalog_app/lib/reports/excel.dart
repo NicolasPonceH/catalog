@@ -285,17 +285,34 @@ List<int> excelDeLote(Lote lote, List<ItemLote> items, {String comprador = '', D
   final h = excel['Lote'];
   final activos = items.where((i) => !i.compra.anulada).toList();
   final total = activos.fold<int>(0, (s, i) => s + i.compra.precio);
+  final recibido = lote.montoRecibido;
+  final ganancia = recibido == null ? null : recibido - total;
+  final pctMargen = (ganancia != null && total > 0) ? ((ganancia / total) * 100).round() : null;
 
   var fila = _cabecera(h, lote.nombre, [
     'Creado el ${fechaHora(lote.creadoEn)}${lote.cerradoEn != null ? ' · cerrado el ${fechaHora(lote.cerradoEn!)}' : ''}',
+    if (recibido != null)
+      'Venta recibida: ${clp(recibido)} · Utilidad neta: ${ganancia! >= 0 ? '+' : ''}${clp(ganancia)}'
+          '${pctMargen != null ? ' (${pctMargen >= 0 ? '+' : ''}$pctMargen%)' : ''}',
     if (comprador.isNotEmpty) 'Comprador: $comprador',
     'Generado el ${fechaHora(generado ?? DateTime.now())}',
   ], columnas: 9);
-  fila = _tarjetas(h, fila, [
-    ('TOTAL PAGADO', _i(total), _F.dinero),
-    ('CATALÍTICOS', _i(activos.length), _F.entero),
-    ('PROMEDIO', _i(activos.isEmpty ? 0 : (total / activos.length).round()), _F.dinero),
-  ]);
+  fila = _tarjetas(
+    h,
+    fila,
+    recibido == null
+        ? [
+            ('TOTAL PAGADO', _i(total), _F.dinero),
+            ('CATALÍTICOS', _i(activos.length), _F.entero),
+            ('PROMEDIO', _i(activos.isEmpty ? 0 : (total / activos.length).round()), _F.dinero),
+          ]
+        : [
+            ('COSTO PAGADO', _i(total), _F.dinero),
+            ('MONTO RECIBIDO', _i(recibido), _F.dinero),
+            ('UTILIDAD NETA', _i(ganancia!), _F.dinero),
+            ('CATALÍTICOS', _i(activos.length), _F.entero),
+          ],
+  );
 
   const columnas = ['Código', 'Fecha de compra', 'Hora', 'Vendedor', 'Tipo', 'Código de fábrica', 'Autos', 'Precio', 'Escaneado el'];
   _escribir(h, fila, [for (final c in columnas) _t(c)], [for (final _ in columnas) _encabezado()]);
@@ -326,6 +343,17 @@ List<int> excelDeLote(Lote lote, List<ItemLote> items, {String comprador = '', D
   _escribir(h, fila, [_t('TOTAL'), null, null, null, null, null, null, _i(total)],
       [_total(_F.texto), _total(_F.texto), _total(_F.texto), _total(_F.texto), _total(_F.texto), _total(_F.texto),
        _total(_F.texto), _total(_F.dinero)]);
+  if (recibido != null) {
+    fila++;
+    _escribir(h, fila, [_t('MONTO RECIBIDO'), null, null, null, null, null, null, _i(recibido)],
+        [_celda(_F.texto, franja: true), _celda(_F.texto, franja: true), _celda(_F.texto, franja: true),
+         _celda(_F.texto, franja: true), _celda(_F.texto, franja: true), _celda(_F.texto, franja: true),
+         _celda(_F.texto, franja: true), _celda(_F.dinero, franja: true)]);
+    fila++;
+    _escribir(h, fila, [_t('UTILIDAD NETA'), null, null, null, null, null, null, _i(ganancia!)],
+        [_total(_F.texto), _total(_F.texto), _total(_F.texto), _total(_F.texto), _total(_F.texto), _total(_F.texto),
+         _total(_F.texto), _total(_F.dinero)]);
+  }
   _anchos(h, [19, 15, 8, 22, 22, 17, 24, 13, 18]);
   return excel.encode()!;
 }

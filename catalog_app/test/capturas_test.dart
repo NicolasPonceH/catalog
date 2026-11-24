@@ -114,9 +114,10 @@ Future<List<Compra>> _poblar(CatalogDb base, DateTime ahora) async {
   ];
 
   final creadas = <Compra>[];
-  for (final d in datos) {
-    final c = await compras.crear(d);
-    await compras.marcarImpresion(c.id);
+  for (var i = 0; i < datos.length; i++) {
+    final c = await compras.crear(datos[i]);
+    // Deja la penúltima sin imprimir para que el chip "Sin imprimir (1)" luzca en Historial.
+    if (i != datos.length - 2) await compras.marcarImpresion(c.id);
     creadas.add(c);
   }
   await compras.registrarRespaldo();
@@ -126,7 +127,7 @@ Future<List<Compra>> _poblar(CatalogDb base, DateTime ahora) async {
   for (final c in creadas.skip(2).take(6)) {
     await lotes.agregarEscaneado(entrega.id, c.codigo);
   }
-  await lotes.cerrar(entrega.id);
+  await lotes.cerrar(entrega.id, montoRecibido: 720000, actualizarMonto: true);
   final revision = await lotes.crear(nombre: 'Revisión de bodega');
   for (final c in creadas.skip(8)) {
     await lotes.agregarEscaneado(revision.id, c.codigo);
@@ -278,16 +279,19 @@ void main() {
     await _capturar(tester, '3-ficha');
     await _volver(tester);
 
-    // Nueva compra, con algunos datos escritos.
+    // Nueva compra, con datos escritos y código de fábrica para mostrar la pastilla de referencia.
     await tester.tap(find.text('Nueva compra'));
     await _esperar(tester);
     final campos = find.byType(EditableText);
     await tester.enterText(campos.at(0), 'Taller Hermanos Rojas');
     await tester.enterText(campos.at(1), 'Av. Santa María');
-    await tester.enterText(campos.at(2), '75000');
-    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.enterText(campos.at(2), '65000');
     await tester.tap(find.text('Bencinero'));
     await tester.tap(find.text('Cerámico'));
+    await tester.drag(find.byType(ListView).last, const Offset(0, -240));
+    await _esperar(tester);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Código grabado de fábrica'), '0D140');
+    FocusManager.instance.primaryFocus?.unfocus();
     await _capturar(tester, '2-nueva-compra');
     await _volver(tester);
 
@@ -334,6 +338,12 @@ void main() {
       await _capturar(tester, '12-inicio$sufijo');
       await tester.tap(find.byTooltip('Ajustes'));
       await _capturar(tester, '13-ajustes$sufijo');
+      if (sufijo.isEmpty) {
+        await tester.drag(find.byType(ListView).last, const Offset(0, -680));
+        await _capturar(tester, '16-ajustes-notificaciones');
+        await tester.drag(find.byType(ListView).last, const Offset(0, -620));
+        await _capturar(tester, '17-ajustes-ubicar-respaldo');
+      }
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
       await tester.runAsync(base.cerrar);
       debugDisableShadows = true;

@@ -205,6 +205,7 @@ class _LotesScreenState extends State<LotesScreen> {
                 final i = idx - 1;
                 final l = lista[i];
                 final abierto = !l.lote.cerrado;
+                final ganancia = l.ganancia;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Card(
@@ -271,6 +272,23 @@ class _LotesScreenState extends State<LotesScreen> {
                                           ),
                                         ),
                                       ),
+                                      if (ganancia != null)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: (ganancia >= 0 ? CatalogColors.verde : CatalogColors.rojo)
+                                                .withValues(alpha: 0.14),
+                                            borderRadius: BorderRadius.circular(99),
+                                          ),
+                                          child: Text(
+                                            '${tr('Utilidad', 'Profit')} ${ganancia >= 0 ? '+' : ''}${clp(ganancia)}',
+                                            style: mono(
+                                              size: 11,
+                                              weight: FontWeight.w700,
+                                              color: ganancia >= 0 ? CatalogColors.verde : CatalogColors.rojo,
+                                            ),
+                                          ),
+                                        ),
                                       Text(
                                         '${contarCataliticos(l.resumen.cantidad)} · ${fechaHora(l.lote.creadoEn)}',
                                         style: etiqueta,

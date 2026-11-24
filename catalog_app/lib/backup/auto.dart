@@ -3,6 +3,7 @@ import 'dart:io';
 import '../data/base.dart';
 import '../data/compras_repo.dart';
 import '../data/dispositivo.dart';
+import '../system/notificaciones.dart';
 import '../system/sistema.dart';
 import 'respaldo.dart';
 
@@ -32,6 +33,7 @@ Future<void> respaldoAutomatico({
   if (!tocaRespaldoAutomatico(dispositivo.fecha(AjustesDispositivo.ultimoAutoRespaldo), cuando)) return;
   final repo = ComprasRepo(base);
   if (await repo.contarCompras() == 0) return;
+  await Notificaciones.avisarRespaldoEnCurso(dispositivo, automatico: true);
   final zip = await armarRespaldo(base, carpeta, ahora: cuando);
   final lugar = await Sistema.guardarEnDescargas(
     nombreAutoRespaldo(await repo.prefijo(), cuando),
@@ -41,4 +43,5 @@ Future<void> respaldoAutomatico({
   );
   await dispositivo.guardar(AjustesDispositivo.ultimoAutoRespaldo, cuando.toIso8601String());
   if (lugar != null) await dispositivo.guardar(AjustesDispositivo.lugarAutoRespaldo, lugar);
+  await Notificaciones.avisarRespaldoListo(dispositivo, lugar: lugar, automatico: true);
 }

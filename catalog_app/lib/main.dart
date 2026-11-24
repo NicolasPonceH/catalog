@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:intl/date_symbol_data_local.dart';
@@ -17,6 +18,7 @@ import 'features/presentacion_screen.dart';
 import 'features/principal_screen.dart';
 import 'features/traspaso.dart';
 import 'i18n.dart';
+import 'system/notificaciones.dart';
 import 'system/sistema.dart';
 import 'theme.dart';
 
@@ -70,6 +72,7 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
   bool _presentando = false;
   DateTime? _enSegundoPlanDesde;
   List<int>? _archivoPendiente;
+  StreamSubscription<void>? _subCambios;
 
   /// Tiempo fuera de la app después del cual se vuelve a pedir huella o PIN.
   static const _tiempoBloqueo = Duration(minutes: 2);
@@ -80,13 +83,28 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _alVolver());
     widget.dispositivo.addListener(_ajustesCambiaron);
+    _escucharBase();
   }
 
   @override
   void dispose() {
+    _subCambios?.cancel();
     widget.dispositivo.removeListener(_ajustesCambiaron);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void _escucharBase() {
+    _subCambios?.cancel();
+    _subCambios = _base.cambios.listen((_) => _sincronizarRecordatorio());
+    _sincronizarRecordatorio();
+  }
+
+  Future<void> _sincronizarRecordatorio() async {
+    if (_sesion.esRevision) return;
+    try {
+      await Notificaciones.sincronizarRecordatorioDiario(base: _base, dispositivo: widget.dispositivo);
+    } catch (_) {}
   }
 
   // ---------- Apariencia ----------
@@ -96,6 +114,7 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
 
   void _ajustesCambiaron() {
     if (mounted) setState(() {});
+    _sincronizarRecordatorio();
   }
 
   // El tema "auto" sigue al modo oscuro del teléfono.
@@ -156,6 +175,7 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
       try {
         await respaldoAutomatico(base: _base, carpeta: _sesion.carpeta, dispositivo: widget.dispositivo);
       } catch (_) {}
+      await _sincronizarRecordatorio();
     }
   }
 
@@ -175,6 +195,7 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
       _bienvenida = false;
       _bloqueada = false;
     });
+    unawaited(Sistema.pedirPermisoNotificaciones());
     _procesarArchivoPendiente();
     _quizasPresentacion();
   }
@@ -223,6 +244,7 @@ class _CatalogRootState extends State<CatalogRoot> with WidgetsBindingObserver i
       _mensajes = GlobalKey();
       _navegador = GlobalKey();
     });
+    _escucharBase();
     final texto = error == null ? mensaje : '${tr('No se pudo completar', 'Could not complete')}: $error';
     if (texto != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

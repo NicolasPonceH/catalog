@@ -11,6 +11,7 @@ class Lote {
     required this.nombre,
     required this.creadoEn,
     this.cerradoEn,
+    this.montoRecibido,
     required this.notas,
   });
 
@@ -19,6 +20,7 @@ class Lote {
         nombre: f['nombre']! as String,
         creadoEn: deMs(f['creado_en']),
         cerradoEn: deMsOpcional(f['cerrado_en']),
+        montoRecibido: (f['monto_recibido'] as num?)?.toInt(),
         notas: f['notas']! as String,
       );
 
@@ -26,6 +28,9 @@ class Lote {
   final String nombre;
   final DateTime creadoEn;
   final DateTime? cerradoEn;
+
+  /// Cuánto se recibió al entregar o vender el lote (null si todavía no se anota).
+  final int? montoRecibido;
   final String notas;
 
   bool get cerrado => cerradoEn != null;
@@ -36,6 +41,9 @@ class LoteConTotal {
 
   final Lote lote;
   final Resumen resumen;
+
+  /// Ganancia neta (venta menos costo pagado) si se registró cuánto se recibió.
+  int? get ganancia => lote.montoRecibido == null ? null : lote.montoRecibido! - resumen.total;
 }
 
 class ItemLote {
@@ -133,8 +141,22 @@ class LotesRepo {
     base.avisarCambio();
   }
 
-  Future<void> cerrar(int loteId) async {
-    await _db.update('lotes', {'cerrado_en': ms(_reloj())}, where: 'id = ?', whereArgs: [loteId]);
+  Future<void> cerrar(int loteId, {int? montoRecibido, bool actualizarMonto = false}) async {
+    await _db.update(
+      'lotes',
+      {
+        'cerrado_en': ms(_reloj()),
+        if (actualizarMonto) 'monto_recibido': montoRecibido,
+      },
+      where: 'id = ?',
+      whereArgs: [loteId],
+    );
+    base.avisarCambio();
+  }
+
+  /// Registra o borra cuánto se recibió por el lote completo.
+  Future<void> guardarMontoRecibido(int loteId, int? montoRecibido) async {
+    await _db.update('lotes', {'monto_recibido': montoRecibido}, where: 'id = ?', whereArgs: [loteId]);
     base.avisarCambio();
   }
 

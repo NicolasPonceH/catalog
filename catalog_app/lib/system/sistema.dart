@@ -64,4 +64,60 @@ class Sistema {
 
   static Future<Uint8List> leerArchivo(String uri) async =>
       (await _canal.invokeMethod<Uint8List>('leerArchivo', {'uri': uri}))!;
+
+  /// Abre el explorador de archivos del teléfono directo en Descargas/[carpeta].
+  static Future<bool> abrirCarpetaRespaldos({String carpeta = carpetaRespaldos}) async {
+    try {
+      return (await _canal.invokeMethod<bool>('abrirCarpetaRespaldos', {'carpeta': carpeta})) ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Pide permiso de notificaciones (Android 13+) y devuelve si están activas.
+  static Future<bool> pedirPermisoNotificaciones() async {
+    try {
+      return (await _canal.invokeMethod<bool>('pedirPermisoNotificaciones')) ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Muestra una notificación local inmediata en el teléfono.
+  static Future<void> mostrarNotificacion({
+    required String titulo,
+    required String cuerpo,
+    bool esRespaldo = false,
+    bool enCurso = false,
+    int? id,
+  }) async {
+    try {
+      await _canal.invokeMethod<void>('mostrarNotificacion', {
+        'titulo': titulo,
+        'cuerpo': cuerpo,
+        'esRespaldo': esRespaldo,
+        'enCurso': enCurso,
+        'id': ?id,
+      });
+    } catch (_) {}
+  }
+
+  /// Programa o cancela el recordatorio diario a la hora elegida.
+  static Future<void> programarRecordatorio({
+    required bool activo,
+    required int hora,
+    required int minuto,
+    required String titulo,
+    required String cuerpo,
+  }) async {
+    try {
+      await _canal.invokeMethod<void>('programarRecordatorio', {
+        'activo': activo,
+        'hora': hora,
+        'minuto': minuto,
+        'titulo': titulo,
+        'cuerpo': cuerpo,
+      });
+    } catch (_) {}
+  }
 }

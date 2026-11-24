@@ -4,7 +4,7 @@
 // Fechas: milisegundos desde 1970 (hora del teléfono).
 // Precios: pesos chilenos enteros.
 
-const versionBaseDatos = 1;
+const versionBaseDatos = 2;
 
 const migraciones = <int, List<String>>{
   1: [
@@ -59,5 +59,9 @@ const migraciones = <int, List<String>>{
     ''',
     'CREATE INDEX idx_lote_items_compra ON lote_items(compra_id)',
     'CREATE TABLE ajustes(clave TEXT PRIMARY KEY, valor TEXT NOT NULL)',
+  ],
+  2: [
+    // Monto recibido al entregar o vender un lote (para calcular la utilidad neta).
+    'ALTER TABLE lotes ADD COLUMN monto_recibido INTEGER',
   ],
 };

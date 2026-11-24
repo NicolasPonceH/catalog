@@ -57,6 +57,8 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
   List<String> _vendedores = const [];
   List<String> _lugares = const [];
   List<String> _autosUsados = const [];
+  List<String> _codigosFabrica = const [];
+  ReferenciaPrecio? _referencia;
 
   // Partes que ilumina la guía.
   final _gFecha = GlobalKey();
@@ -173,8 +175,10 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
     for (final c in [_vendedor, _lugar, _precio, _codigoFabrica, _autos, _notas]) {
       c.addListener(_marcarSucio);
     }
+    _codigoFabrica.addListener(_buscarReferencia);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _cargarSugerencias();
+      _buscarReferencia();
       if (!_editando) _tomarGps();
     });
   }
@@ -203,11 +207,12 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
 
   Future<void> _cargarSugerencias() async {
     final repo = AppScope.of(context).compras;
-    List<String> v, l, a;
+    List<String> v, l, a, cf;
     try {
       v = await repo.sugerencias('vendedor');
       l = await repo.sugerencias('lugar');
       a = await repo.sugerencias('autos');
+      cf = await repo.sugerencias('codigo_fabrica');
     } catch (_) {
       return; // sin sugerencias no pasa nada
     }
@@ -216,8 +221,40 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
         _vendedores = v;
         _lugares = l;
         _autosUsados = a;
+        _codigosFabrica = cf;
       });
     }
+  }
+
+  int _consultaRef = 0;
+
+  Future<void> _buscarReferencia() async {
+    if (!mounted) return;
+    final alcance = AppScope.maybeOf(context);
+    if (alcance == null) return;
+    final texto = _codigoFabrica.text.trim();
+    if (texto.length < 2) {
+      if (_referencia != null && mounted) setState(() => _referencia = null);
+      return;
+    }
+    final ticket = ++_consultaRef;
+    try {
+      final ref = await alcance.compras.referenciaCodigoFabrica(texto, excluirId: widget.existente?.id);
+      if (!mounted || ticket != _consultaRef) return;
+      setState(() => _referencia = ref);
+    } catch (_) {}
+  }
+
+  void _usarReferencia(ReferenciaPrecio ref) {
+    final textoPrecio = miles(ref.ultimoPrecio);
+    _precio.value = TextEditingValue(
+      text: textoPrecio,
+      selection: TextSelection.collapsed(offset: textoPrecio.length),
+    );
+    if (_autos.text.trim().isEmpty && ref.ultimoAutos.isNotEmpty) {
+      _autos.text = ref.ultimoAutos;
+    }
+    setState(() => _sucio = true);
   }
 
   Future<void> _tomarGps() async {
@@ -433,16 +470,21 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
                 const SizedBox(height: 18),
                 KeyedSubtree(key: _gTipo, child: _tipo()),
                 const SizedBox(height: 16),
-                TextFormField(
+                Column(
                   key: _gFabrica,
-                  controller: _codigoFabrica,
-                  textCapitalization: TextCapitalization.characters,
-                  style: mono(size: 16),
-                  decoration: InputDecoration(
-                    labelText: tr('Código grabado de fábrica', 'Factory stamped code'),
-                    hintText: '0D140',
-                    prefixIcon: const Icon(Icons.tag),
-                  ),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    CampoAutocompletar(
+                      controller: _codigoFabrica,
+                      etiqueta: tr('Código grabado de fábrica', 'Factory stamped code'),
+                      ayuda: '0D140',
+                      opciones: _codigosFabrica,
+                      icono: Icons.tag,
+                      estilo: mono(size: 16),
+                      mayusculas: TextCapitalization.characters,
+                    ),
+                    if (_referencia != null) _pastillaReferencia(_referencia!),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 CampoAutocompletar(
@@ -609,6 +651,68 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
         if (_errorTipo != null)
           Text(_errorTipo!, style: TextStyle(color: CatalogColors.rojo, fontSize: 13)),
       ],
+    );
+  }
+
+  Widget _pastillaReferencia(ReferenciaPrecio ref) {
+    final n = ref.cantidad;
+    final veces = n == 1 ? tr('1 compra anterior', '1 past purchase') : tr('$n compras anteriores', '$n past purchases');
+    final rango = n > 1 && ref.minimo != ref.maximo ? ' · ${clp(ref.minimo)}–${clp(ref.maximo)}' : '';
+    final precioActual = parseClp(_precio.text);
+    final mostrarUsar = precioActual != ref.ultimoPrecio;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Material(
+        color: CatalogColors.naranjaClara,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: mostrarUsar ? () => _usarReferencia(ref) : null,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+            child: Row(
+              children: [
+                const Icon(Icons.history, size: 20, color: CatalogColors.naranja),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${tr('Última vez', 'Last time')}: ${clp(ref.ultimoPrecio)}'
+                        '${n > 1 ? ' · ${tr('prom.', 'avg')} ${clp(ref.promedio)}' : ''}',
+                        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        '$veces (${fechaCorta(ref.ultimaFecha)})$rango',
+                        style: etiqueta.copyWith(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                if (mostrarUsar) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: CatalogColors.naranja,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      tr('Usar ${clp(ref.ultimoPrecio)}', 'Use ${clp(ref.ultimoPrecio)}'),
+                      style: const TextStyle(
+                        color: CatalogColors.marino,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

@@ -4,7 +4,7 @@ CataLog registra cada catalítico que compras, le imprime un sticker con su cód
 
 ## 1. Instalar
 
-1. Pasa el APK más nuevo (hoy `CataLog-1.4.apk`) al celular, por WhatsApp o con el cable.
+1. Pasa el APK más nuevo (hoy `CataLog-1.5.apk`) al celular, por WhatsApp o con el cable.
 2. Ábrelo y acepta **instalar apps desconocidas** cuando el teléfono lo pida.
 3. Si aparece un aviso de seguridad (Xiaomi o Play Protect), toca **Instalar de todas formas**.
 
@@ -24,6 +24,8 @@ En **Ajustes** (la ruedita, arriba a la derecha):
 - **Tu perfil:** toca la tarjeta de arriba para editar **tu nombre** y el **prefijo** de este teléfono (`CTL`, `CTT`, etc.) para que los códigos nunca se repitan.
 - **Apariencia:** elige **tema** (claro, oscuro o automático según el teléfono), activa **alto contraste** para bordes y textos más marcados, ajusta el **tamaño de letra** (normal, grande o enorme) y prende o apaga las **animaciones**.
 - **Idioma y sonido:** cambia toda la app entre **Español** e **Inglés (English)** al instante, y elige si quieres **vibración** y **sonido** al escanear.
+- **Notificaciones (sin internet):** elige la hora del recordatorio diario (por defecto `20:00`) y qué avisos quieres recibir: respaldo en curso y terminado, stickers pendientes de imprimir, respaldo externo, resumen del día y lotes abiertos.
+- **Ubicar respaldo (tarjeta roja importante):** te lleva directo en la app de Archivos del teléfono a `Descargas/Respaldo CataLog`, exactamente donde están guardados tus respaldos `.zip`.
 - **Impresora:** enciéndela, toca **Buscar** y elígela de la lista. CataLog detecta solo el tipo de impresora. Después toca **Imprimir sticker de prueba**.
   - Si la impresora es "clásica", primero hay que emparejarla en *Ajustes de Android > Bluetooth* (el PIN suele ser 0000 o 1234).
   - Si un equipo aparece dos veces y uno no imprime, prueba con el otro.
@@ -37,7 +39,7 @@ En **Ajustes** (la ruedita, arriba a la derecha):
    - **Vendedor** y **lugar**. La app te sugiere los que ya usaste y guarda el GPS sola.
    - **Precio pagado**.
    - **Motor** y **material**.
-   - **Código grabado de fábrica** y **de qué autos es**.
+   - **Código grabado de fábrica** y **de qué autos es**. Si ya compraste ese mismo código antes, CataLog te muestra debajo cuánto pagaste la última vez y el promedio, con un botón para usar ese precio al tiro.
    - **Foto** del catalítico.
 4. Toca **Guardar compra**. Se abre la ficha con el código, por ejemplo `CTL-261121-0007`.
 5. Toca **Imprimir sticker** y pégalo en el catalítico.
@@ -48,13 +50,15 @@ El precio **no** sale en el sticker: solo se ve al escanearlo con CataLog.
 
 Toca el botón naranja **Escanear** al centro de la barra de abajo y apunta al QR o al código de barras. Se abre su ficha completa: código, precio, fecha de compra, vendedor, lugar con mapa, tipo y foto.
 
+En **Historial**, si compraste piezas sin llevar la impresora prendida, toca el filtro **Sin imprimir** para ver todas las que aún tienen `0 impresiones` y sacar sus stickers seguidos.
+
 Si el sticker está dañado, toca **Escribir el código a mano**.
 
 ## 6. Lotes (varios catalíticos juntos)
 
 1. Toca **Lotes > Nuevo lote** y escribe el nombre (viene sugerido con la fecha y hora).
 2. Escanea los stickers uno tras otro. Cada uno suma lo que pagaste por él, y el mismo catalítico no se cuenta dos veces.
-3. Al final toca **Terminar**. Si sales sin escanear nada, el lote no se guarda.
+3. Al final toca **Terminar**. Puedes anotar opcionalmente **cuánto te pagaron por el lote** para ver al instante la **utilidad neta** (`Venta − Costo pagado`) y que salga también en el Excel. Si sales sin escanear nada, el lote no se guarda.
 4. Con el botón de tabla (arriba) se manda el **Excel del lote** por WhatsApp o correo.
 
 ## 7. Reportes y Excel

@@ -156,12 +156,41 @@ class Resumen {
   int get promedio => cantidad == 0 ? 0 : (total / cantidad).round();
 }
 
+/// Historial de precios pagados antes por un mismo código grabado de fábrica.
+class ReferenciaPrecio {
+  const ReferenciaPrecio({
+    required this.codigoFabrica,
+    required this.cantidad,
+    required this.ultimoPrecio,
+    required this.ultimaFecha,
+    required this.promedio,
+    required this.minimo,
+    required this.maximo,
+    this.ultimoAutos = '',
+  });
+
+  final String codigoFabrica;
+  final int cantidad;
+  final int ultimoPrecio;
+  final DateTime ultimaFecha;
+  final int promedio;
+  final int minimo;
+  final int maximo;
+  final String ultimoAutos;
+}
+
 class FiltroHistorial {
-  const FiltroHistorial({this.texto = '', this.periodo, this.material});
+  const FiltroHistorial({
+    this.texto = '',
+    this.periodo,
+    this.material,
+    this.soloSinImprimir = false,
+  });
 
   final String texto;
   final Periodo? periodo;
   final TipoMaterial? material;
+  final bool soloSinImprimir;
 }
 
 class DatosInvalidos implements Exception {

@@ -32,11 +32,35 @@ class AjustesDispositivo extends ChangeNotifier {
   /// 'es' (español) o 'en' (inglés).
   static const idioma = 'idioma';
 
+  // ---- Notificaciones locales (100 % sin internet) ----
+  static const sinNotifRespaldo = 'sin_notif_respaldo';
+  static const sinNotifSinImprimir = 'sin_notif_sin_imprimir';
+  static const sinNotifRecordarRespaldo = 'sin_notif_recordar_respaldo';
+  static const sinNotifResumenDia = 'sin_notif_resumen_dia';
+  static const sinNotifLoteAbierto = 'sin_notif_lote_abierto';
+
+  /// Hora del recordatorio diario en formato 'HH:MM' (por defecto '20:00').
+  static const horaRecordatorio = 'hora_recordatorio';
+
   String get temaElegido => leer(tema) ?? 'claro';
   String get idiomaElegido => leer(idioma) == 'en' ? 'en' : 'es';
   double get escalaLetra => double.tryParse(leer(letra) ?? '') ?? 1.0;
   bool get vibrar => !activado(sinVibrar);
   bool get sonar => !activado(sinSonido);
+
+  bool get notifRespaldo => !activado(sinNotifRespaldo);
+  bool get notifSinImprimir => !activado(sinNotifSinImprimir);
+  bool get notifRecordarRespaldo => !activado(sinNotifRecordarRespaldo);
+  bool get notifResumenDia => !activado(sinNotifResumenDia);
+  bool get notifLoteAbierto => !activado(sinNotifLoteAbierto);
+
+  (int, int) get horaMinutoRecordatorio {
+    final partes = (leer(horaRecordatorio) ?? '20:00').split(':');
+    if (partes.length != 2) return (20, 0);
+    final h = int.tryParse(partes[0]) ?? 20;
+    final m = int.tryParse(partes[1]) ?? 0;
+    return (h.clamp(0, 23), m.clamp(0, 59));
+  }
 
   final File _archivo;
   final Map<String, dynamic> _datos;

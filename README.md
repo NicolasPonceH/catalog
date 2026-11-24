@@ -3,14 +3,14 @@
 </p>
 
 <p align="center">
-  <img alt="Versión 1.4" src="https://img.shields.io/badge/versi%C3%B3n-1.4.0-FF7A1A">
+  <img alt="Versión 1.5" src="https://img.shields.io/badge/versi%C3%B3n-1.5.0-FF7A1A">
   <img alt="Flutter 3.50" src="https://img.shields.io/badge/Flutter-3.50-02569B?logo=flutter&logoColor=white">
   <img alt="Dart 3.14" src="https://img.shields.io/badge/Dart-3.14-0175C2?logo=dart&logoColor=white">
   <img alt="Android 7.0 o más" src="https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local-003B57?logo=sqlite&logoColor=white">
   <img alt="Sin internet" src="https://img.shields.io/badge/funciona-sin%20internet-0E2A47">
   <img alt="Español e Inglés" src="https://img.shields.io/badge/idioma-ES%20%2F%20EN-1D9E75">
-  <img alt="79 pruebas" src="https://img.shields.io/badge/pruebas-79%20OK-2E7D32">
+  <img alt="83 pruebas" src="https://img.shields.io/badge/pruebas-83%20OK-2E7D32">
 </p>
 
 **CataLog** es una app para Android que lleva el control de las compras de catalíticos de un negocio familiar en Arica, Chile. Cada compra queda registrada con su fecha, vendedor, lugar, precio y tipo. La app le imprime al catalítico un sticker con QR y código de barras, lo lee después con la cámara y arma los reportes en Excel. Funciona sin internet y los datos se guardan solo en el teléfono.
@@ -38,15 +38,16 @@ CataLog anota cada compra en el momento y le asigna un código único. Ese códi
 
 | | |
 |---|---|
-| **Registro de compras** | Fecha y hora de compra, vendedor, lugar con GPS, precio en pesos chilenos, motor (bencinero o diésel), material (cerámico, metálico o DPF), código grabado de fábrica, de qué autos es y foto. |
+| **Registro de compras** | Fecha y hora de compra, vendedor, lugar con GPS, precio en pesos chilenos, motor (bencinero o diésel), material (cerámico, metálico o DPF), código grabado de fábrica (con **referencia automática** de lo pagado antes por ese mismo código), de qué autos es y foto. |
 | **La fecha es lo principal** | Se llena sola, es obligatoria, se puede corregir y nunca puede ser futura. El código usa la fecha de compra (no la del registro) y la ficha muestra si alguien la corrigió y cuándo. |
 | **Código único** | `PREFIJO-AAMMDD-NNNN`, por ejemplo `CTL-261122-0002`: el prefijo del teléfono, el día de compra y el número de pieza de ese día. El número se asigna dentro de una transacción y no se repite. |
 | **Sticker térmico** | QR y Code 128 impresos por Bluetooth en papel de 58 u 80 mm. La app detecta sola el tipo de impresora. El precio **no** va impreso. |
-| **Escáner** | La cámara lee el QR o el código de barras y abre la ficha. Funciona sin señal, y si el sticker está dañado se puede escribir el código a mano. |
-| **Lotes** | Se escanean muchos stickers seguidos: la app suma lo pagado, no cuenta dos veces la misma pieza y exporta el Excel del lote. Pide un nombre al crear el lote y no guarda los lotes vacíos. |
+| **Escáner y stickers pendientes** | La cámara lee el QR o el código de barras y abre la ficha sin señal. En Historial, el filtro **Sin imprimir** muestra al instante las piezas con `0 impresiones` para sacar sus stickers seguidos en bodega. |
+| **Lotes y ganancia neta** | Se escanean muchos stickers seguidos: la app suma lo pagado, no cuenta dos veces la misma pieza, permite anotar **cuánto te pagaron por el lote** para ver la **utilidad neta** (`Venta − Costo`) y exporta todo en el Excel del lote. |
 | **Reportes en Excel** | Hoy, semana, mes, un rango de fechas o todo. Muestra el total gastado, la cantidad, el promedio y los totales por tipo, por vendedor y por mes. Exporta un Excel con resumen, tablas con colores, totales y enlaces al mapa. |
 | **Nada se borra** | Las compras se anulan: salen de los totales, pero quedan en el historial y su número no se vuelve a usar. |
-| **Respaldo y traspaso** | Respaldos `.zip` en `Descargas/Respaldo CataLog` (manuales y uno automático al día). Se restauran desde la misma app, y las compras se pueden mandar a otro celular por WhatsApp. |
+| **Respaldo y traspaso** | Respaldos `.zip` en `Descargas/Respaldo CataLog` (manuales y uno automático al día), con el acceso rojo **Ubicar respaldo** que abre directo esa carpeta en Archivos del teléfono. Se restauran desde la misma app y se pueden mandar a otro celular por WhatsApp. |
+| **Notificaciones locales** | Funcionan 100 % sin internet (`NotificationManager` + `AlarmManager`): avisan mientras se guarda un respaldo y al terminar, y envían un recordatorio diario programable de stickers pendientes, respaldo externo, resumen del día y lotes abiertos. |
 | **Sesiones** | Las compras propias van en la *sesión de compra* y los datos recibidos de otro teléfono en una *sesión de revisión*, de solo lectura, que no se mezcla con las compras propias. |
 | **Seguridad** | Bloqueo opcional con huella o PIN: muestra una lectura animada de la huella (sin revelar montos mientras está bloqueada). Además pide huella antes de anular, borrar o reemplazar datos. |
 | **Apariencia e idioma** | Modo claro, oscuro o automático, alto contraste, tres tamaños de letra, animaciones opcionales e idioma **Español / English** que cambia toda la interfaz y las fechas al instante. |
@@ -166,7 +167,7 @@ catalog_app/lib/
 
 ## Pruebas
 
-**79 pruebas automáticas** (`flutter test`). Cubren:
+**83 pruebas automáticas** (`flutter test`). Cubren:
 
 - La fecha de compra: obligatoria, no futura, se usa en el código y queda registro de sus correcciones.
 - El generador de códigos: no repite números y reinicia el contador cada día.
@@ -208,7 +209,8 @@ La llave de firma (`llaves/`, `key.properties`) y los APK compilados (`apk/`) **
 
 | Versión | Fecha | Cambios principales |
 |---|---|---|
-| **1.4** | 23-11-2026 | Barra de pestañas fija con Escanear al centro, bloqueo con huella analizada, rediseño completo de Inicio, Ajustes, Historial, Lotes, Reportes y Ficha, modo oscuro, alto contraste, tamaño de letra e idioma Español / English en vivo. |
+| **1.5** | 24-11-2026 | Referencia automática de precio por código de fábrica, utilidad neta (`Venta − Costo`) en lotes y su Excel, filtro `Sin imprimir` en Historial, notificaciones locales sin internet (progreso de respaldo y recordatorios diarios) y tarjeta roja **Ubicar respaldo** directo en Archivos. |
+| 1.4 | 23-11-2026 | Barra de pestañas fija con Escanear al centro, bloqueo con huella analizada, rediseño completo de Inicio, Ajustes, Historial, Lotes, Reportes y Ficha, modo oscuro, alto contraste, tamaño de letra e idioma Español / English en vivo. |
 | 1.3 | 23-11-2026 | Bienvenida animada (con huella si hay bloqueo), presentación en carrusel, guía interactiva con botón de ayuda en cada pantalla y arranque nativo en azul marino. |
 | 1.2.1 | 23-11-2026 | Probada en el celular real. Arreglo del aviso al quitar un catalítico de un lote. |
 | 1.2 | 23-11-2026 | Logo refinado, sticker nuevo con "Hecho con CataLog", Excel rediseñado, carpeta `Respaldo CataLog` con restauración desde la app, nombre al crear lotes, huella para borrar, diseño responsivo. |

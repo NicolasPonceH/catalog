@@ -207,17 +207,118 @@ class _LoteScreenState extends State<LoteScreen> {
     navegador.pop();
   }
 
-  /// Terminar: si no se escaneó nada, el lote no se guarda.
+  /// Terminar: si no se escaneó nada, el lote no se guarda. Si tiene piezas,
+  /// ofrece anotar cuánto pagaron por el lote para calcular la ganancia neta.
   Future<void> _terminar(Lote lote) async {
     final repo = AppScope.of(context).lotes;
-    if ((await repo.items(lote.id)).isEmpty) {
+    final items = await repo.items(lote.id);
+    if (items.isEmpty) {
       await repo.eliminar(lote.id);
       if (!mounted) return;
       avisar(context, tr('El lote estaba vacío y no se guardó', 'Batch was empty and was discarded'));
       Navigator.of(context).pop();
       return;
     }
-    await repo.cerrar(lote.id);
+    if (!mounted) return;
+    final costo = items.where((i) => !i.compra.anulada).fold<int>(0, (s, i) => s + i.compra.precio);
+    final res = await _pedirMontoRecibido(lote, costo: costo, alCerrar: true);
+    if (res == null || !mounted) return;
+    await repo.cerrar(lote.id, montoRecibido: res.$1, actualizarMonto: res.$2);
+  }
+
+  Future<void> _editarVenta(Lote lote) async {
+    final repo = AppScope.of(context).lotes;
+    final r = await repo.resumen(lote.id);
+    if (!mounted) return;
+    final res = await _pedirMontoRecibido(lote, costo: r.total, alCerrar: false);
+    if (res == null || !mounted) return;
+    if (res.$2) await repo.guardarMontoRecibido(lote.id, res.$1);
+  }
+
+  /// Devuelve `(monto, actualizar)` o `null` si se canceló.
+  Future<(int?, bool)?> _pedirMontoRecibido(Lote lote, {required int costo, required bool alCerrar}) async {
+    final control = TextEditingController(
+      text: lote.montoRecibido == null ? '' : miles(lote.montoRecibido!),
+    );
+    final r = await showDialog<(int?, bool)>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          final venta = parseClp(control.text);
+          final utilidad = venta == null ? null : venta - costo;
+          return AlertDialog(
+            title: Text(alCerrar ? tr('Cerrar lote', 'Close batch') : tr('Venta recibida del lote', 'Batch sale amount')),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  tr(
+                    'Si ya entregaste este lote, anota cuánto te pagaron para ver la ganancia neta (opcional).',
+                    'If you sold this batch, enter the total received to calculate net profit (optional).',
+                  ),
+                  style: TextStyle(fontSize: 14, color: CatalogColors.acero, height: 1.35),
+                ),
+                const SizedBox(height: 12),
+                Text('${tr('Costo pagado', 'Cost paid')}: ${clp(costo)}', style: mono(size: 14)),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: control,
+                  autofocus: !alCerrar,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [ClpInputFormatter()],
+                  style: mono(size: 18),
+                  onChanged: (_) => setLocal(() {}),
+                  decoration: InputDecoration(
+                    labelText: tr('Monto recibido (venta)', 'Amount received (sale)'),
+                    prefixText: r'$ ',
+                    prefixIcon: const Icon(Icons.payments_outlined),
+                  ),
+                ),
+                if (utilidad != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: (utilidad >= 0 ? CatalogColors.verde : CatalogColors.rojo).withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${tr('Utilidad neta', 'Net profit')}: ${utilidad >= 0 ? '+' : ''}${clp(utilidad)}',
+                      style: mono(
+                        size: 14.5,
+                        weight: FontWeight.w700,
+                        color: utilidad >= 0 ? CatalogColors.verde : CatalogColors.rojo,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Cancelar', 'Cancel'))),
+              if (alCerrar)
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, (null, false)),
+                  child: Text(tr('Solo cerrar', 'Just close')),
+                )
+              else if (lote.montoRecibido != null)
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, (null, true)),
+                  child: Text(tr('Quitar monto', 'Clear amount')),
+                ),
+              FilledButton(
+                style: FilledButton.styleFrom(minimumSize: const Size(104, 42)),
+                onPressed: () => Navigator.pop(ctx, (parseClp(control.text), true)),
+                child: Text(alCerrar ? tr('Guardar y cerrar', 'Save & close') : tr('Guardar', 'Save')),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    control.dispose();
+    return r;
   }
 
   Future<void> _exportar(Lote lote) async {
@@ -280,12 +381,21 @@ class _LoteScreenState extends State<LoteScreen> {
                 PopupMenuButton<String>(
                   key: _gMenu,
                   onSelected: (v) => switch (v) {
+                    'venta' => _editarVenta(lote),
                     'renombrar' => _renombrar(lote),
                     'reabrir' => repo.reabrir(lote.id),
                     'eliminar' => _eliminar(lote),
                     _ => null,
                   },
                   itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'venta',
+                      child: Text(
+                        lote.montoRecibido == null
+                            ? tr('Anotar venta recibida', 'Record sale amount')
+                            : tr('Editar venta recibida', 'Edit sale amount'),
+                      ),
+                    ),
                     PopupMenuItem(value: 'renombrar', child: Text(tr('Cambiar nombre', 'Rename'))),
                     if (lote.cerrado)
                       PopupMenuItem(value: 'reabrir', child: Text(tr('Seguir escaneando', 'Keep scanning'))),
@@ -322,6 +432,9 @@ class _LoteScreenState extends State<LoteScreen> {
                     cargar: () => repo.resumen(lote.id),
                     builder: (context, r) {
                       r ??= Resumen.vacio;
+                      final venta = lote.montoRecibido;
+                      final utilidad = venta == null ? null : venta - r.total;
+                      final pct = (utilidad != null && r.total > 0) ? ((utilidad / r.total) * 100).round() : null;
                       return Container(
                         padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
                         decoration: BoxDecoration(
@@ -331,26 +444,95 @@ class _LoteScreenState extends State<LoteScreen> {
                               ? Border.all(color: CatalogColors.borde, width: CatalogColors.paleta.grosorBorde)
                               : null,
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    contarCataliticos(r.cantidad),
-                                    style: const TextStyle(
-                                        color: CatalogColors.niebla, fontSize: 16, fontWeight: FontWeight.w700),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        contarCataliticos(r.cantidad),
+                                        style: const TextStyle(
+                                            color: CatalogColors.niebla, fontSize: 16, fontWeight: FontWeight.w700),
+                                      ),
+                                      if (r.cantidad > 0)
+                                        Text(
+                                          '${tr('promedio', 'avg')} ${clp(r.promedio)}',
+                                          style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 12.5),
+                                        ),
+                                    ],
                                   ),
-                                  if (r.cantidad > 0)
-                                    Text(
-                                      '${tr('promedio', 'avg')} ${clp(r.promedio)}',
-                                      style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 12.5),
-                                    ),
-                                ],
-                              ),
+                                ),
+                                Text(clp(r.total), style: mono(size: 24, color: CatalogColors.naranja)),
+                              ],
                             ),
-                            Text(clp(r.total), style: mono(size: 24, color: CatalogColors.naranja)),
+                            if (utilidad != null) ...[
+                              Divider(height: 18, color: Colors.white.withValues(alpha: 0.14)),
+                              InkWell(
+                                onTap: () => _editarVenta(lote),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '${tr('Recibido', 'Received')}: ${clp(venta!)}',
+                                        style: const TextStyle(color: Color(0xD9FFFFFF), fontSize: 13),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: (utilidad >= 0 ? const Color(0xFF5DCAA5) : const Color(0xFFFF8A80))
+                                            .withValues(alpha: 0.22),
+                                        borderRadius: BorderRadius.circular(99),
+                                      ),
+                                      child: Text(
+                                        '${tr('Utilidad', 'Profit')} ${utilidad >= 0 ? '+' : ''}${clp(utilidad)}'
+                                        '${pct != null ? ' (${pct >= 0 ? '+' : ''}$pct%)' : ''}',
+                                        style: mono(
+                                          size: 12.5,
+                                          weight: FontWeight.w700,
+                                          color: utilidad >= 0 ? const Color(0xFF9FE1CB) : const Color(0xFFFFB4A8),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ] else if (lote.cerrado && r.cantidad > 0) ...[
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(99),
+                                  onTap: () => _editarVenta(lote),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: CatalogColors.naranja.withValues(alpha: 0.18),
+                                      borderRadius: BorderRadius.circular(99),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.add_chart, size: 15, color: CatalogColors.naranja),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          tr('Anotar cuánto te pagaron', 'Record sale amount'),
+                                          style: const TextStyle(
+                                            color: CatalogColors.naranja,
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       );

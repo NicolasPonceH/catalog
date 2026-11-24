@@ -23,6 +23,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
   final _buscar = TextEditingController();
   TipoPeriodo _periodo = TipoPeriodo.todo;
   TipoMaterial? _material;
+  bool _sinImprimir = false;
 
   // Partes que ilumina la guía.
   final _gBuscar = GlobalKey();
@@ -53,8 +54,8 @@ class _HistorialScreenState extends State<HistorialScreen> {
         icono: Icons.filter_list,
         titulo: tr('Filtros', 'Filters'),
         texto: tr(
-          'Elige el período (hoy, semana, mes…) y el material con su color. Desliza hacia el lado para ver más.',
-          'Filter by period (today, week, month…) and color-coded material. Swipe horizontally to see all options.',
+          'Elige el período, filtra los stickers "Sin imprimir" para sacarlos seguidos en bodega o filtra por material.',
+          'Filter by period, tap "Unprinted" to print pending stickers in one pass, or filter by material.',
         ),
       ),
       PasoGuia(
@@ -131,7 +132,35 @@ class _HistorialScreenState extends State<HistorialScreen> {
                         onSelected: (_) => setState(() => _periodo = t),
                       ),
                     ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
+                  Consulta<int>(
+                    cargar: repo.contarSinImprimir,
+                    builder: (context, pendientes) {
+                      final n = pendientes ?? 0;
+                      final etiquetaChip = n > 0
+                          ? '${tr('Sin imprimir', 'Unprinted')} ($n)'
+                          : tr('Sin imprimir', 'Unprinted');
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          avatar: Icon(
+                            Icons.print_disabled_outlined,
+                            size: 16,
+                            color: _sinImprimir ? CatalogColors.marino : CatalogColors.naranja,
+                          ),
+                          label: Text(etiquetaChip),
+                          selected: _sinImprimir,
+                          showCheckmark: false,
+                          selectedColor: CatalogColors.naranja,
+                          labelStyle: TextStyle(
+                            color: _sinImprimir ? CatalogColors.marino : CatalogColors.texto,
+                            fontWeight: _sinImprimir ? FontWeight.w700 : FontWeight.w500,
+                          ),
+                          onSelected: (s) => setState(() => _sinImprimir = s),
+                        ),
+                      );
+                    },
+                  ),
                   for (final m in TipoMaterial.values)
                     Padding(
                       padding: const EdgeInsets.only(right: 6),
@@ -156,11 +185,12 @@ class _HistorialScreenState extends State<HistorialScreen> {
             ),
             Expanded(
               child: Consulta<List<Compra>>(
-                claves: [_buscar.text, _periodo, _material],
+                claves: [_buscar.text, _periodo, _material, _sinImprimir],
                 cargar: () => repo.historial(FiltroHistorial(
                   texto: _buscar.text,
                   periodo: periodoDe(_periodo, DateTime.now()),
                   material: _material,
+                  soloSinImprimir: _sinImprimir,
                 )),
                 builder: (context, lista) {
                   if (lista == null) return const Center(child: CircularProgressIndicator());

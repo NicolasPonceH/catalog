@@ -9,6 +9,7 @@ class CampoAutocompletar extends StatefulWidget {
     required this.opciones,
     this.icono,
     this.ayuda,
+    this.estilo,
     this.validator,
     this.mayusculas = TextCapitalization.sentences,
   });
@@ -18,6 +19,7 @@ class CampoAutocompletar extends StatefulWidget {
   final List<String> opciones;
   final IconData? icono;
   final String? ayuda;
+  final TextStyle? estilo;
   final String? Function(String?)? validator;
   final TextCapitalization mayusculas;
 
@@ -50,6 +52,7 @@ class _CampoAutocompletarState extends State<CampoAutocompletar> {
         fieldViewBuilder: (context, controller, foco, enviar) => TextFormField(
           controller: controller,
           focusNode: foco,
+          style: widget.estilo,
           textCapitalization: widget.mayusculas,
           decoration: InputDecoration(
             labelText: widget.etiqueta,
