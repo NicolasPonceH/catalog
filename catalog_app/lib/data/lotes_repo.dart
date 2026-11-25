@@ -53,9 +53,10 @@ class ItemLote {
   final DateTime escaneadoEn;
 }
 
-enum ResultadoEscaneo { agregado, yaEstaba, anulada, noExiste, noEsCodigo }
+enum ResultadoEscaneo { agregado, yaEstaba, enOtroLote, anulada, noExiste, noEsCodigo }
 
 /// Lotes: grupos de catalíticos escaneados (por ejemplo, los que se entregan juntos).
+/// Un mismo catalítico nunca puede repetirse en otro lote distinto.
 class LotesRepo {
   LotesRepo(this.base, {DateTime Function()? reloj}) : _reloj = reloj ?? DateTime.now;
 
@@ -79,6 +80,19 @@ class LotesRepo {
     return filas.isEmpty ? null : Lote.deFila(filas.first);
   }
 
+  /// Devuelve el lote en el que ya está guardada [compraId] (excluyendo opcionalmente [excluirLoteId]).
+  Future<Lote?> loteDeCompra(int compraId, {int? excluirLoteId}) async {
+    final filas = await _db.rawQuery('''
+      SELECT l.*
+      FROM lote_items i
+      JOIN lotes l ON l.id = i.lote_id
+      WHERE i.compra_id = ?${excluirLoteId != null ? ' AND i.lote_id != ?' : ''}
+      ORDER BY l.creado_en DESC, l.id DESC
+      LIMIT 1
+    ''', [compraId, ?excluirLoteId]);
+    return filas.isEmpty ? null : Lote.deFila(filas.first);
+  }
+
   /// Todos los lotes, el más nuevo primero, con cantidad y total pagado.
   Future<List<LoteConTotal>> listar() async {
     final filas = await _db.rawQuery('''
@@ -98,6 +112,7 @@ class LotesRepo {
   }
 
   /// Agrega al lote el catalítico del código escaneado (QR o código de barras).
+  /// Bloquea tanto si ya estaba en este lote como si ya pertenece a otro lote distinto.
   Future<(ResultadoEscaneo, Compra?)> agregarEscaneado(int loteId, String textoLeido) async {
     final codigo = leerCodigoEscaneado(textoLeido);
     if (codigo == null) return (ResultadoEscaneo.noEsCodigo, null);
@@ -105,6 +120,21 @@ class LotesRepo {
     if (filas.isEmpty) return (ResultadoEscaneo.noExiste, null);
     final compra = Compra.deFila(filas.first);
     if (compra.anulada) return (ResultadoEscaneo.anulada, compra);
+
+    // 1. ¿Ya está en este mismo lote?
+    final enMismo = await _db.query(
+      'lote_items',
+      columns: ['lote_id'],
+      where: 'lote_id = ? AND compra_id = ?',
+      whereArgs: [loteId, compra.id],
+      limit: 1,
+    );
+    if (enMismo.isNotEmpty) return (ResultadoEscaneo.yaEstaba, compra);
+
+    // 2. ¿Ya fue incluido en otro lote anterior o distinto?
+    final otroLote = await loteDeCompra(compra.id, excluirLoteId: loteId);
+    if (otroLote != null) return (ResultadoEscaneo.enOtroLote, compra);
+
     final id = await _db.insert(
       'lote_items',
       {'lote_id': loteId, 'compra_id': compra.id, 'escaneado_en': ms(_reloj())},

@@ -13,6 +13,7 @@ import 'package:catalog/data/compra.dart';
 import 'package:catalog/data/compras_repo.dart';
 import 'package:catalog/data/fotos.dart';
 import 'package:catalog/data/lotes_repo.dart';
+import 'package:catalog/data/supervisor_repo.dart';
 import 'package:catalog/domain/tipos.dart';
 import 'package:catalog/features/presentacion_screen.dart';
 import 'package:catalog/features/revision_supervisor_screen.dart';
@@ -107,7 +108,7 @@ Future<List<Compra>> _poblar(CatalogDb base, DateTime ahora) async {
         precio: 150000, motor: Motor.diesel, material: TipoMaterial.dpf,
         codigoFabrica: '1KD DPF', autos: 'Toyota Hilux 3.0 D-4D', lat: -18.4930, lng: -70.2894),
     DatosCompra(fechaCompra: dia(0, 11, 40), vendedor: 'Lubricentro Azapa', lugar: 'Valle de Azapa km 3',
-        precio: 40000, motor: Motor.bencinero, material: TipoMaterial.metalico,
+        precio: 40000, motor: Motor.bencinero, material: TipoMaterial.metalico, llenado: NivelLlenado.tresCuartos,
         codigoFabrica: 'M13A', autos: 'Suzuki Swift 2013', lat: -18.5021, lng: -70.2585),
     DatosCompra(fechaCompra: dia(0, 16, 5), vendedor: 'Taller Hermanos Rojas', lugar: 'Av. Santa María',
         precio: 75000, motor: Motor.bencinero, material: TipoMaterial.ceramico,
@@ -309,15 +310,26 @@ void main() {
     await tester.tap(find.text('Inicio'));
     await _esperar(tester);
 
-    // Módulo operativo de Revisión de Supervisor, con piezas ya verificadas.
+    // Módulo operativo de Revisión de Supervisor v1.7 (con anillo, fechas, observación y Lote Supervisor).
     await tester.runAsync(() async {
-      final verif = File('${Directory.systemTemp.path}/verificados_supervisor_local.json');
+      await SupervisorRepo(base).guardarLote(
+        nombre: 'Lote Sup. Jorge #1',
+        comprador: 'Jorge Ramírez',
+        prefijo: 'CTL',
+        rangoTexto: 'Mes anterior',
+        items: [
+          for (final c in compras.take(2))
+            BorradorItemSupervisor(codigo: c.codigo, compra: c, escaneadoEn: DateTime.now()),
+        ],
+      );
+      final verif = File('${Directory.systemTemp.path}/verificados_supervisor_local_v2.json');
       final ahoraMs = DateTime.now().millisecondsSinceEpoch;
-      final mapa = {
-        for (final c in compras.skip(4)) c.codigo: ahoraMs,
-      };
+      final esc = {
+        for (final c in compras.skip(5)) '"${c.codigo}":$ahoraMs',
+      }.join(',');
+      final codObs = compras[compras.length - 2].codigo;
       await verif.writeAsString(
-        '{${mapa.entries.map((e) => '"${e.key}":${e.value}').join(',')}}',
+        '{"escaneados":{$esc},"observaciones":{"$codObs":{"tipo":"ceramica_partida","nota":"Cerámica 3/4 con fisura"}}}',
         flush: true,
       );
     });

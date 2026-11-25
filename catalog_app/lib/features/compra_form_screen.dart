@@ -39,6 +39,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
   late DateTime _fecha;
   Motor? _motor;
   TipoMaterial? _material;
+  NivelLlenado _llenado = NivelLlenado.entero;
 
   double? _lat, _lng, _precision;
   bool _buscandoGps = false;
@@ -164,6 +165,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
       _notas.text = e.notas;
       _motor = e.motor;
       _material = e.material;
+      _llenado = e.llenado;
       _lat = e.lat;
       _lng = e.lng;
       _precision = e.precisionM;
@@ -366,6 +368,7 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
       precio: parseClp(_precio.text) ?? 0,
       motor: _motor!,
       material: _material!,
+      llenado: _llenado,
       codigoFabrica: _codigoFabrica.text,
       autos: _autos.text,
       fotoPath: _foto,
@@ -656,6 +659,42 @@ class _CompraFormScreenState extends State<CompraFormScreen> {
         const SizedBox(height: 6),
         if (_errorTipo != null)
           Text(_errorTipo!, style: TextStyle(color: CatalogColors.rojo, fontSize: 13)),
+        const SizedBox(height: 12),
+        Text(tr('Estado de llenado de la cerámica', 'Ceramic fullness / condition'), style: etiqueta),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final niv in NivelLlenado.values)
+              ChoiceChip(
+                label: Text(niv.etiqueta),
+                selected: _llenado == niv,
+                selectedColor: niv == NivelLlenado.entero
+                    ? CatalogColors.verde.withValues(alpha: 0.18)
+                    : (niv == NivelLlenado.fundido
+                        ? CatalogColors.rojo.withValues(alpha: 0.18)
+                        : CatalogColors.naranja.withValues(alpha: 0.22)),
+                side: BorderSide(
+                  color: _llenado == niv
+                      ? (niv == NivelLlenado.entero
+                          ? CatalogColors.verde
+                          : (niv == NivelLlenado.fundido ? CatalogColors.rojo : CatalogColors.naranja))
+                      : CatalogColors.borde,
+                  width: _llenado == niv ? 1.6 : 1,
+                ),
+                labelStyle: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: _llenado == niv ? FontWeight.w700 : FontWeight.w500,
+                  color: CatalogColors.texto,
+                ),
+                onSelected: (_) => setState(() {
+                  _llenado = niv;
+                  _sucio = true;
+                }),
+              ),
+          ],
+        ),
       ],
     );
   }

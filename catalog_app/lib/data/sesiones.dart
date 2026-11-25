@@ -20,6 +20,7 @@ class Sesion {
     required this.carpeta,
     this.origen = '',
     this.prefijo = '',
+    this.rango = '',
     this.recibidaEn,
     this.datosDel,
     this.compras = 0,
@@ -38,6 +39,7 @@ class Sesion {
   /// Quién mandó los datos (nombre configurado en su teléfono).
   final String origen;
   final String prefijo;
+  final String rango;
   final DateTime? recibidaEn;
 
   /// Fecha en que el otro teléfono armó el archivo.
@@ -88,6 +90,7 @@ class Sesiones {
           carpeta: dir,
           origen: j['origen'] as String? ?? '',
           prefijo: j['prefijo'] as String? ?? '',
+          rango: j['rango'] as String? ?? '',
           recibidaEn: DateTime.tryParse(j['recibidaEn'] as String? ?? ''),
           datosDel: DateTime.tryParse(j['datosDel'] as String? ?? ''),
           compras: (j['compras'] as num?)?.toInt() ?? 0,
@@ -128,6 +131,7 @@ class Sesiones {
       'nombre': nombre,
       'origen': c.nombre,
       'prefijo': c.prefijo,
+      'rango': c.rango,
       'recibidaEn': cuando.toIso8601String(),
       'datosDel': c.creado?.toIso8601String(),
       'compras': c.compras,

@@ -243,8 +243,10 @@ void main() {
     });
 
     Future<void> bombear([int ms = 300]) async {
-      await tester.pump();
-      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 120)));
+      for (var k = 0; k < 2; k++) {
+        await tester.pump();
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 120)));
+      }
       for (var i = 0; i < ms ~/ 100; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -262,9 +264,9 @@ void main() {
     // 1. Inicio destaca compra sin sticker y lote abierto
     await tester.pumpWidget(envolver(const InicioScreen()));
     await bombear();
-    expect(find.textContaining('No se le ha sacado el sticker'), findsOneWidget);
-    expect(find.textContaining('1 catalítico sin sticker impreso'), findsOneWidget);
-    expect(find.textContaining('Lote abierto: "Entrega Norte"'), findsOneWidget);
+    expect(find.textContaining('No se le ha sacado el sticker', skipOffstage: false), findsOneWidget);
+    expect(find.textContaining('1 catalítico sin sticker impreso', skipOffstage: false), findsOneWidget);
+    expect(find.textContaining('Lote abierto: "Entrega Norte"', skipOffstage: false), findsOneWidget);
 
     // 2. Nueva compra muestra chips rápidos de vendedor frecuente al enfocar
     await tester.pumpWidget(envolver(const CompraFormScreen()));

@@ -15,6 +15,7 @@ import '../system/sistema.dart';
 import '../theme.dart';
 import '../widgets/escaner_vista.dart';
 import '../widgets/qr_vista.dart';
+import '../widgets/selector_fechas_envio.dart';
 
 /// Puerto UDP de autodescubrimiento en la misma red Wi-Fi local.
 const int puertoAnuncioWifi = 48791;
@@ -372,6 +373,9 @@ class _WifiSyncScreen extends StatefulWidget {
 class _WifiSyncScreenState extends State<_WifiSyncScreen> {
   late bool _modoRecibir = widget.iniciarEnRecibir;
   bool _conFotos = true;
+  OpcionRangoEnvio? _opcionRango;
+  DateTimeRange? _rangoCustom;
+  FiltroEnvioCatalog _filtroEnvio = FiltroEnvioCatalog.todo;
   bool _preparando = true;
   String? _errorRed;
   ServidorWifiCatalog? _servidor;
@@ -443,7 +447,13 @@ class _WifiSyncScreenState extends State<_WifiSyncScreen> {
     }
     try {
       final repo = ComprasRepo(base);
-      final total = await repo.contarCompras();
+      if (_opcionRango == null) {
+        final ini = await elegirOpcionEnvioInicial(base);
+        _opcionRango = ini;
+        _filtroEnvio = construirFiltroEnvio(ini);
+      }
+      final filtro = _filtroEnvio;
+      final (total, _) = await contarComprasParaEnvio(base, filtro);
       final pref = await repo.prefijo();
       final nom = widget.etiquetaOrigen ?? (await repo.leerAjuste('nombre') ?? '');
       final conFotos = _conFotos;
@@ -453,7 +463,13 @@ class _WifiSyncScreenState extends State<_WifiSyncScreen> {
         prefijo: pref,
         compras: total,
         conFotos: conFotos,
-        generarZip: () => armarRespaldo(base, carpeta, incluirFotos: conFotos, tipo: 'wifi'),
+        generarZip: () => armarRespaldo(
+          base,
+          carpeta,
+          incluirFotos: conFotos,
+          tipo: 'wifi',
+          filtro: filtro,
+        ),
         alTransferir: () {
           if (mounted) {
             setState(() => _enviados++);
@@ -657,9 +673,80 @@ class _WifiSyncScreenState extends State<_WifiSyncScreen> {
     final srv = _servidor!;
     final p = srv.punto;
     final qr = p.aQr();
+    final opActual = _opcionRango ?? OpcionRangoEnvio.todas;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tr('Fechas a sincronizar', 'Dates to sync'),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 7,
+                  runSpacing: 7,
+                  children: [
+                    for (final op in OpcionRangoEnvio.values)
+                      ChoiceChip(
+                        label: Text(
+                          op == OpcionRangoEnvio.personalizado && opActual == op
+                              ? _filtroEnvio.etiqueta
+                              : op.etiquetaChip,
+                        ),
+                        selected: opActual == op,
+                        selectedColor: CatalogColors.naranja.withValues(alpha: 0.22),
+                        side: BorderSide(
+                          color: opActual == op ? CatalogColors.naranja : CatalogColors.borde,
+                          width: opActual == op ? 1.5 : 1,
+                        ),
+                        labelStyle: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: opActual == op ? FontWeight.w700 : FontWeight.w500,
+                          color: CatalogColors.texto,
+                        ),
+                        onSelected: (_) async {
+                          if (op == OpcionRangoEnvio.personalizado) {
+                            final ahora = DateTime.now();
+                            final r = await showDateRangePicker(
+                              context: context,
+                              firstDate: DateTime(2018),
+                              lastDate: ahora,
+                              initialDateRange: _rangoCustom ??
+                                  DateTimeRange(
+                                    start: DateTime(ahora.year, ahora.month, ahora.day)
+                                        .subtract(const Duration(days: 6)),
+                                    end: DateTime(ahora.year, ahora.month, ahora.day),
+                                  ),
+                            );
+                            if (r == null || !mounted) return;
+                            _rangoCustom = r;
+                          }
+                          setState(() {
+                            _opcionRango = op;
+                            _filtroEnvio = construirFiltroEnvio(op, rangoPersonalizado: _rangoCustom);
+                          });
+                          await _detenerTodo();
+                          if (mounted) await _iniciarServidor();
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${_filtroEnvio.etiqueta} · ${p.compras} ${tr('catalíticos listos para enviar', 'converters ready to send')}',
+                  style: etiqueta.copyWith(fontWeight: FontWeight.w700, color: CatalogColors.naranja),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
         Card(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),

@@ -6,6 +6,8 @@ import '../data/compra.dart';
 import '../data/lotes_repo.dart';
 import '../domain/formato.dart';
 import '../i18n.dart';
+import '../printing/etiqueta.dart';
+import '../printing/imprimir.dart';
 import '../reports/excel.dart';
 import '../system/confirmar.dart';
 import '../system/notificaciones.dart';
@@ -126,11 +128,24 @@ class _LoteScreenState extends State<LoteScreen> {
   Future<void> _leido(String texto) async {
     final repo = AppScope.of(context).lotes;
     final (resultado, compra) = await repo.agregarEscaneado(widget.loteId, texto);
+    Lote? otroLote;
+    if (resultado == ResultadoEscaneo.enOtroLote && compra != null) {
+      otroLote = await repo.loteDeCompra(compra.id, excluirLoteId: widget.loteId);
+    }
     if (!mounted) return;
     final codigo = compra?.codigo ?? texto;
     final (mensaje, bien) = switch (resultado) {
       ResultadoEscaneo.agregado => ('${tr('Agregado', 'Added')} $codigo · ${clp(compra!.precio)}', true),
-      ResultadoEscaneo.yaEstaba => (tr('$codigo ya estaba en el lote', '$codigo is already in this batch'), true),
+      ResultadoEscaneo.yaEstaba => (tr('$codigo ya estaba en este lote', '$codigo is already in this batch'), true),
+      ResultadoEscaneo.enOtroLote => (
+          otroLote != null
+              ? tr(
+                  'No se repite: $codigo ya está en «${otroLote.nombre}» (${fechaCorta(otroLote.creadoEn)})',
+                  'Not repeated: $codigo is already in "${otroLote.nombre}" (${fechaCorta(otroLote.creadoEn)})',
+                )
+              : tr('No se repite: $codigo ya pertenece a otro lote', 'Not repeated: $codigo already belongs to another batch'),
+          false,
+        ),
       ResultadoEscaneo.anulada => (
           tr('$codigo es una compra anulada: no se agrega', '$codigo is a voided purchase: not added'),
           false,
@@ -230,6 +245,37 @@ class _LoteScreenState extends State<LoteScreen> {
     final res = await _pedirMontoRecibido(lote, costo: costo, alCerrar: true);
     if (res == null || !mounted) return;
     await repo.cerrar(lote.id, montoRecibido: res.$1, actualizarMonto: res.$2);
+    if (!mounted) return;
+    final actualizado = await repo.obtener(lote.id);
+    if (actualizado != null && mounted) {
+      await _mostrarEtiquetaSaco(actualizado, itemsPreCargados: items);
+    }
+  }
+
+  Future<void> _mostrarEtiquetaSaco(Lote lote, {List<ItemLote>? itemsPreCargados}) async {
+    final scope = AppScope.of(context);
+    final items = itemsPreCargados ?? await scope.lotes.items(lote.id);
+    if (!mounted) return;
+    if (items.isEmpty) {
+      avisar(context, tr('El lote todavía no tiene catalíticos', 'This batch has no converters yet'));
+      return;
+    }
+    final comprador = await scope.compras.leerAjuste('nombre') ?? '';
+    final pref = await scope.compras.prefijo();
+    if (!mounted) return;
+    final f = lote.cerradoEn ?? lote.creadoEn;
+    final yy = (f.year % 100).toString().padLeft(2, '0');
+    final mm = f.month.toString().padLeft(2, '0');
+    final dd = f.day.toString().padLeft(2, '0');
+    final codigoLote = 'LOT-$yy$mm$dd-${lote.id.toString().padLeft(4, '0')}';
+    final datos = construirDatosEtiquetaLote(
+      codigoLote: codigoLote,
+      nombreLote: lote.nombre,
+      fecha: f,
+      compras: items.map((i) => i.compra),
+      responsable: [if (comprador.isNotEmpty) comprador, if (pref.isNotEmpty) pref].join(' · '),
+    );
+    await mostrarDialogoEtiquetaLote(context, datos);
   }
 
   Future<void> _editarVenta(Lote lote) async {
@@ -378,6 +424,11 @@ class _LoteScreenState extends State<LoteScreen> {
               title: Text(lote.nombre, overflow: TextOverflow.ellipsis),
               actions: [
                 BotonAyuda(alTocar: _mostrarGuia),
+                IconButton(
+                  tooltip: tr('Etiqueta QR del saco', 'Master QR bag label'),
+                  icon: const Icon(Icons.qr_code_2),
+                  onPressed: () => _mostrarEtiquetaSaco(lote),
+                ),
                 IconButton(
                   key: _gExcel,
                   tooltip: tr('Exportar a Excel', 'Export to Excel'),

@@ -7,6 +7,7 @@ import 'data/dispositivo.dart';
 import 'data/fotos.dart';
 import 'data/lotes_repo.dart';
 import 'data/sesiones.dart';
+import 'data/supervisor_repo.dart';
 
 /// Acciones que cambian la base de datos abierta (las hace la raíz de la app).
 abstract class AccionesApp {
@@ -35,11 +36,13 @@ class AppScope extends InheritedWidget {
     this.acciones,
     required super.child,
   })  : compras = ComprasRepo(base),
-        lotes = LotesRepo(base);
+        lotes = LotesRepo(base),
+        supervisor = SupervisorRepo(base);
 
   final CatalogDb base;
   final ComprasRepo compras;
   final LotesRepo lotes;
+  final SupervisorRepo supervisor;
   final FotosStore fotos;
   final Sesion? sesion;
   final Sesiones? sesiones;

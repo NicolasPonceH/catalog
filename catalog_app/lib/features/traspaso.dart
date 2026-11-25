@@ -15,6 +15,7 @@ import '../system/confirmar.dart';
 import '../system/notificaciones.dart';
 import '../system/sistema.dart';
 import '../theme.dart';
+import '../widgets/selector_fechas_envio.dart';
 import 'revision_supervisor_screen.dart';
 
 // Respaldo (con sobrescritura o expiración), sincronización Wi-Fi local y
@@ -195,39 +196,31 @@ Future<void> sincronizarPorWifi(BuildContext context, {bool iniciarEnRecibir = f
   await procesarContenidoRecibido(context, contenido);
 }
 
-/// Comparte un .zip con las compras propias para que el supervisor u otro celular las abra.
+/// Comparte un .zip con las compras filtradas por fechas (por WhatsApp, correo, etc.)
+/// para que el supervisor solo vea y revise ese período sin arrastrar todo el historial.
 Future<void> enviarAOtroCelular(BuildContext context) async {
   final scope = AppScope.of(context);
   if (scope.soloLectura) return;
-  final conFotos = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(tr('Enviar compras por archivo (.zip)', 'Send purchases as .zip file')),
-      content: Text(
-        tr(
-          'El supervisor las abre en su Módulo de Revisión para escanear los stickers y sacar el Excel.\n\n¿Incluir las fotos? (Con fotos ligeras pesa muy poco).',
-          'The supervisor opens them in the Supervisor Review module to scan stickers and export Excel.\n\nInclude photos?',
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Cancelar', 'Cancel'))),
-        TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Sin fotos', 'Without photos'))),
-        TextButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('Con fotos', 'With photos'))),
-      ],
-    ),
-  );
-  if (conFotos == null || !context.mounted) return;
-  avisar(context, tr('Preparando el archivo…', 'Preparing file…'));
+  final seleccion = await pedirOpcionesEnvioPorFechas(context, base: scope.base);
+  if (seleccion == null || !context.mounted) return;
+  avisar(context, tr('Preparando envío…', 'Preparing package…'));
   try {
-    final zip = await armarRespaldo(scope.base, scope.fotos.carpetaBase, incluirFotos: conFotos, tipo: 'traspaso');
+    final zip = await armarRespaldo(
+      scope.base,
+      scope.fotos.carpetaBase,
+      incluirFotos: seleccion.conFotos,
+      tipo: 'traspaso',
+      filtro: seleccion.filtro,
+    );
     final prefijo = await scope.compras.prefijo();
     final nombre = await scope.compras.leerAjuste('nombre') ?? '';
-    final archivo = await _archivoTemporal('CataLog-datos-$prefijo-${_sello(DateTime.now())}.zip', zip);
+    final archivo = await _archivoTemporal('CataLog-envio-$prefijo-${_sello(DateTime.now())}.zip', zip);
+    final rangoTxt = seleccion.filtro.etiqueta.isNotEmpty ? ' · ${seleccion.filtro.etiqueta}' : '';
     await _compartirZip(
       archivo,
       tr(
-        'Compras de CataLog${nombre.isNotEmpty ? ' de $nombre' : ''}. Ábrelo con CataLog para revisar y escanear los stickers.',
-        'CataLog purchases${nombre.isNotEmpty ? ' from $nombre' : ''}. Open with CataLog to review and scan stickers.',
+        'CataLog${nombre.isNotEmpty ? ' · $nombre' : ''}$rangoTxt (${contarCataliticos(seleccion.cantidad)}). Ábrelo con CataLog en Revisión de Supervisor.',
+        'CataLog${nombre.isNotEmpty ? ' · $nombre' : ''}$rangoTxt (${contarCataliticos(seleccion.cantidad)}). Open with CataLog in Supervisor Review.',
       ),
     );
   } catch (e) {
@@ -269,8 +262,8 @@ Future<void> procesarContenidoRecibido(BuildContext context, ContenidoRespaldo c
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
           child: Text(
             tr(
-              'Datos de $quien${creado != null ? ' (${fechaHora(creado)})' : ''}: ${contenido.compras} compras.',
-              'Data from $quien${creado != null ? ' (${fechaHora(creado)})' : ''}: ${contenido.compras} purchases.',
+              'Datos de $quien${contenido.rango.isNotEmpty ? ' · ${contenido.rango}' : (creado != null ? ' (${fechaHora(creado)})' : '')}: ${contenido.compras} compras.',
+              'Data from $quien${contenido.rango.isNotEmpty ? ' · ${contenido.rango}' : (creado != null ? ' (${fechaHora(creado)})' : '')}: ${contenido.compras} purchases.',
             ),
             style: const TextStyle(fontSize: 15, height: 1.4),
           ),
@@ -488,9 +481,12 @@ Future<void> mostrarRespaldoYTraspaso(BuildContext context) async {
               ),
             if (!revision)
               ListTile(
-                leading: Icon(Icons.send_to_mobile_outlined, color: CatalogColors.texto),
-                title: Text(tr('Enviar compras por archivo (.zip)', 'Send purchases as .zip file')),
-                subtitle: Text(tr('Por WhatsApp, correo o cable', 'Via WhatsApp, email, or cable')),
+                leading: Icon(Icons.send_to_mobile_outlined, color: CatalogColors.naranja),
+                title: Text(
+                  tr('Sincronizar por WhatsApp / Archivo (.zip)', 'Sync via WhatsApp / .zip file'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(tr('Elige por fechas (Hoy, 7 días, Mes…) sin enviar todo', 'Filter by dates (Today, 7 days, Month…) instead of sending all')),
                 onTap: () => ir(hoja, enviarAOtroCelular),
               ),
             ListTile(

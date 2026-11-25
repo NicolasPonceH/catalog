@@ -61,6 +61,7 @@ class CompraTile extends StatelessWidget {
     final detalle = [
       fechaHora(compra.fechaCompra),
       compra.vendedor,
+      if (compra.llenado != NivelLlenado.entero) compra.llenado.etiqueta,
       if (compra.autos.isNotEmpty) compra.autos,
     ].join(' · ');
     return Card(

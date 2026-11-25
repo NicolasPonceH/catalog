@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../app_scope.dart';
 import '../data/compra.dart';
 import '../domain/formato.dart';
+import '../domain/tipos.dart';
 import '../i18n.dart';
 import '../printing/etiqueta.dart';
 import '../printing/imprimir.dart';
@@ -283,7 +284,7 @@ class _FichaScreenState extends State<FichaScreen> {
                   child: SelectableText(c.codigo, style: mono(size: 21, color: CatalogColors.niebla)),
                 ),
                 const SizedBox(height: 3),
-                Text(c.tipo, style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 13)),
+                Text(c.tipoConLlenado, style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 13)),
               ],
             ),
           ),
@@ -362,6 +363,7 @@ class _FichaScreenState extends State<FichaScreen> {
       (tr('Lugar', 'Location'), c.lugar, false),
       (tr('Precio', 'Price'), clp(c.precio), true),
       (tr('Tipo', 'Type'), c.tipo, false),
+      (tr('Llenado cerámica', 'Ceramic fullness'), c.llenado.etiqueta, false),
       (tr('Código de fábrica', 'Factory code'), c.codigoFabrica, true),
       (tr('Autos', 'Vehicles'), c.autos, false),
       if (c.notas.isNotEmpty) (tr('Notas', 'Notes'), c.notas, false),

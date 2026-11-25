@@ -4,7 +4,7 @@
 // Fechas: milisegundos desde 1970 (hora del teléfono).
 // Precios: pesos chilenos enteros.
 
-const versionBaseDatos = 2;
+const versionBaseDatos = 3;
 
 const migraciones = <int, List<String>>{
   1: [
@@ -63,5 +63,40 @@ const migraciones = <int, List<String>>{
   2: [
     // Monto recibido al entregar o vender un lote (para calcular la utilidad neta).
     'ALTER TABLE lotes ADD COLUMN monto_recibido INTEGER',
+  ],
+  3: [
+    // Nivel de llenado de la cerámica / monolito al comprar.
+    "ALTER TABLE compras ADD COLUMN llenado TEXT NOT NULL DEFAULT 'entero'",
+    // Lotes cerrados por el Supervisor (evitan volver a contar un mismo catalítico en otra revisión).
+    '''
+    CREATE TABLE lotes_supervisor(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL,
+      comprador TEXT NOT NULL DEFAULT '',
+      prefijo TEXT NOT NULL DEFAULT '',
+      rango_texto TEXT NOT NULL DEFAULT '',
+      creado_en INTEGER NOT NULL,
+      cerrado_en INTEGER NOT NULL,
+      notas TEXT NOT NULL DEFAULT ''
+    )
+    ''',
+    '''
+    CREATE TABLE lotes_supervisor_items(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lote_sup_id INTEGER NOT NULL REFERENCES lotes_supervisor(id) ON DELETE CASCADE,
+      codigo TEXT NOT NULL UNIQUE,
+      fecha_compra INTEGER,
+      vendedor TEXT NOT NULL DEFAULT '',
+      tipo TEXT NOT NULL DEFAULT '',
+      llenado TEXT NOT NULL DEFAULT 'entero',
+      codigo_fabrica TEXT NOT NULL DEFAULT '',
+      autos TEXT NOT NULL DEFAULT '',
+      precio INTEGER NOT NULL DEFAULT 0,
+      escaneado_en INTEGER,
+      observacion_tipo TEXT NOT NULL DEFAULT '',
+      observacion_nota TEXT NOT NULL DEFAULT ''
+    )
+    ''',
+    'CREATE INDEX idx_lotes_sup_items_lote ON lotes_supervisor_items(lote_sup_id)',
   ],
 };

@@ -4,7 +4,7 @@ CataLog registra cada catalítico que compras, le imprime un sticker con su cód
 
 ## 1. Instalar
 
-1. Pasa el APK más nuevo (`CataLog-1.6.apk`) al celular, por WhatsApp o con el cable.
+1. Pasa el APK más nuevo (`CataLog-1.7.apk`) al celular, por WhatsApp o con el cable.
 2. Ábrelo y acepta **instalar apps desconocidas** cuando el teléfono lo pida.
 3. Si aparece un aviso de seguridad (Xiaomi o Play Protect), toca **Instalar de todas formas**.
 
@@ -38,7 +38,7 @@ En **Ajustes** (la ruedita, arriba a la derecha):
 3. Completa:
    - **Vendedor:** al tocar o escribir las primeras letras aparecen abajo **pastillas rápidas de 1 toque** con tus vendedores más frecuentes.
    - **Lugar** (guarda el GPS automáticamente) y **Precio pagado**.
-   - **Motor** y **material**.
+   - **Motor**, **material** y **estado de llenado de la cerámica** (*Entero 100%, 3/4, Medio o Fundido/Partido*).
    - **Código grabado de fábrica:** si ya compraste ese mismo código antes, muestra debajo cuánto pagaste la última vez y el promedio, con botón para usar ese monto al tiro.
    - **De qué autos es:** también sugiere con **1 toque** los vehículos frecuentes de tu historial.
    - **Foto** ligera del catalítico.
@@ -55,19 +55,20 @@ En **Historial**, toca el chip **Sin imprimir** (o el aviso naranja de Inicio) p
 ## 6. Lotes y utilidad real
 
 1. Toca **Lotes > Nuevo lote** y ponle nombre.
-2. Escanea los stickers uno tras otro: suma lo pagado y no cuenta duplicados. Mientras siga abierto, aparecerá destacado con **borde naranja (`⚠ Falta cerrar`)** y te avisará si sales sin cerrarlo.
-3. Toca **Terminar** y anota opcionalmente **cuánto te pagaron por el lote** para ver la **utilidad neta** (`Venta − Costo pagado`) en pantalla y en el Excel.
+2. Escanea los stickers uno tras otro: suma lo pagado y **bloquea repetir una pieza que ya esté en este lote o en cualquier otro lote anterior**. Mientras siga abierto, aparecerá destacado con **borde naranja (`Falta cerrar`)**.
+3. Toca **Terminar**, anota opcionalmente **cuánto te pagaron por el lote** para ver la **utilidad neta** (`Venta − Costo pagado`) e imprime la **Etiqueta Maestra QR del Saco / Caja** para pegarla por fuera de la bolsa o caja (con cantidad y desglose por material, sin precios).
 
-## 7. Sincronizar por Wi-Fi y Revisión de Supervisor
+## 7. Sincronizar por fechas (WhatsApp / Wi-Fi) y Revisión de Supervisor
 
-No necesitas cambiar de sesión ni mezclar datos:
+No necesitas cambiar de sesión ni arrastrar todo el historial:
 
-1. Con ambos celulares conectados al **mismo Wi-Fi** (o compartiendo zona portátil de uno al otro), toca el botón `⇄` en Inicio **> Sincronizar por Wi-Fi**.
-2. Uno elige **Enviar (Mostrar QR)** y el otro **Recibir datos**: el teléfono aparece detectado automáticamente en pantalla o basta con apuntar al código QR para pasar compras y fotos en segundos (de tu celular al del supervisor y viceversa).
-3. El supervisor entra a **Revisión de Supervisor** (desde el menú `⇄` o Ajustes):
-   - Escanea los stickers físicos con la cámara integrada para marcar cada pieza como **Verificada** y ver al instante cuáles **faltan por escanear**.
-   - Puede tocar cualquier pieza para revisar su ficha con foto y GPS en solo lectura.
-   - Toca el botón naranja **Excel** para generar y compartir la planilla completa de la revisión.
+1. Para pasar compras al supervisor, toca el botón `⇄` en Inicio y elige **Sincronizar por WhatsApp / Archivo (.zip)** o **Sincronizar por Wi-Fi**.
+2. Elige las fechas exactas a enviar (**Hoy**, **Últimos 7 días**, **Este mes**, **Elegir fechas…** o **Solo pendientes sin lote**): viajarán únicamente esos catalíticos y sus fotos.
+3. El supervisor abre **Revisión de Supervisor**:
+   - Ve el **anillo de avance en tiempo real**, los montos cuadrados vs. faltantes y las piezas **agrupadas por fecha de compra**.
+   - Escanea los stickers físicos con la cámara integrada (viendo foto, código grabado y llenado).
+   - Si una pieza llegó partida, vaciada o con diferencia, toca el ícono de **bandera (`Observación`)** para marcarla con 1 toque: quedará destacada en **rojo** en la app y en el Excel.
+   - Toca **Guardar Lote Supervisor** para cerrar ese grupo: una vez guardado en un lote de supervisor, **ninguno de esos catalíticos podrá repetirse en otra revisión futura**, y podrá imprimir su **Etiqueta QR de Saco** o exportar el **Excel con logo CataLog y Tablas Dinámicas**.
 
 ## 8. Reportes, correcciones y respaldos sin basura
 

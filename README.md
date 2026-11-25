@@ -3,14 +3,14 @@
 </p>
 
 <p align="center">
-  <img alt="Versión 1.6.0" src="https://img.shields.io/badge/versi%C3%B3n-1.6.0-FF7A1A">
+  <img alt="Versión 1.7.0" src="https://img.shields.io/badge/versi%C3%B3n-1.7.0-FF7A1A">
   <img alt="Flutter 3.50" src="https://img.shields.io/badge/Flutter-3.50-02569B?logo=flutter&logoColor=white">
   <img alt="Dart 3.14" src="https://img.shields.io/badge/Dart-3.14-0175C2?logo=dart&logoColor=white">
   <img alt="Android 7.0 o más" src="https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local-003B57?logo=sqlite&logoColor=white">
   <img alt="Wi-Fi local sin nube" src="https://img.shields.io/badge/Wi--Fi%20local-sin%20nube-0E2A47">
   <img alt="Español e Inglés" src="https://img.shields.io/badge/idioma-ES%20%2F%20EN-1D9E75">
-  <img alt="88 pruebas" src="https://img.shields.io/badge/pruebas-88%20OK-2E7D32">
+  <img alt="93 pruebas" src="https://img.shields.io/badge/pruebas-93%20OK-2E7D32">
 </p>
 
 **CataLog** es una app para Android que lleva el control de las compras de catalíticos de un negocio familiar en Arica, Chile. Cada compra queda registrada con su fecha, vendedor, lugar, precio y tipo. La app le imprime al catalítico un sticker con QR y código de barras, lo lee después con la cámara, permite cuadrar inventario por Wi-Fi local con el supervisor y arma los reportes en Excel. Funciona en terreno sin internet y los datos se guardan solo en el teléfono.
@@ -38,15 +38,15 @@ CataLog anota cada compra en el momento y le asigna un código único. Ese códi
 
 | | |
 |---|---|
-| **Registro rápido en terreno** | Fecha y hora de compra, vendedor y vehículo con **chips rápidos de 1 toque** según los más frecuentes, lugar con GPS, precio en pesos chilenos, motor (bencinero o diésel), material (cerámico, metálico o DPF), código grabado de fábrica (con **referencia automática** de lo pagado antes por ese mismo código) y **foto ligera (~80 KB)**. |
+| **Registro rápido en terreno** | Fecha y hora de compra, vendedor y vehículo con **chips rápidos de 1 toque** según los más frecuentes, lugar con GPS, precio en pesos chilenos, motor (bencinero o diésel), material (cerámico, metálico o DPF), **estado de llenado de la cerámica** (*Entero 100% · 3/4 · Medio · Fundido/Partido*), código grabado de fábrica (con **referencia automática** de lo pagado antes) y **foto ligera (~80 KB)**. |
 | **Fotos ultra ligeras** | Por defecto comprime cada captura a ~80 KB sin perder nitidez del código grabado (selector *Ligera / Normal / Alta* en Ajustes y botón **Optimizar fotos guardadas** para comprimir fotos antiguas). |
 | **La fecha es lo principal** | Se llena sola, es obligatoria, se puede corregir y nunca puede ser futura. El código usa la fecha de compra (no la del registro) y la ficha muestra si alguien la corrigió y cuándo. |
 | **Código único** | `PREFIJO-AAMMDD-NNNN`, por ejemplo `CTL-261122-0002`: el prefijo del teléfono, el día de compra y el número de pieza de ese día. El número se asigna dentro de una transacción y no se repite. |
-| **Sticker térmico y alertas visuales** | QR y Code 128 impresos por Bluetooth en papel de 58 u 80 mm (sin imprimir el precio). Si una compra aún tiene `0 impresiones`, destaca en Inicio e Historial con **borde naranja y aviso `No se le ha sacado el sticker`**, además del filtro **Sin imprimir**. |
-| **Lotes y ganancia neta** | Se escanean muchos stickers seguidos: suma lo pagado, evita duplicados, destaca con **borde naranja** los lotes dejados abiertos y permite anotar **cuánto te pagaron por el lote** para ver la **utilidad neta** (`Venta − Costo`) en la app y en el Excel. |
-| **Revisión de Supervisor** | Módulo operativo dedicado (sin cambiar de sesión): integra escáner de cámara para verificar físicamente cada código contra las compras recibidas, muestra *Verificados* vs *Pendientes*, abre fichas en solo lectura y exporta el **Excel de Revisión** con un toque. |
-| **Sincronización por Wi-Fi local** | Cuando el celular del comprador y el del supervisor están bajo el mismo Wi-Fi (o zona portátil), se autodescubren en la red o se conectan escaneando un **QR en pantalla** para pasar compras y fotos directo de equipo a equipo (ida y vuelta, sin nube externa). |
-| **Reportes en Excel** | Hoy, semana, mes, un rango de fechas o todo. Muestra el total gastado, la cantidad, el promedio y los totales por tipo, por vendedor y por mes. Exporta un Excel con resumen, tablas con colores, totales y enlaces al mapa. |
+| **Stickers térmicos + Etiqueta QR de Saco** | Stickers individuales con QR y Code 128 por Bluetooth en 58 u 80 mm (sin precios) + **Etiqueta Maestra QR del Saco / Caja** al cerrar un lote (resumen de piezas, desglose `Cerámico / Metálico / DPF` y QR). Si una compra aún tiene `0 impresiones`, destaca con **borde naranja y aviso `No se le ha sacado el sticker`**. |
+| **Lotes sin repetir piezas + Ganancia neta** | Escaneo continuo de stickers con **bloqueo anti-duplicados tanto dentro del mismo lote como entre lotes distintos** (indica en qué lote anterior ya fue guardada la pieza). Destaca lotes abiertos y calcula la **utilidad neta** (`Venta − Costo`). |
+| **Revisión de Supervisor v1.7** | Módulo ejecutivo rediseñado con **anillo de avance en vivo**, compras **agrupadas por fecha**, miniatura de foto, botón de **Observación / Discrepancia** de 1 toque (destacado en rojo), guardado como **Lote de Supervisor** (para que ningún catalítico revisado vuelva a repetirse en otro lote), etiqueta QR del saco y exportación a Excel. |
+| **Sincronización filtrada por fechas (WhatsApp y Wi-Fi)** | Al enviar compras por **WhatsApp / archivo (`.zip`)** o por **Wi-Fi local con QR**, eliges el período exacto (**Hoy, Últimos 7 días, Este mes, Rango de fechas o Solo pendientes sin lote**) para no arrastrar todo el historial de catalíticos. |
+| **Excel corporativo con Tablas Dinámicas** | Exporta libros `.xlsx` con el **logo oficial de CataLog incrustado**, cintillo de marca *"Generado por CataLog"*, tablas nativas filtrables (`ExcelTable`), filas de discrepancia/anulación en rojo y hoja **`Tabla Dinámica`** con `PivotTable`s reales listas para cruzar por vendedor, tipo, estado y llenado. |
 | **Notificaciones Pop-up y periódicas** | Notificaciones emergentes (`Heads-Up`) con la **insignia grande de CataLog a color** y silueta del catalítico: avisan **apenas sales de la app** si quedó un sticker sin sacar o un lote abierto, **se repiten periódicamente en el día** (cada 30 min, 1 h, 2 h o 4 h) mientras sigan pendientes, y avisan al escanear o guardar respaldos. |
 | **Respaldo inteligente sin basura** | Respaldos `.zip` en `Descargas/Respaldo CataLog` con modo **Sobrescribir archivo único** (por defecto, siempre al día sin acumular copias repetidas) o **Expiración automática** (7 o 30 días), más el botón rojo **Ubicar respaldo** directo a Archivos. |
 | **Nada se borra + Seguridad** | Las compras se anulan quedando registradas en el historial. Bloqueo opcional con huella analizada en pantalla (sin revelar montos) y confirmación biométrica antes de anular, borrar o reemplazar datos. |
@@ -128,7 +128,7 @@ flowchart LR
 | Área | Tecnología | Uso |
 |---|---|---|
 | App | **Flutter 3.50 · Dart 3.14** | Android (API 24+, target 36). Interfaz con `material_ui` (Material 3). |
-| Datos | **SQLite** (`sqflite`) | Base local con migraciones (`v2`); `sqflite_common_ffi` en las pruebas. |
+| Datos | **SQLite** (`sqflite`) | Base local con migraciones (`v3`); `sqflite_common_ffi` en las pruebas. |
 | Sincronización | `dart:io` (`ServerSocket`, `Socket`, `RawDatagramSocket`) | Descubrimiento UDP y transferencia TCP directa entre celulares en la misma red Wi-Fi, emparejada con QR y PIN temporal. |
 | Sticker | `dart:ui` · `qr` · Code 128 propio | Dibujo del sticker, QR y código de barras sin servicios externos. |
 | Impresión | `print_bluetooth_thermal` · `universal_ble` | ESC/POS por SPP y por BLE, más el protocolo de tipo "gato", con comandos armados en `lib/printing/`. |
@@ -167,7 +167,7 @@ catalog_app/lib/
 
 ## Pruebas
 
-**88 pruebas automáticas** (`flutter test`). Cubren:
+**93 pruebas automáticas** (`flutter test`). Cubren:
 
 - Fecha de compra obligatoria, no futura, reflejada en el código y con auditoría de correcciones.
 - Generador transaccional de códigos únicos por día.
@@ -204,7 +204,8 @@ La llave de firma (`llaves/`, `key.properties`) y los APK compilados (`apk/`) **
 
 | Versión | Fecha | Cambios principales |
 |---|---|---|
-| **1.6.0** | 24-11-2026 | Fotos ligeras (~80 KB) y optimizador de fotos guardadas; notificaciones Pop-up con logo grande a color, aviso al salir de la app y recordatorios periódicos en el día; bordes y avisos para compras sin sticker y lotes abiertos; chips rápidos de Vendedor y Auto frecuente; módulo operativo **Revisión de Supervisor** (escáner + Excel, sin cambiar de sesión); **Sincronización por Wi-Fi local** (Comprador ⇄ Supervisor con QR); respaldos con sobrescritura de archivo único o expiración automática. |
+| **1.7.0** | 25-11-2026 | Estado de llenado de cerámica (*Entero 100% · 3/4 · Medio · Fundido/Partido*); sincronización WhatsApp/Wi-Fi **filtrada por fechas**; bloqueo de catalíticos repetidos **entre lotes distintos** (comprador y **Lotes de Supervisor**); rediseño de **Revisión de Supervisor** con anillo de avance, agrupación por fecha y botón de **Observación / Discrepancia** en rojo; **Etiqueta Maestra QR para Saco/Caja**; nuevo **Excel con logo oficial CataLog incrustado, tablas filtrables y Tablas Dinámicas (`PivotTable`)**. |
+| 1.6.0 | 24-11-2026 | Fotos ligeras (~80 KB) y optimizador de fotos guardadas; notificaciones Pop-up con logo grande a color, aviso al salir de la app y recordatorios periódicos en el día; bordes y avisos para compras sin sticker y lotes abiertos; chips rápidos de Vendedor y Auto frecuente; módulo operativo **Revisión de Supervisor** (escáner + Excel, sin cambiar de sesión); **Sincronización por Wi-Fi local** (Comprador ⇄ Supervisor con QR); respaldos con sobrescritura de archivo único o expiración automática. |
 | 1.5.1 | 24-11-2026 | Canal de notificaciones en `IMPORTANCE_HIGH` para alertas emergentes (`Heads-Up`). |
 | 1.5.0 | 24-11-2026 | Referencia automática de precio por código de fábrica, utilidad neta (`Venta − Costo`) en lotes y su Excel, filtro `Sin imprimir` en Historial, notificaciones locales y tarjeta roja **Ubicar respaldo** directo en Archivos. |
 | 1.4 | 23-11-2026 | Barra de pestañas fija con Escanear al centro, bloqueo con huella analizada, rediseño completo de pantallas, modo oscuro, alto contraste, tamaño de letra e idioma Español / English en vivo. |

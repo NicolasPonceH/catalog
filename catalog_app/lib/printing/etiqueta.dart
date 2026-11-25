@@ -6,26 +6,59 @@ import 'package:qr/qr.dart';
 import '../data/compra.dart';
 import '../domain/codigo.dart';
 import '../domain/formato.dart';
+import '../domain/tipos.dart';
 import '../theme.dart';
 import '../widgets/catalog_logo.dart';
 import 'code128.dart';
 
-/// Lo que va impreso en el sticker. El precio NO va.
+/// Lo que va impreso en el sticker individual. El precio NO va.
 class DatosEtiqueta {
   const DatosEtiqueta({required this.codigo, required this.fechaCompra, required this.tipo});
 
   factory DatosEtiqueta.deCompra(Compra c) =>
-      DatosEtiqueta(codigo: c.codigo, fechaCompra: c.fechaCompra, tipo: c.tipo);
+      DatosEtiqueta(codigo: c.codigo, fechaCompra: c.fechaCompra, tipo: c.tipoConLlenado);
 
   final String codigo;
   final DateTime fechaCompra;
   final String tipo;
 }
 
+/// Datos para la Etiqueta Maestra QR del Saco / Caja al cerrar un lote
+/// (tanto de comprador como de supervisor). Nunca incluye precios.
+class DatosEtiquetaLote {
+  const DatosEtiquetaLote({
+    required this.codigoLote,
+    required this.nombreLote,
+    required this.fecha,
+    required this.totalPiezas,
+    required this.ceramicos,
+    required this.metalicos,
+    required this.dpf,
+    this.conObservacion = 0,
+    this.responsable = '',
+    this.esSupervisor = false,
+  });
+
+  final String codigoLote;
+  final String nombreLote;
+  final DateTime fecha;
+  final int totalPiezas;
+  final int ceramicos;
+  final int metalicos;
+  final int dpf;
+  final int conObservacion;
+  final String responsable;
+  final bool esSupervisor;
+
+  String get payloadQr =>
+      'CATALOG-LOTE|$codigoLote|$totalPiezas|C$ceramicos-M$metalicos-D$dpf${esSupervisor ? '|SUP' : ''}';
+}
+
 /// El sticker se diseña para 384 puntos de ancho (papel de 58 mm a 203 ppp).
 /// Para papel de 80 mm se escala a 576 puntos.
 const anchoEtiqueta = 384.0;
 const altoEtiqueta = 378.0;
+const altoEtiquetaLote = 436.0;
 
 const _negro = Color(0xFF000000);
 const _blanco = Color(0xFFFFFFFF);
@@ -33,7 +66,7 @@ const _blanco = Color(0xFFFFFFFF);
 /// Número de pieza del día, tomado del final del código (CTL-261121-0007 -> 7).
 int? _piezaDelDia(String codigo) => int.tryParse(codigo.split('-').last);
 
-/// Dibuja el sticker completo en un espacio de 384 x 378, en blanco y negro.
+/// Dibuja el sticker individual completo en un espacio de 384 x 378, en blanco y negro.
 void pintarEtiqueta(Canvas canvas, DatosEtiqueta d) {
   final negro = Paint()..color = _negro;
   canvas.drawRect(const Rect.fromLTWH(0, 0, anchoEtiqueta, altoEtiqueta), Paint()..color = _blanco);
@@ -64,7 +97,7 @@ void pintarEtiqueta(Canvas canvas, DatosEtiqueta d) {
   _texto(canvas, 'C O M P R A D O', x: 174, y: 120, tamano: 13, ancho: 202, familia: fuenteUi, peso: FontWeight.w700);
   _texto(canvas, fechaCorta(d.fechaCompra), x: 174, y: 138, tamano: 26, ancho: 202, familia: fuenteMono, peso: FontWeight.w500);
   _texto(canvas, hora(d.fechaCompra), x: 174, y: 168, tamano: 26, ancho: 202, familia: fuenteMono, peso: FontWeight.w500);
-  _texto(canvas, d.tipo, x: 174, y: 204, tamano: 18, ancho: 202, familia: fuenteUi, maxLineas: 2);
+  _texto(canvas, d.tipo, x: 174, y: 202, tamano: 17, ancho: 202, familia: fuenteUi, maxLineas: 2);
   final pieza = _piezaDelDia(d.codigo);
   if (pieza != null && pieza > 0) {
     _texto(canvas, 'Pieza N° $pieza del día', x: 174, y: 248, tamano: 17, ancho: 202, familia: fuenteMono, peso: FontWeight.w500);
@@ -80,6 +113,206 @@ void pintarEtiqueta(Canvas canvas, DatosEtiqueta d) {
   const CatalogMarkPainter(cuerpo: _negro, tubos: _negro).paint(canvas, const Size(28, 14.1));
   canvas.restore();
   _texto(canvas, 'Hecho con CataLog', x: 150, y: 354, tamano: 15, ancho: 180, familia: fuenteUi, peso: FontWeight.w700);
+}
+
+/// Dibuja la Etiqueta Maestra QR para pegar por fuera del saco o caja al cerrar un lote.
+void pintarEtiquetaLote(Canvas canvas, DatosEtiquetaLote d) {
+  final negro = Paint()..color = _negro;
+  final borde = Paint()
+    ..color = _negro
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.2;
+  canvas.drawRect(const Rect.fromLTWH(0, 0, anchoEtiqueta, altoEtiquetaLote), Paint()..color = _blanco);
+
+  // Marco exterior firme para distinguir etiqueta de saco/lote de un sticker individual.
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(const Rect.fromLTWH(5, 5, 374, altoEtiquetaLote - 10), const Radius.circular(12)),
+    borde,
+  );
+
+  // Banda superior negra con logo + rol (SACO / LOTE o LOTE SUPERVISOR).
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(const Rect.fromLTWH(10, 10, 364, 52), const Radius.circular(9)),
+    negro,
+  );
+  canvas.save();
+  canvas.translate(18, 22);
+  const CatalogMarkPainter(cuerpo: _blanco, tubos: _blanco).paint(canvas, const Size(50, 25.2));
+  canvas.restore();
+  _texto(
+    canvas,
+    d.esSupervisor ? 'LOTE SUPERVISOR' : 'ETIQUETA DE SACO',
+    x: 74,
+    y: 14,
+    tamano: 18,
+    ancho: 190,
+    familia: fuenteUi,
+    peso: FontWeight.w700,
+    color: _blanco,
+  );
+  _texto(
+    canvas,
+    d.codigoLote,
+    x: 74,
+    y: 36,
+    tamano: 15,
+    ancho: 190,
+    familia: fuenteMono,
+    peso: FontWeight.w500,
+    color: _blanco,
+  );
+  _texto(
+    canvas,
+    fechaCorta(d.fecha),
+    x: 256,
+    y: 14,
+    tamano: 17,
+    ancho: 110,
+    familia: fuenteMono,
+    alinear: TextAlign.right,
+    color: _blanco,
+  );
+  _texto(
+    canvas,
+    hora(d.fecha),
+    x: 256,
+    y: 35,
+    tamano: 17,
+    ancho: 110,
+    familia: fuenteMono,
+    alinear: TextAlign.right,
+    color: _blanco,
+  );
+
+  // Nombre del lote grande y centrado.
+  _texto(
+    canvas,
+    d.nombreLote,
+    x: 16,
+    y: 68,
+    tamano: 24,
+    ancho: anchoEtiqueta - 32,
+    familia: fuenteUi,
+    peso: FontWeight.w700,
+    alinear: TextAlign.center,
+    maxLineas: 2,
+  );
+  canvas.drawRect(const Rect.fromLTWH(16, 126, 352, 2), negro);
+
+  // QR maestro a la izquierda y resumen de piezas + desglose a la derecha.
+  _qr(canvas, d.payloadQr, const Rect.fromLTWH(14, 134, 156, 156));
+
+  // Caja negra invertida con total de piezas.
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(const Rect.fromLTWH(178, 136, 190, 48), const Radius.circular(8)),
+    negro,
+  );
+  _texto(
+    canvas,
+    '${d.totalPiezas} ${d.totalPiezas == 1 ? 'PIEZA' : 'PIEZAS'}',
+    x: 178,
+    y: 145,
+    tamano: 25,
+    ancho: 190,
+    familia: fuenteMono,
+    peso: FontWeight.w700,
+    alinear: TextAlign.center,
+    color: _blanco,
+  );
+
+  // Desglose por material (sin precios).
+  _texto(canvas, 'Cerámico: ${d.ceramicos}', x: 180, y: 192, tamano: 18, ancho: 188, familia: fuenteUi, peso: FontWeight.w700);
+  _texto(canvas, 'Metálico: ${d.metalicos}', x: 180, y: 215, tamano: 18, ancho: 188, familia: fuenteUi, peso: FontWeight.w700);
+  _texto(canvas, 'DPF: ${d.dpf}', x: 180, y: 238, tamano: 18, ancho: 188, familia: fuenteUi, peso: FontWeight.w700);
+  if (d.conObservacion > 0) {
+    _texto(
+      canvas,
+      'Con obs.: ${d.conObservacion}',
+      x: 180,
+      y: 262,
+      tamano: 16,
+      ancho: 188,
+      familia: fuenteMono,
+      peso: FontWeight.w700,
+    );
+  } else if (d.responsable.trim().isNotEmpty) {
+    _texto(
+      canvas,
+      d.responsable.trim(),
+      x: 180,
+      y: 263,
+      tamano: 16,
+      ancho: 188,
+      familia: fuenteUi,
+      peso: FontWeight.w500,
+    );
+  }
+
+  // Código de barras Code 128 del lote (sin guiones).
+  _code128(canvas, codigoParaBarras(d.codigoLote), arriba: 300, alto: 54);
+
+  // Pie de trazabilidad.
+  canvas.drawRect(const Rect.fromLTWH(40, 366, 304, 1.5), negro);
+  final pieExtra = d.responsable.trim().isNotEmpty && d.conObservacion > 0
+      ? '${d.responsable.trim()} · Hecho con CataLog'
+      : 'Hecho con CataLog · Sin precios';
+  _texto(
+    canvas,
+    pieExtra,
+    x: 16,
+    y: 374,
+    tamano: 15,
+    ancho: anchoEtiqueta - 32,
+    familia: fuenteUi,
+    peso: FontWeight.w700,
+    alinear: TextAlign.center,
+  );
+  _texto(
+    canvas,
+    d.codigoLote,
+    x: 16,
+    y: 398,
+    tamano: 15,
+    ancho: anchoEtiqueta - 32,
+    familia: fuenteMono,
+    alinear: TextAlign.center,
+  );
+}
+
+/// Construye [DatosEtiquetaLote] a partir de una lista de compras.
+DatosEtiquetaLote construirDatosEtiquetaLote({
+  required String codigoLote,
+  required String nombreLote,
+  required DateTime fecha,
+  required Iterable<Compra> compras,
+  int conObservacion = 0,
+  String responsable = '',
+  bool esSupervisor = false,
+}) {
+  final activas = compras.where((c) => !c.anulada).toList();
+  var cer = 0, met = 0, dpf = 0;
+  for (final c in activas) {
+    switch (c.material) {
+      case TipoMaterial.ceramico:
+        cer++;
+      case TipoMaterial.metalico:
+        met++;
+      case TipoMaterial.dpf:
+        dpf++;
+    }
+  }
+  return DatosEtiquetaLote(
+    codigoLote: codigoLote,
+    nombreLote: nombreLote,
+    fecha: fecha,
+    totalPiezas: activas.length,
+    ceramicos: cer,
+    metalicos: met,
+    dpf: dpf,
+    conObservacion: conObservacion,
+    responsable: responsable,
+    esSupervisor: esSupervisor,
+  );
 }
 
 void _texto(
@@ -149,7 +382,7 @@ void _code128(Canvas canvas, String datos, {required double arriba, required dou
   }
 }
 
-/// Dibuja el sticker como imagen del ancho de la impresora.
+/// Dibuja el sticker individual como imagen del ancho de la impresora.
 Future<ui.Image> renderizarEtiqueta(DatosEtiqueta d, {int anchoPx = 384}) {
   final escala = anchoPx / anchoEtiqueta;
   final alto = (altoEtiqueta * escala).round();
@@ -157,6 +390,17 @@ Future<ui.Image> renderizarEtiqueta(DatosEtiqueta d, {int anchoPx = 384}) {
   final canvas = Canvas(grabadora, Rect.fromLTWH(0, 0, anchoPx.toDouble(), alto.toDouble()));
   canvas.scale(escala);
   pintarEtiqueta(canvas, d);
+  return grabadora.endRecording().toImage(anchoPx, alto);
+}
+
+/// Dibuja la Etiqueta Maestra QR de lote/saco como imagen del ancho de la impresora.
+Future<ui.Image> renderizarEtiquetaLote(DatosEtiquetaLote d, {int anchoPx = 384}) {
+  final escala = anchoPx / anchoEtiqueta;
+  final alto = (altoEtiquetaLote * escala).round();
+  final grabadora = ui.PictureRecorder();
+  final canvas = Canvas(grabadora, Rect.fromLTWH(0, 0, anchoPx.toDouble(), alto.toDouble()));
+  canvas.scale(escala);
+  pintarEtiquetaLote(canvas, d);
   return grabadora.endRecording().toImage(anchoPx, alto);
 }
 
@@ -183,6 +427,29 @@ class EtiquetaVista extends StatelessWidget {
   }
 }
 
+/// Vista previa en pantalla de la Etiqueta Maestra QR del Saco / Caja.
+class EtiquetaLoteVista extends StatelessWidget {
+  const EtiquetaLoteVista({super.key, required this.datos});
+
+  final DatosEtiquetaLote datos;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: CatalogColors.borde),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.all(6),
+      child: AspectRatio(
+        aspectRatio: anchoEtiqueta / altoEtiquetaLote,
+        child: CustomPaint(painter: _EtiquetaLotePainter(datos)),
+      ),
+    );
+  }
+}
+
 class _EtiquetaPainter extends CustomPainter {
   _EtiquetaPainter(this.datos);
 
@@ -201,4 +468,25 @@ class _EtiquetaPainter extends CustomPainter {
       old.datos.codigo != datos.codigo ||
       old.datos.fechaCompra != datos.fechaCompra ||
       old.datos.tipo != datos.tipo;
+}
+
+class _EtiquetaLotePainter extends CustomPainter {
+  _EtiquetaLotePainter(this.datos);
+
+  final DatosEtiquetaLote datos;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / anchoEtiqueta);
+    pintarEtiquetaLote(canvas, datos);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_EtiquetaLotePainter old) =>
+      old.datos.codigoLote != datos.codigoLote ||
+      old.datos.nombreLote != datos.nombreLote ||
+      old.datos.totalPiezas != datos.totalPiezas ||
+      old.datos.conObservacion != datos.conObservacion;
 }

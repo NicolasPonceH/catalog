@@ -18,6 +18,7 @@ class DatosCompra {
     required this.precio,
     required this.motor,
     required this.material,
+    this.llenado = NivelLlenado.entero,
     this.original = false,
     this.codigoFabrica = '',
     this.autos = '',
@@ -34,6 +35,7 @@ class DatosCompra {
   final int precio;
   final Motor motor;
   final TipoMaterial material;
+  final NivelLlenado llenado;
   final bool original;
   final String codigoFabrica;
   final String autos;
@@ -52,6 +54,7 @@ class DatosCompra {
         'precio': precio,
         'motor': motor.name,
         'material': material.name,
+        'llenado': llenado.claveDb,
         'original': original ? 1 : 0,
         'codigo_fabrica': codigoFabrica.trim().toUpperCase(),
         'autos': autos.trim(),
@@ -74,6 +77,7 @@ class Compra {
     required this.precio,
     required this.motor,
     required this.material,
+    this.llenado = NivelLlenado.entero,
     required this.original,
     required this.codigoFabrica,
     required this.autos,
@@ -100,6 +104,7 @@ class Compra {
         precio: f['precio']! as int,
         motor: Motor.values.byName(f['motor']! as String),
         material: TipoMaterial.values.byName(f['material']! as String),
+        llenado: NivelLlenadoEtiqueta.deClaveDb(f['llenado']),
         original: f['original'] == 1,
         codigoFabrica: f['codigo_fabrica']! as String,
         autos: f['autos']! as String,
@@ -125,6 +130,7 @@ class Compra {
   final int precio;
   final Motor motor;
   final TipoMaterial material;
+  final NivelLlenado llenado;
   final bool original;
   final String codigoFabrica;
   final String autos;
@@ -142,6 +148,8 @@ class Compra {
 
   bool get tieneUbicacion => lat != null && lng != null;
   String get tipo => tipoTexto(motor, material);
+  String get tipoConLlenado =>
+      llenado == NivelLlenado.entero ? tipo : '$tipo · ${llenado.etiqueta}';
 }
 
 /// Total y cantidad de compras activas en un período.

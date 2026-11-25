@@ -7,10 +7,11 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 import '../data/base.dart';
+import '../data/compra.dart';
 import '../data/migraciones.dart';
 
-// Respaldo: un .zip con la base de datos, las fotos y un manifiesto.
-// Sirve para no perder las compras si se pierde o cambia el teléfono.
+// Respaldo y traspaso filtrado: un .zip con la base de datos, las fotos y un manifiesto.
+// Sirve para respaldar todo o para sincronizar por WhatsApp / Wi-Fi solo ciertas fechas.
 
 const archivoManifiesto = 'manifiesto.json';
 const archivoBase = 'catalog.db';
@@ -25,6 +26,57 @@ class RespaldoInvalido implements Exception {
   String toString() => mensaje;
 }
 
+/// Filtro opcional por fechas de compra o estado de lote al enviar datos a otro celular.
+class FiltroEnvioCatalog {
+  const FiltroEnvioCatalog({
+    this.desde,
+    this.hastaExclusivo,
+    this.soloSinLote = false,
+    this.etiqueta = '',
+  });
+
+  static const todo = FiltroEnvioCatalog();
+
+  final DateTime? desde;
+  final DateTime? hastaExclusivo;
+  final bool soloSinLote;
+  final String etiqueta;
+
+  bool get tieneFiltro => desde != null || hastaExclusivo != null || soloSinLote;
+
+  (String?, List<Object?>) clausulaWhere() {
+    final partes = <String>[];
+    final args = <Object?>[];
+    if (desde != null) {
+      partes.add('fecha_compra >= ?');
+      args.add(ms(desde!));
+    }
+    if (hastaExclusivo != null) {
+      partes.add('fecha_compra < ?');
+      args.add(ms(hastaExclusivo!));
+    }
+    if (soloSinLote) {
+      partes.add('id NOT IN (SELECT compra_id FROM lote_items)');
+    }
+    return (partes.isEmpty ? null : partes.join(' AND '), args);
+  }
+}
+
+/// Cuenta cuántas compras (y qué monto activo) entran en [filtro].
+Future<(int cantidad, int montoActivo)> contarComprasParaEnvio(
+  CatalogDb base,
+  FiltroEnvioCatalog filtro,
+) async {
+  final (where, args) = filtro.clausulaWhere();
+  final sql = 'SELECT COUNT(*) AS n, '
+      "COALESCE(SUM(CASE WHEN estado = 'activa' THEN precio ELSE 0 END), 0) AS t "
+      'FROM compras${where != null ? ' WHERE $where' : ''}';
+  final filas = await base.db.rawQuery(sql, args);
+  final n = (filas.first['n'] as num?)?.toInt() ?? 0;
+  final t = (filas.first['t'] as num?)?.toInt() ?? 0;
+  return (n, t);
+}
+
 class ContenidoRespaldo {
   ContenidoRespaldo(this.manifiesto, this.base, this.fotos);
 
@@ -36,6 +88,7 @@ class ContenidoRespaldo {
   DateTime? get creado => DateTime.tryParse(manifiesto['creado'] as String? ?? '');
   String get prefijo => manifiesto['prefijo'] as String? ?? '';
   String get nombre => manifiesto['nombre'] as String? ?? '';
+  String get rango => manifiesto['rango'] as String? ?? '';
 }
 
 Future<String?> _ajuste(Database db, String clave) async {
@@ -44,27 +97,92 @@ Future<String?> _ajuste(Database db, String clave) async {
 }
 
 /// Arma el .zip con la base de datos y (si se pide) las fotos.
-/// [tipo] es 'respaldo' o 'traspaso' (solo informativo).
+/// Si se pasa [filtro] con fechas o `soloSinLote`, recorta una copia temporal de
+/// la base para enviar únicamente esas compras y sus fotos (sin tocar la base real).
 Future<Uint8List> armarRespaldo(
   CatalogDb base,
   Directory carpetaBase, {
   DateTime? ahora,
   bool incluirFotos = true,
   String tipo = 'respaldo',
+  FiltroEnvioCatalog? filtro,
+  DatabaseFactory? fabrica,
 }) async {
   final db = base.db;
   try {
     await db.rawQuery('PRAGMA wal_checkpoint(TRUNCATE)');
   } catch (_) {}
-  final bytesBase = await File(db.path).readAsBytes();
-  final compras = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM compras')) ?? 0;
+
+  Uint8List bytesBase;
+  int compras;
+  Set<String>? fotosPermitidas;
+
+  if (filtro == null || !filtro.tieneFiltro) {
+    bytesBase = await File(db.path).readAsBytes();
+    compras = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM compras')) ?? 0;
+  } else {
+    final tempDir = await Directory.systemTemp.createTemp('catalog_envio_');
+    try {
+      final rutaTemp = p.join(tempDir.path, 'filtrado.db');
+      await File(db.path).copy(rutaTemp);
+      final f = fabrica ?? databaseFactory;
+      final tempDb = await f.openDatabase(rutaTemp);
+      try {
+        await tempDb.execute('PRAGMA foreign_keys = OFF');
+        final (where, args) = filtro.clausulaWhere();
+        final elegidas = await tempDb.query(
+          'compras',
+          columns: ['id', 'foto_path'],
+          where: where,
+          whereArgs: args.isEmpty ? null : args,
+        );
+        final ids = [for (final r in elegidas) r['id']! as int];
+        fotosPermitidas = {
+          for (final r in elegidas)
+            if ((r['foto_path'] as String?)?.trim().isNotEmpty == true)
+              p.basename((r['foto_path']! as String).trim()),
+        };
+        if (ids.isEmpty) {
+          await tempDb.delete('lote_items');
+          await tempDb.delete('lotes');
+          await tempDb.delete('compras');
+        } else {
+          final listaIds = ids.join(',');
+          await tempDb.rawDelete('DELETE FROM lote_items WHERE compra_id NOT IN ($listaIds)');
+          await tempDb.rawDelete(
+            'DELETE FROM lotes WHERE id NOT IN (SELECT DISTINCT lote_id FROM lote_items)',
+          );
+          await tempDb.rawDelete('DELETE FROM compras WHERE id NOT IN ($listaIds)');
+        }
+        // En envíos parciales al supervisor no arrastramos lotes viejos del supervisor local.
+        try {
+          await tempDb.delete('lotes_supervisor_items');
+          await tempDb.delete('lotes_supervisor');
+        } catch (_) {}
+        await tempDb.execute('VACUUM');
+        try {
+          await tempDb.rawQuery('PRAGMA wal_checkpoint(TRUNCATE)');
+        } catch (_) {}
+        compras = ids.length;
+      } finally {
+        await tempDb.close();
+      }
+      bytesBase = await File(rutaTemp).readAsBytes();
+    } finally {
+      try {
+        await tempDir.delete(recursive: true);
+      } catch (_) {}
+    }
+  }
 
   final zip = Archive();
   var fotos = 0;
   final carpetaFotos = Directory(p.join(carpetaBase.path, 'fotos'));
   if (incluirFotos && await carpetaFotos.exists()) {
     for (final f in carpetaFotos.listSync().whereType<File>()) {
-      zip.addFile(ArchiveFile.bytes('fotos/${p.basename(f.path)}', await f.readAsBytes()));
+      final baseName = p.basename(f.path);
+      if (fotosPermitidas != null && !fotosPermitidas.contains(baseName)) continue;
+      zip.addFile(ArchiveFile.bytes('fotos/$baseName', await f.readAsBytes()));
       fotos++;
     }
   }
@@ -78,6 +196,9 @@ Future<Uint8List> armarRespaldo(
     'fotos': fotos,
     'prefijo': await _ajuste(db, 'prefijo') ?? '',
     'nombre': await _ajuste(db, 'nombre') ?? '',
+    if (filtro != null && filtro.etiqueta.isNotEmpty) 'rango': filtro.etiqueta,
+    if (filtro?.desde != null) 'desde': filtro!.desde!.toIso8601String(),
+    if (filtro?.hastaExclusivo != null) 'hasta': filtro!.hastaExclusivo!.toIso8601String(),
   };
   zip.addFile(ArchiveFile.string(archivoManifiesto, jsonEncode(manifiesto)));
   zip.addFile(ArchiveFile.bytes(archivoBase, bytesBase));
