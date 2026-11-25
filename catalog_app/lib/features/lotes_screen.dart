@@ -285,13 +285,20 @@ class _LotesScreenState extends State<LotesScreen> {
                                             color: CatalogColors.naranja.withValues(alpha: 0.16),
                                             borderRadius: BorderRadius.circular(99),
                                           ),
-                                          child: Text(
-                                            tr('⚠ Falta cerrar', '⚠ Needs closing'),
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w700,
-                                              color: CatalogColors.naranja,
-                                            ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Icons.warning_amber_rounded, size: 12, color: CatalogColors.naranja),
+                                              const SizedBox(width: 3),
+                                              Text(
+                                                tr('Falta cerrar', 'Needs closing'),
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: CatalogColors.naranja,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       if (ganancia != null)

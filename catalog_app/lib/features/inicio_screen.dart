@@ -311,8 +311,8 @@ class _InicioScreenState extends State<InicioScreen> with WidgetsBindingObserver
                     builder: (context, lotes) {
                       final abierto = lotes?.where((l) => !l.lote.cerrado).firstOrNull;
                       return _TarjetaChica(
-                        icono: abierto == null ? Icons.inventory_2_outlined : Icons.inventory_2,
-                        titulo: abierto == null ? tr('Lotes', 'Batches') : tr('⚠ Lote abierto', '⚠ Open batch'),
+                        icono: abierto == null ? Icons.inventory_2_outlined : Icons.warning_amber_rounded,
+                        titulo: abierto == null ? tr('Lotes', 'Batches') : tr('Lote abierto', 'Open batch'),
                         valor: abierto == null ? '${lotes?.length ?? 0}' : clp(abierto.resumen.total),
                         detalle: abierto == null
                             ? tr('Ninguno abierto', 'None open')

@@ -448,7 +448,11 @@ class _RevisionSupervisorScreenState extends State<RevisionSupervisorScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(tr('Revisión de Supervisor', 'Supervisor Review')),
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(tr('Revisión de Supervisor', 'Supervisor Review')),
+        ),
         actions: [
           IconButton(
             key: _gWifi,
