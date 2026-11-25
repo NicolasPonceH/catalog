@@ -112,8 +112,8 @@ Future<void> mostrarDialogoEtiquetaLote(BuildContext context, DatosEtiquetaLote 
             const SizedBox(height: 4),
             Text(
               tr(
-                'Pégala por fuera del saco o caja en bodega. Incluye total de piezas, desglose por material y QR (sin precios).',
-                'Stick it outside the bag or box in storage. Includes total units, material breakdown, and QR (no prices).',
+                'Pégala por fuera del saco o caja. Después puedes escanearla desde el botón central «Escanear», en «Lotes» o dentro de «Revisión de Supervisor» para abrir o auditar el saco.',
+                'Stick it outside the bag or box. Scan it anytime from the central "Scan" button, in "Batches", or inside "Supervisor Review" to open or audit this bag.',
               ),
               style: etiqueta.copyWith(height: 1.35),
             ),

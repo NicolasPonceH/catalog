@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../app_scope.dart';
 import '../data/compra.dart';
 import '../data/lotes_repo.dart';
+import '../domain/codigo.dart';
 import '../domain/formato.dart';
 import '../i18n.dart';
 import '../printing/etiqueta.dart';
@@ -126,6 +127,19 @@ class _LoteScreenState extends State<LoteScreen> {
   }
 
   Future<void> _leido(String texto) async {
+    final saco = leerCodigoLoteEscaneado(texto);
+    if (saco != null) {
+      final d = AppScope.of(context).dispositivo;
+      if (d?.vibrar ?? true) HapticFeedback.heavyImpact();
+      setState(() {
+        _ultimoMensaje = tr(
+          'Ese sticker es la etiqueta de un saco (${saco.codigoLote}). Para abrir un saco usa el botón central Escanear.',
+          'That label belongs to a full bag (${saco.codigoLote}). Use the central Scan button to open a bag.',
+        );
+        _ultimoBien = false;
+      });
+      return;
+    }
     final repo = AppScope.of(context).lotes;
     final (resultado, compra) = await repo.agregarEscaneado(widget.loteId, texto);
     Lote? otroLote;

@@ -57,6 +57,10 @@ En **Historial**, toca el chip **Sin imprimir** (o el aviso naranja de Inicio) p
 1. Toca **Lotes > Nuevo lote** y ponle nombre.
 2. Escanea los stickers uno tras otro: suma lo pagado y **bloquea repetir una pieza que ya esté en este lote o en cualquier otro lote anterior**. Mientras siga abierto, aparecerá destacado con **borde naranja (`Falta cerrar`)**.
 3. Toca **Terminar**, anota opcionalmente **cuánto te pagaron por el lote** para ver la **utilidad neta** (`Venta − Costo pagado`) e imprime la **Etiqueta Maestra QR del Saco / Caja** para pegarla por fuera de la bolsa o caja (con cantidad y desglose por material, sin precios).
+4. **¿Dónde escaneas esa etiqueta del saco?** En tres lugares:
+   - En el botón naranja central **Escanear** (abre el lote completo o la ficha del saco).
+   - En el ícono de escáner arriba a la derecha en **Lotes**.
+   - Directamente con la cámara dentro de **Revisión de Supervisor** (filtra la pantalla para auditar únicamente los catalíticos que vienen adentro de ese saco).
 
 ## 7. Sincronizar por fechas (WhatsApp / Wi-Fi) y Revisión de Supervisor
 

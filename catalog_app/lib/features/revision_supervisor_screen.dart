@@ -11,6 +11,7 @@ import '../data/base.dart';
 import '../data/compra.dart';
 import '../data/compras_repo.dart';
 import '../data/fotos.dart';
+import '../data/lotes_repo.dart';
 import '../data/sesiones.dart';
 import '../data/supervisor_repo.dart';
 import '../domain/codigo.dart';
@@ -45,10 +46,14 @@ class RevisionSupervisorScreen extends StatefulWidget {
     super.key,
     this.revisionInicial,
     this.iniciarConCamara = true,
+    this.codigosFiltroInicial,
+    this.tituloFiltroSaco,
   });
 
   final Sesion? revisionInicial;
   final bool iniciarConCamara;
+  final Set<String>? codigosFiltroInicial;
+  final String? tituloFiltroSaco;
 
   @override
   State<RevisionSupervisorScreen> createState() => _RevisionSupervisorScreenState();
@@ -75,6 +80,8 @@ class _RevisionSupervisorScreenState extends State<RevisionSupervisorScreen> {
   _VistaSupervisor _vista = _VistaSupervisor.activa;
   _FiltroRevision _filtro = _FiltroRevision.todos;
   DateTimeRange? _filtroFechas;
+  late Set<String>? _codigosFiltroSaco = widget.codigosFiltroInicial;
+  late String? _tituloFiltroSaco = widget.tituloFiltroSaco;
   bool _mostrarYaRevisados = false;
 
   bool _iniciado = false;
@@ -251,9 +258,17 @@ class _RevisionSupervisorScreenState extends State<RevisionSupervisorScreen> {
   }
 
   Future<void> _procesarLectura(String bruto) async {
-    final codigo = leerCodigoEscaneado(bruto);
     final d = AppScope.of(context).dispositivo;
     final vibrar = d?.vibrar ?? true;
+
+    // 0. ¿Es la Etiqueta Maestra QR o código de barras de un Saco / Lote (`LOT-...` / `SUP-...`)?
+    final saco = leerCodigoLoteEscaneado(bruto);
+    if (saco != null) {
+      await _procesarEscaneoDeSaco(saco, vibrar: vibrar, sonar: d?.sonar ?? true);
+      return;
+    }
+
+    final codigo = leerCodigoEscaneado(bruto);
 
     if (codigo == null) {
       if (vibrar) HapticFeedback.heavyImpact();
@@ -331,6 +346,112 @@ class _RevisionSupervisorScreenState extends State<RevisionSupervisorScreen> {
               'Verified $codigo · ${compra.tipoConLlenado} · ${clp(compra.precio)}');
       _ultimoOk = true;
       _ultimaCompraEscaneada = compra;
+    });
+  }
+
+  Future<void> _procesarEscaneoDeSaco(
+    CodigoLoteEscaneado saco, {
+    required bool vibrar,
+    required bool sonar,
+  }) async {
+    final scope = AppScope.of(context);
+    if (saco.esSupervisor) {
+      final loteSup = await scope.supervisor.obtenerLote(saco.loteId);
+      if (!mounted) return;
+      if (loteSup != null && diaClave(loteSup.cerradoEn) == saco.dia) {
+        if (vibrar) HapticFeedback.mediumImpact();
+        if (sonar) SystemSound.play(SystemSoundType.click);
+        setState(() {
+          _ultimoAviso = tr(
+            'Saco Supervisor «${loteSup.nombre}» (${contarCataliticos(loteSup.cantidad)} · ${clp(loteSup.totalVerificado)})',
+            'Supervisor Bag "${loteSup.nombre}" (${contarCataliticos(loteSup.cantidad)} · ${clp(loteSup.totalVerificado)})',
+          );
+          _ultimoOk = true;
+          _ultimaCompraEscaneada = null;
+        });
+        await _verDetalleLoteGuardado(loteSup);
+        return;
+      }
+      if (vibrar) HapticFeedback.heavyImpact();
+      setState(() {
+        _ultimoAviso = tr(
+          'Etiqueta de Lote Supervisor ${saco.codigoLote} (${saco.totalPiezas ?? 0} piezas)',
+          'Supervisor Batch label ${saco.codigoLote} (${saco.totalPiezas ?? 0} units)',
+        );
+        _ultimoOk = true;
+        _ultimaCompraEscaneada = null;
+      });
+      return;
+    }
+
+    // Saco de comprador (`LOT-...`): buscar en la base activa o en las revisiones recibidas.
+    final baseActiva = _baseExterna ?? scope.base;
+    final repoActiva = LotesRepo(baseActiva);
+    final loteEnActiva = await repoActiva.obtener(saco.loteId);
+    if (!mounted) return;
+    if (loteEnActiva != null && diaClave(loteEnActiva.cerradoEn ?? loteEnActiva.creadoEn) == saco.dia) {
+      final items = await repoActiva.items(loteEnActiva.id);
+      if (!mounted) return;
+      if (vibrar) HapticFeedback.mediumImpact();
+      if (sonar) SystemSound.play(SystemSoundType.click);
+      setState(() {
+        _codigosFiltroSaco = {for (final i in items) i.compra.codigo};
+        _tituloFiltroSaco = '${loteEnActiva.nombre} (${saco.codigoLote})';
+        _ultimoAviso = tr(
+          'Saco cargado: «${loteEnActiva.nombre}» (${items.length} piezas). Escanea las piezas del saco.',
+          'Bag loaded: "${loteEnActiva.nombre}" (${items.length} units). Scan the units inside this bag.',
+        );
+        _ultimoOk = true;
+        _ultimaCompraEscaneada = null;
+      });
+      return;
+    }
+
+    // Buscar si pertenece a otra sesión recibida de otro comprador.
+    for (final rev in _revisiones) {
+      if (rev.id == _activa?.id) continue;
+      CatalogDb? db;
+      try {
+        db = await CatalogDb.abrir(ruta: rev.rutaBase);
+        final lr = LotesRepo(db);
+        final lote = await lr.obtener(saco.loteId);
+        if (lote != null && diaClave(lote.cerradoEn ?? lote.creadoEn) == saco.dia) {
+          final items = await lr.items(lote.id);
+          await db.cerrar();
+          if (!mounted) return;
+          await _cargarFuente(rev, _revisiones);
+          if (!mounted) return;
+          if (vibrar) HapticFeedback.mediumImpact();
+          setState(() {
+            _codigosFiltroSaco = {for (final i in items) i.compra.codigo};
+            _tituloFiltroSaco = '${lote.nombre} (${saco.codigoLote})';
+            _ultimoAviso = tr(
+              'Saco cargado: «${lote.nombre}» (${items.length} piezas). Escanea las piezas del saco.',
+              'Bag loaded: "${lote.nombre}" (${items.length} units). Scan the units inside this bag.',
+            );
+            _ultimoOk = true;
+          });
+          return;
+        }
+      } catch (_) {
+      } finally {
+        try {
+          await db?.cerrar();
+        } catch (_) {}
+      }
+    }
+
+    if (vibrar) HapticFeedback.heavyImpact();
+    final resumenQr = saco.totalPiezas != null
+        ? ' (${saco.totalPiezas} ${tr('piezas', 'units')})'
+        : '';
+    setState(() {
+      _ultimoAviso = tr(
+        'Saco ${saco.codigoLote}$resumenQr: recibe primero las compras de esa fecha por WhatsApp o Wi-Fi',
+        'Bag ${saco.codigoLote}$resumenQr: receive that date’s purchases via WhatsApp or Wi-Fi first',
+      );
+      _ultimoOk = false;
+      _ultimaCompraEscaneada = null;
     });
   }
 
@@ -470,12 +591,14 @@ class _RevisionSupervisorScreenState extends State<RevisionSupervisorScreen> {
   /// en lotes de supervisor anteriores a menos que `_mostrarYaRevisados` esté activo).
   List<FilaRevisionExcel> _armarFilas({bool aplicarFiltroFecha = true}) {
     final porCodigo = {for (final c in _catalogo) c.codigo: c};
+    final filtroSaco = _codigosFiltroSaco;
     final resultado = <FilaRevisionExcel>[];
 
     final codigosEscaneados = _escaneados.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     for (final e in codigosEscaneados) {
       if (!_mostrarYaRevisados && _yaEnLotes.containsKey(e.key)) continue;
+      if (filtroSaco != null && !filtroSaco.contains(e.key)) continue;
       final c = porCodigo[e.key];
       if (aplicarFiltroFecha && !_entraEnFiltroFecha(c?.fechaCompra ?? e.value)) continue;
       resultado.add(FilaRevisionExcel(
@@ -489,6 +612,7 @@ class _RevisionSupervisorScreenState extends State<RevisionSupervisorScreen> {
     for (final c in _catalogo) {
       if (_escaneados.containsKey(c.codigo)) continue;
       if (!_mostrarYaRevisados && _yaEnLotes.containsKey(c.codigo)) continue;
+      if (filtroSaco != null && !filtroSaco.contains(c.codigo)) continue;
       if (aplicarFiltroFecha && !_entraEnFiltroFecha(c.fechaCompra)) continue;
       resultado.add(FilaRevisionExcel(
         codigo: c.codigo,
@@ -1287,6 +1411,41 @@ class _RevisionSupervisorScreenState extends State<RevisionSupervisorScreen> {
             progreso: progreso,
           ),
         ),
+        if (_codigosFiltroSaco != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+              decoration: BoxDecoration(
+                color: CatalogColors.naranja.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: CatalogColors.naranja, width: 1.4),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.inventory_2_outlined, size: 18, color: CatalogColors.naranja),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${tr('Saco', 'Bag')}: ${_tituloFiltroSaco ?? ''} (${_codigosFiltroSaco!.length})',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    tooltip: tr('Ver todos los catalíticos', 'Show all converters'),
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: () => setState(() {
+                      _codigosFiltroSaco = null;
+                      _tituloFiltroSaco = null;
+                    }),
+                  ),
+                ],
+              ),
+            ),
+          ),
         // Filtros por estado + fechas
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,

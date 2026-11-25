@@ -50,8 +50,17 @@ class DatosEtiquetaLote {
   final String responsable;
   final bool esSupervisor;
 
-  String get payloadQr =>
-      'CATALOG-LOTE|$codigoLote|$totalPiezas|C$ceramicos-M$metalicos-D$dpf${esSupervisor ? '|SUP' : ''}';
+  static String _limpiarCampoQr(String s, int maxLen) {
+    final limpio = s.replaceAll('|', '/').replaceAll('\n', ' ').trim();
+    return limpio.length <= maxLen ? limpio : limpio.substring(0, maxLen).trim();
+  }
+
+  String get payloadQr {
+    final rol = esSupervisor ? 'SUP' : 'LOT';
+    final nom = _limpiarCampoQr(nombreLote, 22);
+    final resp = _limpiarCampoQr(responsable, 16);
+    return 'CATALOG-LOTE|$codigoLote|$totalPiezas|C$ceramicos-M$metalicos-D$dpf|$rol|$conObservacion|$nom|$resp';
+  }
 }
 
 /// El sticker se diseña para 384 puntos de ancho (papel de 58 mm a 203 ppp).

@@ -3,14 +3,14 @@
 </p>
 
 <p align="center">
-  <img alt="Versión 1.7.0" src="https://img.shields.io/badge/versi%C3%B3n-1.7.0-FF7A1A">
+  <img alt="Versión 1.7.1" src="https://img.shields.io/badge/versi%C3%B3n-1.7.1-FF7A1A">
   <img alt="Flutter 3.50" src="https://img.shields.io/badge/Flutter-3.50-02569B?logo=flutter&logoColor=white">
   <img alt="Dart 3.14" src="https://img.shields.io/badge/Dart-3.14-0175C2?logo=dart&logoColor=white">
   <img alt="Android 7.0 o más" src="https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local-003B57?logo=sqlite&logoColor=white">
   <img alt="Wi-Fi local sin nube" src="https://img.shields.io/badge/Wi--Fi%20local-sin%20nube-0E2A47">
   <img alt="Español e Inglés" src="https://img.shields.io/badge/idioma-ES%20%2F%20EN-1D9E75">
-  <img alt="93 pruebas" src="https://img.shields.io/badge/pruebas-93%20OK-2E7D32">
+  <img alt="94 pruebas" src="https://img.shields.io/badge/pruebas-94%20OK-2E7D32">
 </p>
 
 **CataLog** es una app para Android que lleva el control de las compras de catalíticos de un negocio familiar en Arica, Chile. Cada compra queda registrada con su fecha, vendedor, lugar, precio y tipo. La app le imprime al catalítico un sticker con QR y código de barras, lo lee después con la cámara, permite cuadrar inventario por Wi-Fi local con el supervisor y arma los reportes en Excel. Funciona en terreno sin internet y los datos se guardan solo en el teléfono.
@@ -167,7 +167,7 @@ catalog_app/lib/
 
 ## Pruebas
 
-**93 pruebas automáticas** (`flutter test`). Cubren:
+**94 pruebas automáticas** (`flutter test`). Cubren:
 
 - Fecha de compra obligatoria, no futura, reflejada en el código y con auditoría de correcciones.
 - Generador transaccional de códigos únicos por día.
@@ -204,7 +204,7 @@ La llave de firma (`llaves/`, `key.properties`) y los APK compilados (`apk/`) **
 
 | Versión | Fecha | Cambios principales |
 |---|---|---|
-| **1.7.0** | 25-11-2026 | Estado de llenado de cerámica (*Entero 100% · 3/4 · Medio · Fundido/Partido*); sincronización WhatsApp/Wi-Fi **filtrada por fechas**; bloqueo de catalíticos repetidos **entre lotes distintos** (comprador y **Lotes de Supervisor**); rediseño de **Revisión de Supervisor** con anillo de avance, agrupación por fecha y botón de **Observación / Discrepancia** en rojo; **Etiqueta Maestra QR para Saco/Caja**; nuevo **Excel con logo oficial CataLog incrustado, tablas filtrables y Tablas Dinámicas (`PivotTable`)**. |
+| **1.7.1** | 25-11-2026 | Escaneo directo de **Etiquetas Maestras QR y código de barras de Saco/Caja** (`LOT-...` y `SUP-...`) desde el botón central **Escanear**, en **Lotes** y dentro de **Revisión de Supervisor** (abre la ficha del saco o filtra sus piezas para auditarlas); estado de llenado de cerámica (*Entero 100% · 3/4 · Medio · Fundido/Partido*); sincronización WhatsApp/Wi-Fi **filtrada por fechas**; bloqueo anti-repetición **entre lotes** (comprador y **Lotes de Supervisor**); observaciones en rojo y **Excel con logo CataLog y Tablas Dinámicas (`PivotTable`)**. |
 | 1.6.0 | 24-11-2026 | Fotos ligeras (~80 KB) y optimizador de fotos guardadas; notificaciones Pop-up con logo grande a color, aviso al salir de la app y recordatorios periódicos en el día; bordes y avisos para compras sin sticker y lotes abiertos; chips rápidos de Vendedor y Auto frecuente; módulo operativo **Revisión de Supervisor** (escáner + Excel, sin cambiar de sesión); **Sincronización por Wi-Fi local** (Comprador ⇄ Supervisor con QR); respaldos con sobrescritura de archivo único o expiración automática. |
 | 1.5.1 | 24-11-2026 | Canal de notificaciones en `IMPORTANCE_HIGH` para alertas emergentes (`Heads-Up`). |
 | 1.5.0 | 24-11-2026 | Referencia automática de precio por código de fábrica, utilidad neta (`Venta − Costo`) en lotes y su Excel, filtro `Sin imprimir` en Historial, notificaciones locales y tarjeta roja **Ubicar respaldo** directo en Archivos. |

@@ -7,6 +7,7 @@ import '../i18n.dart';
 import '../theme.dart';
 import '../widgets/consulta.dart';
 import '../widgets/guia.dart';
+import 'escanear_screen.dart';
 import 'lote_screen.dart';
 
 /// Lista de lotes escaneados.
@@ -84,7 +85,14 @@ class _LotesScreenState extends State<LotesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(tr('Lotes escaneados', 'Scanned batches')),
-        actions: [BotonAyuda(alTocar: _mostrarGuia)],
+        actions: [
+          IconButton(
+            tooltip: tr('Escanear etiqueta de saco', 'Scan bag label'),
+            icon: const Icon(Icons.qr_code_2),
+            onPressed: () => abrir(context, const EscanearScreen()),
+          ),
+          BotonAyuda(alTocar: _mostrarGuia),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         key: _gNuevo,

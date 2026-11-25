@@ -10,8 +10,10 @@ import 'package:catalog/data/fotos.dart';
 import 'package:catalog/data/lotes_repo.dart';
 import 'package:catalog/data/sesiones.dart';
 import 'package:catalog/data/supervisor_repo.dart';
+import 'package:catalog/domain/codigo.dart';
 import 'package:catalog/domain/tipos.dart';
 import 'package:catalog/features/compra_form_screen.dart';
+import 'package:catalog/features/ficha_saco_screen.dart';
 import 'package:catalog/features/revision_supervisor_screen.dart';
 import 'package:catalog/i18n.dart';
 import 'package:catalog/printing/etiqueta.dart';
@@ -275,6 +277,68 @@ void main() {
     expect(libroSup['Revisión'].images, isNotEmpty);
     expect(libroSup['Revisión'].tables, isNotEmpty);
     expect(libroSup['Tabla Dinámica'].pivotTables.length, 2);
+  });
+
+  test('v1.7.1: escaneo de Etiqueta Maestra de Saco (QR y Code 128) resuelve lotes de comprador y supervisor',
+      () async {
+    final datosSaco = DatosEtiquetaLote(
+      codigoLote: 'LOT-261125-0001',
+      nombreLote: 'Saco Bodega Norte',
+      fecha: DateTime(2026, 11, 25, 14),
+      totalPiezas: 12,
+      ceramicos: 7,
+      metalicos: 3,
+      dpf: 2,
+      responsable: 'Jorge · CTL',
+    );
+    // 1. Por QR completo
+    final desdeQr = leerCodigoLoteEscaneado(datosSaco.payloadQr)!;
+    expect(desdeQr.codigoLote, 'LOT-261125-0001');
+    expect(desdeQr.loteId, 1);
+    expect(desdeQr.totalPiezas, 12);
+    expect(desdeQr.ceramicos, 7);
+    expect(desdeQr.nombreLote, 'Saco Bodega Norte');
+    expect(desdeQr.esSupervisor, isFalse);
+    // No se confunde con catalítico individual
+    expect(leerCodigoEscaneado(datosSaco.payloadQr), isNull);
+    expect(leerCodigoEscaneado('LOT2611250001'), isNull);
+    expect(leerCodigoEscaneado('SUP-261125-0003'), isNull);
+
+    // 2. Por Code 128 sin guiones
+    final desdeBarras = leerCodigoLoteEscaneado('SUP2611250003')!;
+    expect(desdeBarras.codigoLote, 'SUP-261125-0003');
+    expect(desdeBarras.loteId, 3);
+    expect(desdeBarras.esSupervisor, isTrue);
+
+    // 3. Resolución contra Lote de Supervisor guardado
+    final db = await CatalogDb.abrir(ruta: p.join(tempDir.path, 'saco_sup.db'), fabrica: databaseFactoryFfi);
+    addTearDown(db.cerrar);
+    final compras = ComprasRepo(db, reloj: () => DateTime(2026, 11, 25, 15));
+    final sup = SupervisorRepo(db, reloj: () => DateTime(2026, 11, 25, 15));
+    final c = await compras.crear(DatosCompra(
+      fechaCompra: DateTime(2026, 11, 25, 11),
+      vendedor: 'Taller Rojas',
+      precio: 150000,
+      motor: Motor.bencinero,
+      material: TipoMaterial.ceramico,
+    ));
+    final loteSup = await sup.guardarLote(
+      nombre: 'Saco Sup #1',
+      comprador: 'Jorge',
+      prefijo: 'CTL',
+      items: [BorradorItemSupervisor(codigo: c.codigo, compra: c)],
+    );
+    final scopeDummy = AppScope(
+      base: db,
+      fotos: FotosStore(tempDir),
+      child: const SizedBox.shrink(),
+    );
+    final ficha = await FichaSacoScreen.resolver(
+      scope: scopeDummy,
+      escaneado: leerCodigoLoteEscaneado(loteSup.codigoLote)!,
+    );
+    expect(ficha.loteSupervisor?.nombre, 'Saco Sup #1');
+    expect(ficha.itemsSupervisor?.single.codigo, c.codigo);
   });
 
   testWidgets('v1.7: Etiqueta Maestra QR del Saco y nueva pantalla de Revisión de Supervisor', (tester) async {
