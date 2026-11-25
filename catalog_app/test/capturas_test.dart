@@ -15,6 +15,7 @@ import 'package:catalog/data/fotos.dart';
 import 'package:catalog/data/lotes_repo.dart';
 import 'package:catalog/domain/tipos.dart';
 import 'package:catalog/features/presentacion_screen.dart';
+import 'package:catalog/features/revision_supervisor_screen.dart';
 import 'package:catalog/i18n.dart';
 import 'package:catalog/main.dart';
 import 'package:catalog/printing/etiqueta.dart';
@@ -308,6 +309,22 @@ void main() {
     await tester.tap(find.text('Inicio'));
     await _esperar(tester);
 
+    // Módulo operativo de Revisión de Supervisor, con piezas ya verificadas.
+    await tester.runAsync(() async {
+      final verif = File('${Directory.systemTemp.path}/verificados_supervisor_local.json');
+      final ahoraMs = DateTime.now().millisecondsSinceEpoch;
+      final mapa = {
+        for (final c in compras.skip(4)) c.codigo: ahoraMs,
+      };
+      await verif.writeAsString(
+        '{${mapa.entries.map((e) => '"${e.key}":${e.value}').join(',')}}',
+        flush: true,
+      );
+    });
+    navegador.push(MaterialPageRoute(builder: (_) => const RevisionSupervisorScreen(iniciarConCamara: false)));
+    await _capturar(tester, '18-supervisor');
+    await _volver(tester);
+
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
     await tester.runAsync(base.cerrar);
     debugDisableShadows = true;
@@ -508,7 +525,7 @@ void main() {
                       ),
                       const SizedBox(height: 36),
                       const Text(
-                        'FLUTTER · ANDROID · BLUETOOTH · OFFLINE · ES / EN',
+                        'FLUTTER · ANDROID · WI-FI LOCAL · BLUETOOTH · ES / EN',
                         style: TextStyle(
                           fontFamily: fuenteMono,
                           fontSize: 16,

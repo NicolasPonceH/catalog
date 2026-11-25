@@ -1,10 +1,10 @@
 # CataLog · Guía de uso
 
-CataLog registra cada catalítico que compras, le imprime un sticker con su código y te arma los reportes en Excel. Todo queda guardado en el teléfono y funciona sin internet.
+CataLog registra cada catalítico que compras, le imprime un sticker con su código, permite cuadrar inventario por Wi-Fi local con el supervisor y te arma los reportes en Excel. Todo queda guardado en el teléfono y funciona en terreno sin internet.
 
 ## 1. Instalar
 
-1. Pasa el APK más nuevo (hoy `CataLog-1.5.apk`) al celular, por WhatsApp o con el cable.
+1. Pasa el APK más nuevo (`CataLog-1.6.apk`) al celular, por WhatsApp o con el cable.
 2. Ábrelo y acepta **instalar apps desconocidas** cuando el teléfono lo pida.
 3. Si aparece un aviso de seguridad (Xiaomi o Play Protect), toca **Instalar de todas formas**.
 
@@ -12,107 +12,65 @@ Las versiones nuevas se instalan encima de la anterior **sin borrar las compras*
 
 ## 2. Al abrir CataLog
 
-- **Bienvenida y bloqueo:** el logo se arma solo, te saluda por tu nombre y muestra lo gastado en el mes. Entra sola en un par de segundos, o toca la pantalla para entrar antes. Si activaste el bloqueo, ves la pantalla de lectura de huella (sin mostrar montos hasta desbloquear).
-- **Barra de pestañas abajo:** desde cualquier parte puedes ir a **Inicio**, **Historial**, **Lotes** y **Reportes**, con el botón naranja grande de **Escanear** siempre a mano al centro.
-- **La primera vez** aparece una **presentación** de seis páginas: desliza o toca **Siguiente**. En la última escribes tu nombre y el prefijo de los códigos (ves al tiro cómo quedarán). Si dejas marcada la guía rápida, al entrar te muestra el Inicio paso a paso. Para verla de nuevo: **Ajustes > Ayuda > Ver la presentación de nuevo**.
-- **Botón de ayuda** (el círculo con el signo de pregunta, arriba a la derecha de cada pantalla): ilumina cada botón de esa pantalla y explica para qué sirve. Toca **Siguiente** para avanzar o **Salir de la guía** para cerrarla. Hasta que lo uses por primera vez, el botón late con un punto naranja.
+- **Bienvenida y bloqueo:** el logo se arma solo, te saluda por tu nombre y muestra lo gastado en el mes. Si activaste el bloqueo, ves la pantalla de análisis de huella (sin mostrar montos hasta desbloquear).
+- **Alertas visuales en Inicio:** si tienes compras sin sacar sticker o dejaste un lote abierto sin cerrar, aparecen arriba **tarjetas con borde naranja** para resolverlo con un toque.
+- **Barra de pestañas abajo:** **Inicio**, **Historial**, **Lotes** y **Reportes**, con el botón naranja grande de **Escanear** siempre al centro.
+- **Botón de ayuda (`?`):** ilumina cada botón de la pantalla actual y explica para qué sirve paso a paso.
 
-## 3. Lo que hay que configurar
+## 3. Lo que puedes configurar en Ajustes
 
 En **Ajustes** (la ruedita, arriba a la derecha):
 
-- **Tu perfil:** toca la tarjeta de arriba para editar **tu nombre** y el **prefijo** de este teléfono (`CTL`, `CTT`, etc.) para que los códigos nunca se repitan.
-- **Apariencia:** elige **tema** (claro, oscuro o automático según el teléfono), activa **alto contraste** para bordes y textos más marcados, ajusta el **tamaño de letra** (normal, grande o enorme) y prende o apaga las **animaciones**.
-- **Idioma y sonido:** cambia toda la app entre **Español** e **Inglés (English)** al instante, y elige si quieres **vibración** y **sonido** al escanear.
-- **Notificaciones (sin internet):** elige la hora del recordatorio diario (por defecto `20:00`) y qué avisos quieres recibir: respaldo en curso y terminado, stickers pendientes de imprimir, respaldo externo, resumen del día y lotes abiertos.
-- **Ubicar respaldo (tarjeta roja importante):** te lleva directo en la app de Archivos del teléfono a `Descargas/Respaldo CataLog`, exactamente donde están guardados tus respaldos `.zip`.
-- **Impresora:** enciéndela, toca **Buscar** y elígela de la lista. CataLog detecta solo el tipo de impresora. Después toca **Imprimir sticker de prueba**.
-  - Si la impresora es "clásica", primero hay que emparejarla en *Ajustes de Android > Bluetooth* (el PIN suele ser 0000 o 1234).
-  - Si un equipo aparece dos veces y uno no imprime, prueba con el otro.
-- Usa **rollos térmicos adhesivos** para que el sticker pegue.
+- **Tu perfil:** edita **tu nombre** y el **prefijo** de este teléfono (`CTL`, `CTT`, etc.) para que los códigos nunca se repitan.
+- **Apariencia e idioma:** elige **tema** (claro, oscuro o automático), **alto contraste**, **tamaño de letra**, **animaciones** e idioma **Español / English** en vivo.
+- **Fotos y espacio en el teléfono:** por defecto las fotos se guardan en calidad **Ligera (~80 KB)** para que la app siga liviana aunque tengas miles de compras. También puedes elegir *Normal* o *Alta* y tocar **Optimizar fotos guardadas** para comprimir fotos antiguas.
+- **Notificaciones emergentes (Pop-up):**
+  - Elige cada cuánto repetir los avisos pendientes en el día (**Cada 30 min, 1 h, 2 h, 4 h o 1 vez**).
+  - Activa el **aviso inmediato apenas sales de la app** si dejaste un sticker sin imprimir o un lote abierto.
+  - Si tu teléfono (ej. Xiaomi o Samsung) oculta los banners flotantes, toca **Activar Pop-up en pantalla (Android)** para habilitarlo directo.
+- **Ubicar respaldo (tarjeta roja importante):** abre la app de Archivos del teléfono exactamente en `Descargas/Respaldo CataLog`.
+- **Impresora:** enciéndela, toca **Buscar** y elígela de la lista. Después toca **Imprimir sticker de prueba**. Usa **rollos térmicos adhesivos**.
 
-## 4. Registrar una compra
+## 4. Registrar una compra rápida
 
 1. Toca **Nueva compra**.
-2. Revisa la **fecha y hora de compra**: se llena sola. Si anotas la compra más tarde, tócala y pon la fecha y hora reales.
+2. Revisa la **fecha y hora de compra** (se llena sola y puedes corregirla).
 3. Completa:
-   - **Vendedor** y **lugar**. La app te sugiere los que ya usaste y guarda el GPS sola.
-   - **Precio pagado**.
+   - **Vendedor:** al tocar o escribir las primeras letras aparecen abajo **pastillas rápidas de 1 toque** con tus vendedores más frecuentes.
+   - **Lugar** (guarda el GPS automáticamente) y **Precio pagado**.
    - **Motor** y **material**.
-   - **Código grabado de fábrica** y **de qué autos es**. Si ya compraste ese mismo código antes, CataLog te muestra debajo cuánto pagaste la última vez y el promedio, con un botón para usar ese precio al tiro.
-   - **Foto** del catalítico.
-4. Toca **Guardar compra**. Se abre la ficha con el código, por ejemplo `CTL-261121-0007`.
-5. Toca **Imprimir sticker** y pégalo en el catalítico.
+   - **Código grabado de fábrica:** si ya compraste ese mismo código antes, muestra debajo cuánto pagaste la última vez y el promedio, con botón para usar ese monto al tiro.
+   - **De qué autos es:** también sugiere con **1 toque** los vehículos frecuentes de tu historial.
+   - **Foto** ligera del catalítico.
+4. Toca **Guardar compra** e **Imprimir sticker**. Mientras una compra tenga `0 impresiones`, se verá destacada con **borde naranja (`No se le ha sacado el sticker`)** en Inicio e Historial.
 
-El precio **no** sale en el sticker: solo se ve al escanearlo con CataLog.
+El precio **no** sale en el sticker: solo se ve dentro de CataLog.
 
-## 5. Ver un catalítico
+## 5. Ver un catalítico y sacar stickers pendientes
 
-Toca el botón naranja **Escanear** al centro de la barra de abajo y apunta al QR o al código de barras. Se abre su ficha completa: código, precio, fecha de compra, vendedor, lugar con mapa, tipo y foto.
+Toca el botón naranja **Escanear** al centro de la barra inferior y apunta al QR o código de barras para abrir la ficha completa.
 
-En **Historial**, si compraste piezas sin llevar la impresora prendida, toca el filtro **Sin imprimir** para ver todas las que aún tienen `0 impresiones` y sacar sus stickers seguidos.
+En **Historial**, toca el chip **Sin imprimir** (o el aviso naranja de Inicio) para ver todas las compras pendientes de sticker y sacarlas seguidas en bodega.
 
-Si el sticker está dañado, toca **Escribir el código a mano**.
+## 6. Lotes y utilidad real
 
-## 6. Lotes (varios catalíticos juntos)
+1. Toca **Lotes > Nuevo lote** y ponle nombre.
+2. Escanea los stickers uno tras otro: suma lo pagado y no cuenta duplicados. Mientras siga abierto, aparecerá destacado con **borde naranja (`⚠ Falta cerrar`)** y te avisará si sales sin cerrarlo.
+3. Toca **Terminar** y anota opcionalmente **cuánto te pagaron por el lote** para ver la **utilidad neta** (`Venta − Costo pagado`) en pantalla y en el Excel.
 
-1. Toca **Lotes > Nuevo lote** y escribe el nombre (viene sugerido con la fecha y hora).
-2. Escanea los stickers uno tras otro. Cada uno suma lo que pagaste por él, y el mismo catalítico no se cuenta dos veces.
-3. Al final toca **Terminar**. Puedes anotar opcionalmente **cuánto te pagaron por el lote** para ver al instante la **utilidad neta** (`Venta − Costo pagado`) y que salga también en el Excel. Si sales sin escanear nada, el lote no se guarda.
-4. Con el botón de tabla (arriba) se manda el **Excel del lote** por WhatsApp o correo.
+## 7. Sincronizar por Wi-Fi y Revisión de Supervisor
 
-## 7. Reportes y Excel
+No necesitas cambiar de sesión ni mezclar datos:
 
-En **Reportes** eliges el período: hoy, semana, mes, unas fechas o todo. Ahí ves el total gastado, la cantidad, el promedio y los totales por tipo y por vendedor.
+1. Con ambos celulares conectados al **mismo Wi-Fi** (o compartiendo zona portátil de uno al otro), toca el botón `⇄` en Inicio **> Sincronizar por Wi-Fi**.
+2. Uno elige **Enviar (Mostrar QR)** y el otro **Recibir datos**: el teléfono aparece detectado automáticamente en pantalla o basta con apuntar al código QR para pasar compras y fotos en segundos (de tu celular al del supervisor y viceversa).
+3. El supervisor entra a **Revisión de Supervisor** (desde el menú `⇄` o Ajustes):
+   - Escanea los stickers físicos con la cámara integrada para marcar cada pieza como **Verificada** y ver al instante cuáles **faltan por escanear**.
+   - Puede tocar cualquier pieza para revisar su ficha con foto y GPS en solo lectura.
+   - Toca el botón naranja **Excel** para generar y compartir la planilla completa de la revisión.
 
-**Exportar a Excel** arma un archivo con estas hojas:
-- Resumen
-- Compras: una fila por catalítico, con fecha, hora y precio
-- Por tipo
-- Por vendedor
+## 8. Reportes, correcciones y respaldos sin basura
 
-## 8. Corregir o anular
-
-- **Corregir:** en la ficha, toca el lápiz. Si cambias la fecha de compra, la ficha muestra que se corrigió y cuándo.
-- **Anular:** en la ficha, menú de tres puntos > **Anular compra**. Sale de los totales, pero queda en el historial y su número no se vuelve a usar.
-- **Para borrar o anular cualquier cosa** (una compra, un lote, un catalítico de un lote, una revisión, o reemplazar tus compras con un respaldo) CataLog pide tu **huella o PIN**.
-
-## 9. Respaldo (muy importante)
-
-Las compras viven solo en el teléfono. Si se pierde o se rompe, se pierden. Para evitarlo:
-
-- Todos los respaldos quedan en la carpeta **Descargas/Respaldo CataLog** del teléfono. Esa carpeta **no se borra si desinstalas la app**.
-- **Copia automática:** cada día CataLog guarda sola una copia ahí (se conservan las 3 últimas).
-- **Crear respaldo:** botón de flechas del Inicio (o Ajustes) **> Crear respaldo**. Se guarda en esa carpeta y después te ofrece **Enviar** a tu correo, Drive o WhatsApp. Envíalo de vez en cuando: eso protege si se pierde el teléfono.
-- CataLog te recuerda en el Inicio cuando toca hacerlo.
-- **Restaurar:** **Ajustes > Restaurar desde un respaldo**. La app muestra los respaldos de la carpeta Respaldo CataLog; eliges uno y lo extrae sola. Si el archivo está en otra parte (WhatsApp, Drive), toca **Buscar otro archivo**, o tócalo directamente y elige **Abrir con CataLog**.
-
-## 10. Pasar las compras a otro celular (sesiones)
-
-CataLog separa los datos en **sesiones**:
-
-- **Sesión de compra:** tus compras. Ahí registras, imprimes y ves tus totales.
-- **Sesión de revisión:** datos que te mandó otro celular. Se pueden escanear, ver las fichas, armar lotes y sacar reportes, pero **no se mezclan con tus compras** ni se pueden modificar.
-
-**Para mandar tus compras** (por ejemplo, para que tu tío revise y escanee los catalíticos que le entregas):
-1. Botón de flechas del Inicio **> Enviar mis compras a otro celular**.
-2. Elige con o sin fotos (sin fotos pesa menos) y mándalo por WhatsApp o por donde quieras.
-
-**Para recibirlas en el otro celular:**
-1. Toca el archivo en WhatsApp y elige **Abrir con CataLog** (o, en CataLog, **Recibir datos de otro celular**).
-2. Elige **Abrir para revisar**. Arriba del Inicio aparece "Sesión de revisión".
-3. Para volver a tus compras: **Volver a mis compras**, o botón de flechas **> Cambiar de sesión**.
-
-Si te vuelven a mandar datos del mismo teléfono, la revisión se actualiza (no se duplica).
-
-## 11. Bloqueo con huella o PIN
-
-En **Ajustes > Seguridad** activa **Pedir huella o PIN al abrir**. CataLog usa el bloqueo del teléfono (huella, rostro, PIN o patrón) y lo vuelve a pedir si la app estuvo cerrada más de 2 minutos.
-
-## Si algo falla
-
-- **La impresora no aparece:** revisa que el Bluetooth esté encendido y que la impresora esté prendida y cerca. Si Android pide el permiso de **Dispositivos cercanos**, acéptalo.
-- **El sticker sale en blanco:** el rollo está al revés. El papel térmico imprime por un solo lado.
-- **El sticker sale muy claro o se borra:** guarda los catalíticos bajo techo. El papel térmico se borra con el sol y el calor; una cinta transparente encima ayuda.
-- **No lee el código:** acerca o aleja el teléfono, usa la **linterna** del escáner o escribe el código a mano.
-- **Una impresora que no conecta de ninguna forma:** usa **Compartir sticker como imagen** e imprímelo con la app propia de la impresora.
+- **Reportes:** exporta a Excel por día, semana, mes, rango de fechas o todo (con hojas de Resumen, Compras, Por tipo y Por vendedor).
+- **Anular o corregir:** nada se borra; las compras anuladas salen de los totales pero quedan en el historial (pide **huella o PIN**).
+- **Respaldo inteligente:** en **Ajustes > Supervisor, Wi-Fi y Respaldos > Limpieza de respaldos**, por defecto CataLog **sobrescribe un único archivo `.zip`** siempre al día en `Descargas/Respaldo CataLog` para no llenar la carpeta de copias repetidas (o puedes elegir que expiren solos a los 7 o 30 días).
